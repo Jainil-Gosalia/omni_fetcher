@@ -5,21 +5,27 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
-from omni_fetcher.schemas.base import BaseFetchedData, DataCategory, MediaType, FetchMetadata
+from omni_fetcher.schemas.base import BaseFetchedData, DataCategory, MediaType
+from omni_fetcher.schemas.atomics import (
+    TextDocument as AtomicTextDocument,
+    ImageDocument,
+)
 
 
 class BaseDocument(BaseFetchedData):
     """Base model for documents."""
+
     title: Optional[str] = Field(None, description="Document title")
     content: str = Field(..., description="Document content")
-    
+
     category: DataCategory = DataCategory.DOCUMENT
 
 
 class TextDocument(BaseDocument):
     """Model for plain text document."""
+
     media_type: MediaType = MediaType.TEXT_PLAIN
     encoding: str = Field("utf-8", description="Text encoding")
     line_count: Optional[int] = Field(None, ge=0, description="Number of lines")
@@ -29,6 +35,7 @@ class TextDocument(BaseDocument):
 
 class MarkdownDocument(TextDocument):
     """Model for Markdown document."""
+
     media_type: MediaType = MediaType.TEXT_MARKDOWN
     front_matter: Optional[dict[str, Any]] = Field(None, description="YAML front matter")
     headings: Optional[list[str]] = Field(None, description="All heading text")
@@ -37,21 +44,27 @@ class MarkdownDocument(TextDocument):
     images: Optional[list[str]] = Field(None, description="Image references")
 
 
-class HTMLDocument(TextDocument):
+class HTMLDocument(BaseFetchedData):
     """Model for HTML document."""
+
     media_type: MediaType = MediaType.TEXT_HTML
+    text: AtomicTextDocument
+    images: list[ImageDocument] = Field(default_factory=list)
+    title: Optional[str] = Field(None, description="Document title")
     meta_description: Optional[str] = Field(None, description="Meta description")
     meta_keywords: Optional[list[str]] = Field(None, description="Meta keywords")
     links: Optional[list[str]] = Field(None, description="All links in document")
-    images: Optional[list[str]] = Field(None, description="All image URLs")
     scripts: Optional[list[str]] = Field(None, description="Script URLs")
     stylesheets: Optional[list[str]] = Field(None, description="Stylesheet URLs")
     og_tags: Optional[dict[str, str]] = Field(None, description="Open Graph tags")
 
 
-class PDFDocument(BaseDocument):
+class PDFDocument(BaseFetchedData):
     """Model for PDF document."""
+
     media_type: MediaType = MediaType.APPLICATION_PDF
+    text: AtomicTextDocument
+    images: list[ImageDocument] = Field(default_factory=list)
     author: Optional[str] = Field(None, description="PDF author")
     subject: Optional[str] = Field(None, description="PDF subject")
     creator: Optional[str] = Field(None, description="PDF creator application")
@@ -66,6 +79,7 @@ class PDFDocument(BaseDocument):
 
 class CSVData(BaseDocument):
     """Model for CSV data."""
+
     media_type: MediaType = MediaType.TEXT_CSV
     headers: list[str] = Field(default_factory=list, description="CSV headers")
     row_count: Optional[int] = Field(None, ge=0, description="Number of data rows")
