@@ -1,4 +1,5 @@
 """Tests for media Pydantic models."""
+
 import pytest
 from datetime import datetime
 from typing import Optional
@@ -95,7 +96,7 @@ class TestYouTubeVideo:
             video_id="abc123",
             title="Minimal Video",
         )
-        assert yt_video.description is None
+        assert yt_video.text is None
 
 
 class TestLocalVideo:
