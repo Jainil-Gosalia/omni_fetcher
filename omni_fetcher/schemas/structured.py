@@ -12,13 +12,15 @@ from omni_fetcher.schemas.base import BaseFetchedData, DataCategory, MediaType, 
 
 class BaseStructuredData(BaseFetchedData):
     """Base model for structured data (JSON, YAML, XML, etc.)."""
+
     data: Any = Field(default=None, description="The structured data")
-    
+
     category: DataCategory = DataCategory.STRUCTURED
 
 
 class JSONData(BaseStructuredData):
     """Model for JSON data."""
+
     media_type: MediaType = MediaType.TEXT_JSON
     root_keys: Optional[list[str]] = Field(None, description="Top-level keys")
     schema: Optional[dict[str, Any]] = Field(None, description="JSON schema if validated")
@@ -30,6 +32,7 @@ class JSONData(BaseStructuredData):
 
 class YAMLData(BaseStructuredData):
     """Model for YAML data."""
+
     media_type: MediaType = MediaType.TEXT_YAML
     root_keys: Optional[list[str]] = Field(None, description="Top-level keys")
     has_anchors: bool = Field(False, description="Whether YAML uses anchors/aliases")
@@ -38,6 +41,7 @@ class YAMLData(BaseStructuredData):
 
 class XMLData(BaseStructuredData):
     """Model for XML data."""
+
     media_type: MediaType = MediaType.TEXT_XML
     content: str = Field(..., description="Raw XML content")
     root_element: str = Field(..., description="Root element name")
@@ -48,8 +52,24 @@ class XMLData(BaseStructuredData):
 
 class GraphQLResponse(BaseStructuredData):
     """Model for GraphQL response."""
+
     media_type: MediaType = MediaType.TEXT_JSON
+
+    # Request fields (what was sent)
     query: str = Field(..., description="The GraphQL query string")
-    variables: Optional[dict[str, Any]] = Field(None, description="Query variables")
-    errors: Optional[list[dict[str, Any]]] = Field(None, description="GraphQL errors if any")
     operation_name: Optional[str] = Field(None, description="Operation name if specified")
+    variables: Optional[dict[str, Any]] = Field(None, description="Query variables")
+
+    # Response fields
+    errors: Optional[list[dict[str, Any]]] = Field(None, description="GraphQL errors if any")
+    extensions: Optional[dict[str, Any]] = Field(None, description="Response extensions")
+
+    # Convenience properties
+    has_errors: bool = Field(False, description="Whether response has errors")
+
+    # Pydantic model validation
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Auto-set has_errors
+        if self.errors:
+            object.__setattr__(self, "has_errors", bool(self.errors))
