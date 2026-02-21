@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "omni_fetcher"
+version = "0.1.0"
+description = "Universal data fetcher with Pydantic schemas"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    {name = "Jainil"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "pydantic>=2.0",
+    "httpx>=0.24.0",
+    "python-magic>=0.4.27",
+    "beautifulsoup4>=4.12.0",
+    "pillow>=10.0.0",
+    "python-dateutil>=2.8.0",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    # New for extensions
+    "yt-dlp>=2023.0.0",
+    "feedparser>=6.0.0",
+    "boto3>=1.28.0",
+    "pypdf>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+    "pre-commit>=3.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
