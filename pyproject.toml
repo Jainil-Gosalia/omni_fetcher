@@ -33,6 +33,7 @@ dependencies = [
     "feedparser>=6.0.0",
     "boto3>=1.28.0",
     "pypdf>=3.0.0",
+    "redis[hiredis]>=5.0.0",
 ]
 
 [project.scripts]
