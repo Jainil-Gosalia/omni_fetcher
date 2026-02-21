@@ -42,8 +42,29 @@ from omni_fetcher.schemas import (
     XMLData,
     GraphQLResponse,
 )
+from omni_fetcher.schemas.atomics import (
+    AtomicBase,
+    TextFormat,
+    TextDocument,
+    AudioDocument,
+    ImageDocument,
+    VideoDocument,
+    SpreadsheetDocument,
+    SheetData,
+)
 
-__version__ = "0.1.0"
+# Backward compatibility shims (deprecated)
+from omni_fetcher.schemas.compat import (
+    MarkdownDocument,
+    TextDocument as OldTextDocument,
+    StreamAudio,
+    LocalAudio,
+    WebImage,
+    LocalImage,
+    CSVData,
+)
+
+__version__ = "0.3.0"
 
 __all__ = [
     # Main class
@@ -91,4 +112,21 @@ __all__ = [
     "YAMLData",
     "XMLData",
     "GraphQLResponse",
+    # Schemas - Atomics
+    "AtomicBase",
+    "TextFormat",
+    "TextDocument",
+    "AudioDocument",
+    "ImageDocument",
+    "VideoDocument",
+    "SpreadsheetDocument",
+    "SheetData",
+    # Backward compatibility (deprecated - raise ImportError)
+    "MarkdownDocument",  # deprecated
+    "TextDocument",  # now points to atomic (use OldTextDocument for deprecated version)
+    "StreamAudio",  # deprecated
+    "LocalAudio",  # deprecated
+    "WebImage",  # deprecated
+    "LocalImage",  # deprecated
+    "CSVData",  # deprecated
 ]
