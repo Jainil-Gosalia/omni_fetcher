@@ -1,4 +1,5 @@
 """Tests for the source registry system."""
+
 import pytest
 from dataclasses import dataclass
 from typing import Optional
@@ -45,11 +46,11 @@ class TestSourceRegistry:
     def test_register_source(self):
         """Can register a source with the registry."""
         registry = SourceRegistry()
-        
+
         @source(name="test_source", uri_patterns=["test://*"])
         class TestFetcher:
             pass
-        
+
         # Check source is registered
         sources = registry.list_sources()
         assert "test_source" in sources
@@ -58,12 +59,13 @@ class TestSourceRegistry:
         """Registering duplicate source raises error."""
         registry = SourceRegistry()
         registry._sources.clear()  # Clear any existing sources
-        
+
         # First registration should succeed
         registry.register("dup_source", object, ["dup://*"], [], 100)
-        
+
         # Second registration with same name should raise
         from omni_fetcher.core.exceptions import SourceRegistrationError
+
         with pytest.raises(SourceRegistrationError, match="already registered"):
             registry.register("dup_source", object, ["dup2://*"], [], 100)
 
@@ -71,15 +73,15 @@ class TestSourceRegistry:
         """Can list all registered sources."""
         registry = SourceRegistry()
         registry._sources.clear()
-        
+
         @source(name="source_a", uri_patterns=["a://*"])
         class FetcherA:
             pass
-        
+
         @source(name="source_b", uri_patterns=["b://*"])
         class FetcherB:
             pass
-        
+
         sources = registry.list_sources()
         assert "source_a" in sources
         assert "source_b" in sources
@@ -88,11 +90,11 @@ class TestSourceRegistry:
         """Can get source info by name."""
         registry = SourceRegistry()
         registry._sources.clear()
-        
+
         @source(name="get_test", uri_patterns=["get://*"])
         class GetFetcher:
             pass
-        
+
         info = registry.get_source_info("get_test")
         assert info is not None
         assert info.name == "get_test"
@@ -107,15 +109,15 @@ class TestSourceRegistry:
         """Can find sources matching a URI."""
         registry = SourceRegistry()
         registry._sources.clear()
-        
+
         @source(name="http", uri_patterns=["http://*", "https://*"], priority=50)
         class HTTPFetcher:
             pass
-        
+
         @source(name="youtube", uri_patterns=["youtube.com", "youtu.be"], priority=10)
         class YouTubeFetcher:
             pass
-        
+
         matches = registry.find_sources_by_uri("https://youtube.com/watch?v=abc")
         # Should match both (http is generic, youtube is specific)
         assert len(matches) >= 2
@@ -126,15 +128,15 @@ class TestSourceRegistry:
         """Can find sources matching a MIME type."""
         registry = SourceRegistry()
         registry._sources.clear()
-        
+
         @source(name="json", uri_patterns=["*.json"], mime_types=["application/json"], priority=50)
         class JSONFetcher:
             pass
-        
+
         @source(name="video", uri_patterns=["video://*"], mime_types=["video/*"], priority=50)
         class VideoFetcher:
             pass
-        
+
         matches = registry.find_sources_by_mime_type("video/mp4")
         assert len(matches) >= 1
         assert matches[0].name == "video"
@@ -143,15 +145,15 @@ class TestSourceRegistry:
         """Sources are ordered by priority (lower = higher priority)."""
         registry = SourceRegistry()
         registry._sources.clear()
-        
+
         @source(name="low_priority", uri_patterns=["low://*"], priority=100)
         class LowPriorityFetcher:
             pass
-        
+
         @source(name="high_priority", uri_patterns=["high://*"], priority=10)
         class HighPriorityFetcher:
             pass
-        
+
         matches = registry.find_sources_by_uri("high://test")
         assert matches[0].name == "high_priority"
 
@@ -159,11 +161,11 @@ class TestSourceRegistry:
         """Can unregister a source."""
         registry = SourceRegistry()
         registry._sources.clear()
-        
+
         @source(name="temp_source", uri_patterns=["temp://*"])
         class TempFetcher:
             pass
-        
+
         assert "temp_source" in registry.list_sources()
         registry.unregister("temp_source")
         assert "temp_source" not in registry.list_sources()
@@ -171,11 +173,11 @@ class TestSourceRegistry:
     def test_clear_sources(self):
         """Can clear all sources."""
         registry = SourceRegistry()
-        
+
         @source(name="clear_test", uri_patterns=["clear://*"])
         class ClearFetcher:
             pass
-        
+
         registry.clear()
         assert len(registry.list_sources()) == 0
 
@@ -192,11 +194,11 @@ class TestSourceDecorator:
         """@source decorator accepts custom priority."""
         registry = SourceRegistry()
         registry._sources.clear()
-        
+
         @source(name="custom_priority", uri_patterns=["cp://*"], priority=5)
         class CustomPriorityFetcher:
             pass
-        
+
         info = registry.get_source_info("custom_priority")
         assert info.priority == 5
 
@@ -204,10 +206,10 @@ class TestSourceDecorator:
         """@source decorator accepts mime types."""
         registry = SourceRegistry()
         registry._sources.clear()
-        
+
         @source(name="mime_test", uri_patterns=["mime://*"], mime_types=["application/json"])
         class MimeTestFetcher:
             pass
-        
+
         info = registry.get_source_info("mime_test")
         assert "application/json" in info.mime_types

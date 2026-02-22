@@ -61,6 +61,10 @@ class PDFFetcher(BaseFetcher):
         # Parse PDF
         pdf_info = await self._parse_pdf(pdf_data)
 
+        tags = ["pdf", "document"]
+        if not pdf_info.get("text", "").strip():
+            tags.append("scanned")
+
         return PDFDocument(
             metadata=metadata,
             title=pdf_info.get("title"),
@@ -78,6 +82,7 @@ class PDFFetcher(BaseFetcher):
             creation_date=pdf_info.get("creation_date"),
             modification_date=pdf_info.get("modification_date"),
             language=pdf_info.get("language"),
+            tags=tags,
         )
 
     async def _fetch_local(self, uri: str) -> bytes:

@@ -99,8 +99,13 @@ class YouTubeFetcher(BaseFetcher):
         view_count = video_info.get("view_count")
         like_count = video_info.get("like_count")
 
-        # Extract tags
-        tags = video_info.get("tags", [])
+        # Extract YouTube tags (original video tags)
+        youtube_tags = video_info.get("tags", [])
+
+        # Build omni_fetcher tags
+        tags = ["video", "youtube"]
+        if video_info.get("transcript") or video_info.get("description"):
+            tags.append("has_transcript")
 
         # Extract categories
         categories = video_info.get("categories", [])
@@ -136,7 +141,8 @@ class YouTubeFetcher(BaseFetcher):
             upload_date=upload_date,
             view_count=view_count,
             like_count=like_count,
-            tags=tags if tags else None,
+            tags=tags,
+            youtube_tags=youtube_tags if youtube_tags else None,
             video_category=category,
             license=video_info.get("license"),
             is_live=is_live,

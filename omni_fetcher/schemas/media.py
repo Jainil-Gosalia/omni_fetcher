@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from omni_fetcher.schemas.base import DataCategory, MediaType
 from omni_fetcher.schemas.atomics import (
@@ -48,7 +48,8 @@ class YouTubeVideo(BaseModel):
     like_count: Optional[int] = Field(None, ge=0, description="Like count")
     dislike_count: Optional[int] = Field(None, ge=0, description="Dislike count")
     comment_count: Optional[int] = Field(None, ge=0, description="Comment count")
-    tags: Optional[list[str]] = Field(None, description="Video tags")
+    tags: list[str] = Field(default_factory=list)
+    youtube_tags: Optional[list[str]] = Field(None, description="YouTube video tags")
     video_category: Optional[str] = Field(None, description="Video category")
     license: Optional[str] = Field(None, description="License type")
     is_live: bool = Field(False, description="Whether video is live")
@@ -60,6 +61,26 @@ class YouTubeVideo(BaseModel):
     transcript: Optional[TextDocument] = None
     audio: Optional[AudioDocument] = None
     thumbnail: Optional[ImageDocument] = None
+
+    @model_validator(mode="after")
+    def merge_tags(self) -> Self:
+        """Merge tags from child fields."""
+        all_tags: set[str] = set(self.tags) if self.tags else set()
+
+        if self.text and getattr(self.text, "tags", None):
+            all_tags.update(self.text.tags)
+
+        if self.transcript and getattr(self.transcript, "tags", None):
+            all_tags.update(self.transcript.tags)
+
+        if self.audio and getattr(self.audio, "tags", None):
+            all_tags.update(self.audio.tags)
+
+        if self.thumbnail and getattr(self.thumbnail, "tags", None):
+            all_tags.update(self.thumbnail.tags)
+
+        self.tags = sorted(all_tags)
+        return self
 
 
 class LocalVideo(BaseModel):
@@ -83,3 +104,22 @@ class LocalVideo(BaseModel):
     audio: Optional[AudioDocument] = None
     thumbnail: Optional[ImageDocument] = None
     captions: Optional[TextDocument] = None
+
+    tags: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def merge_tags(self) -> Self:
+        """Merge tags from child fields."""
+        all_tags: set[str] = set(self.tags) if self.tags else set()
+
+        if self.audio and getattr(self.audio, "tags", None):
+            all_tags.update(self.audio.tags)
+
+        if self.thumbnail and getattr(self.thumbnail, "tags", None):
+            all_tags.update(self.thumbnail.tags)
+
+        if self.captions and getattr(self.captions, "tags", None):
+            all_tags.update(self.captions.tags)
+
+        self.tags = sorted(all_tags)
+        return self
