@@ -12,8 +12,8 @@ import httpx
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
 from omni_fetcher.schemas.base import FetchMetadata, MediaType, DataCategory
-from omni_fetcher.schemas.documents import TextDocument, HTMLDocument
-from omni_fetcher.schemas.media import WebImage
+from omni_fetcher.schemas.documents import HTMLDocument
+from omni_fetcher.schemas.atomics import TextDocument, ImageDocument, TextFormat
 
 
 @source(
@@ -25,29 +25,29 @@ from omni_fetcher.schemas.media import WebImage
 )
 class HTTPURLFetcher(BaseFetcher):
     """Fetcher for HTTP/HTTPS URLs."""
-    
+
     name = "http_url"
     priority = 50
-    
+
     def __init__(self, timeout: float = 30.0):
         super().__init__()
         self.timeout = timeout
-    
+
     @classmethod
     def can_handle(cls, uri: str) -> bool:
         """Check if this is an HTTP/HTTPS URI."""
         return uri.startswith("http://") or uri.startswith("https://")
-    
+
     async def fetch(self, uri: str, **kwargs: Any) -> Any:
         """Fetch content from HTTP URL."""
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             response = await client.get(uri)
             response.raise_for_status()
-            
+
             content_type = response.headers.get("content-type", "application/octet-stream")
             mime_type = content_type.split(";")[0].strip()
             fetch_duration_ms = response.elapsed.total_seconds() * 1000
-            
+
             metadata = FetchMetadata(
                 source_uri=str(response.url),
                 fetched_at=datetime.now(),
@@ -60,68 +60,76 @@ class HTTPURLFetcher(BaseFetcher):
                 etag=response.headers.get("etag"),
                 last_modified=self._parse_date(response.headers.get("last-modified")),
             )
-            
+
             return await self._create_result(response, metadata, mime_type)
-    
-    async def _create_result(self, response: httpx.Response, metadata: FetchMetadata, mime_type: str) -> Any:
+
+    async def _create_result(
+        self, response: httpx.Response, metadata: FetchMetadata, mime_type: str
+    ) -> Any:
         """Create appropriate result model based on content type."""
         if mime_type.startswith("text/"):
             content = response.text
-            
+
             if mime_type == "text/html":
                 return HTMLDocument(
                     metadata=metadata,
-                    content=content,
+                    text=TextDocument(
+                        source_uri=metadata.source_uri,
+                        content=content,
+                        format=TextFormat.HTML,
+                    ),
                     title=self._extract_title(content),
                 )
             elif mime_type == "text/markdown":
-                from omni_fetcher.schemas.documents import MarkdownDocument
-                return MarkdownDocument(
-                    metadata=metadata,
+                return TextDocument(
+                    source_uri=metadata.source_uri,
                     content=content,
+                    format=TextFormat.MARKDOWN,
                 )
             else:
                 return TextDocument(
-                    metadata=metadata,
+                    source_uri=metadata.source_uri,
                     content=content,
+                    format=TextFormat.PLAIN,
                 )
-        
+
         elif mime_type.startswith("image/"):
-            return WebImage(
-                metadata=metadata,
+            return ImageDocument(
+                source_uri=metadata.source_uri,
                 width=None,
                 height=None,
                 format=mime_type.split("/")[-1].upper(),
-                source_url=metadata.source_uri,
             )
-        
+
         elif mime_type == "application/json":
             from omni_fetcher.schemas.structured import JSONData
+
             try:
                 data = response.json()
             except Exception:
                 data = {}
-            
+
             return JSONData(
                 metadata=metadata,
                 data=data,
                 root_keys=list(data.keys()) if isinstance(data, dict) else None,
                 is_array=isinstance(data, list),
             )
-        
+
         else:
             return TextDocument(
-                metadata=metadata,
+                source_uri=metadata.source_uri,
                 content=response.text[:10000],
+                format=TextFormat.PLAIN,
             )
-    
+
     def _extract_title(self, html: str) -> Optional[str]:
         """Extract title from HTML."""
         match = re.search(r"<title>([^<]+)</title>", html, re.IGNORECASE)
         if match:
             return match.group(1).strip()
         return None
-    
+
     def _parse_date(self, date_str: Optional[str]) -> Optional[datetime]:
         """Parse HTTP date string to datetime."""
         if not date_str:

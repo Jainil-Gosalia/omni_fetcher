@@ -506,50 +506,47 @@ class MyFetcher(BaseFetcher):
 
 ### Schemas
 
-OmniFetcher provides Pydantic models for different data types:
+OmniFetcher uses a clean atomic/composite hierarchy:
 
-#### Base Schemas
-
-```python
-from omni_fetcher import (
-    BaseFetchedData,      # Base class for all fetched data
-    FetchMetadata,        # Metadata about the fetch operation
-    MediaType,            # Enum for media types
-    DataCategory,         # Enum for data categories
-)
-```
-
-#### Media Schemas
+#### Atomics (5 primitives - leaf nodes)
 
 ```python
 from omni_fetcher import (
-    BaseMedia,
-    Video, Audio, Image,
-    YouTubeVideo, LocalVideo,
-    StreamAudio, LocalAudio,
-    WebImage, LocalImage,
+    TextDocument,         # Text content with format (plain, markdown, html, etc.)
+    AudioDocument,       # Audio with duration, format, optional metadata
+    ImageDocument,      # Image with dimensions, optional EXIF/web metadata
+    VideoDocument,      # Video with duration, format, audio, thumbnail
+    SpreadsheetDocument, # Tabular data with multiple sheets
 )
+
+# TextFormat enum for text content types
+from omni_fetcher import TextFormat
+# Values: PLAIN, MARKDOWN, HTML, RST, CODE, TRANSCRIPT
 ```
 
-#### Document Schemas
+#### Composites (4 - contain atomics + metadata)
 
 ```python
 from omni_fetcher import (
-    BaseDocument,
-    TextDocument, MarkdownDocument, HTMLDocument,
-    PDFDocument, CSVData,
+    YouTubeVideo,   # YouTube video with multiple atomics + platform metadata
+    LocalVideo,    # Local video file with atomics + file metadata
+    PDFDocument,   # PDF with text + images + PDF metadata
+    HTMLDocument,   # HTML with text + images + HTML metadata
 )
 ```
 
-#### Structured Data Schemas
+#### Base Classes
 
 ```python
 from omni_fetcher import (
-    BaseStructuredData,
-    JSONData, YAMLData, XMLData,
-    GraphQLResponse,
+    BaseFetchedData,   # Base for all fetched data
+    FetchMetadata,    # Metadata about the fetch
+    MediaType,        # Enum for MIME types
+    DataCategory,     # Enum for data categories
 )
 ```
+
+> **Note**: Some schemas from v0.3.0 have been deprecated in v0.3.1. The following are still available for backward compatibility but will be removed in a future version: `BaseMedia`, `Video`, `Audio`, `Image`, `BaseDocument`, `TextDocument` (old), `MarkdownDocument`, `CSVData`, `StreamAudio`, `LocalAudio`, `LocalImage`, `WebImage`. Use the atomic and composite schemas instead.
 
 ### Exceptions
 

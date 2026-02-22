@@ -68,6 +68,15 @@ class AudioDocument(AtomicBase):
     channels: Optional[int] = None
     transcript: Optional[TextDocument] = None
     language: Optional[str] = None
+    # File metadata
+    file_name: Optional[str] = None
+    file_size_bytes: Optional[int] = None
+    # Audio metadata
+    artist: Optional[str] = None
+    album: Optional[str] = None
+    track_number: Optional[int] = None
+    year: Optional[int] = None
+    genre: Optional[str] = None
     raw: Optional[bytes] = None
 
     def _get_primary_content(self) -> str:
@@ -85,6 +94,19 @@ class ImageDocument(AtomicBase):
     alt_text: Optional[str] = None
     ocr_text: Optional[TextDocument] = None
     caption: Optional[str] = None
+    # File metadata
+    file_name: Optional[str] = None
+    file_size_bytes: Optional[int] = None
+    # Image/EXIF metadata
+    camera_make: Optional[str] = None
+    camera_model: Optional[str] = None
+    gps_latitude: Optional[float] = None
+    gps_longitude: Optional[float] = None
+    orientation: Optional[int] = None
+    # Web context
+    photographer: Optional[str] = None
+    license: Optional[str] = None
+    page_url: Optional[str] = None
     raw: Optional[bytes] = None
 
     def _get_primary_content(self) -> str:
@@ -107,6 +129,9 @@ class VideoDocument(AtomicBase):
     audio: Optional[AudioDocument] = None
     thumbnail: Optional[ImageDocument] = None
     captions: Optional[TextDocument] = None
+    # File metadata
+    file_name: Optional[str] = None
+    file_size_bytes: Optional[int] = None
     raw: Optional[bytes] = None
 
     def _get_primary_content(self) -> str:
