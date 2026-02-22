@@ -19,9 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HTTP fetcher now returns WebPageDocument for HTML content (clean extraction via trafilatura)
 - HTMLDocument removed - use WebPageDocument instead
 
-### Deprecated
-- HTMLDocument - replaced by WebPageDocument
-
 ### Added Dependencies
 - Optional: [office] - python-docx, python-pptx
 - Optional: [web] - trafilatura, readability-lxml
@@ -54,12 +51,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-02-21
 
 ### Added
-- GraphQL fetcher with query/mutation support
-- CLI with fetch, sources, cache, and version commands
-- Redis cache backend for distributed caching
+- Atomic schema layer:
+  - 5 atomic schemas: TextDocument, AudioDocument, ImageDocument, VideoDocument, SpreadsheetDocument
+  - 4 composite schemas: YouTubeVideo, LocalVideo, PDFDocument, HTMLDocument
 
 ### Changed
-- Enhanced GraphQLResponse schema with extensions and has_errors
+- All schemas now compose from atomic layer
+- Unified metadata across document types
 
 ## [0.2.0] - 2026-02-21
 
