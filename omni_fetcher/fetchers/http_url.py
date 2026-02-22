@@ -83,12 +83,14 @@ class HTTPURLFetcher(BaseFetcher):
                     source_uri=metadata.source_uri,
                     content=content,
                     format=TextFormat.MARKDOWN,
+                    tags=["web", "text"],
                 )
             else:
                 return TextDocument(
                     source_uri=metadata.source_uri,
                     content=content,
                     format=TextFormat.PLAIN,
+                    tags=["web", "text"],
                 )
 
         elif mime_type.startswith("image/"):
@@ -97,6 +99,7 @@ class HTTPURLFetcher(BaseFetcher):
                 width=None,
                 height=None,
                 format=mime_type.split("/")[-1].upper(),
+                tags=["web", "image"],
             )
 
         elif mime_type == "application/json":
@@ -112,6 +115,7 @@ class HTTPURLFetcher(BaseFetcher):
                 data=data,
                 root_keys=list(data.keys()) if isinstance(data, dict) else None,
                 is_array=isinstance(data, list),
+                tags=["web", "json", "api"],
             )
 
         else:
@@ -119,6 +123,7 @@ class HTTPURLFetcher(BaseFetcher):
                 source_uri=metadata.source_uri,
                 content=response.text[:10000],
                 format=TextFormat.PLAIN,
+                tags=["web", "text"],
             )
 
     def _create_webpage_document(
@@ -140,6 +145,10 @@ class HTTPURLFetcher(BaseFetcher):
             format=text_format,
         )
 
+        tags = ["web", "webpage"]
+        if images:
+            tags.append("has_images")
+
         return WebPageDocument(
             url=url,
             title=title,
@@ -149,6 +158,7 @@ class HTTPURLFetcher(BaseFetcher):
             published_at=published_at,
             language=language,
             status_code=response.status_code,
+            tags=tags,
         )
 
     def _extract_text(self, html: str) -> tuple[str, TextFormat]:

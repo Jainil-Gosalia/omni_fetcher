@@ -1,4 +1,5 @@
 """Pytest configuration."""
+
 import importlib
 import pytest
 
@@ -7,8 +8,9 @@ import pytest
 def reset_registry():
     """Reset the SourceRegistry singleton before each test, then reload fetcher modules to re-run decorators."""
     from omni_fetcher.core.registry import SourceRegistry
+
     SourceRegistry.reset_instance()
-    
+
     fetcher_modules = [
         "omni_fetcher.fetchers.local_file",
         "omni_fetcher.fetchers.http_url",
@@ -20,7 +22,7 @@ def reset_registry():
         "omni_fetcher.fetchers.pdf",
         "omni_fetcher.fetchers.csv",
     ]
-    
+
     for module_name in fetcher_modules:
         importlib.import_module(module_name)
         importlib.reload(importlib.import_module(module_name))
