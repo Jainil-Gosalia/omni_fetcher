@@ -14,8 +14,11 @@ from omni_fetcher.schemas.media import (
 )
 
 from omni_fetcher.schemas.documents import (
-    HTMLDocument,
+    WebPageDocument,
     PDFDocument,
+    DOCXDocument,
+    PPTXDocument,
+    SlideDocument,
 )
 
 from omni_fetcher.schemas.atomics import (
@@ -52,8 +55,11 @@ __all__ = [
     "LocalVideo",
     "VideoResolution",
     # Documents
-    "HTMLDocument",
+    "WebPageDocument",
     "PDFDocument",
+    "DOCXDocument",
+    "PPTXDocument",
+    "SlideDocument",
     # Atomics
     "AtomicBase",
     "TextFormat",

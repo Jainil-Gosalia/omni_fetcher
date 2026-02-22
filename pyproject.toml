@@ -48,6 +48,14 @@ dev = [
     "mypy>=1.0",
     "pre-commit>=3.0",
 ]
+office = [
+    "python-docx>=1.0.0",
+    "python-pptx>=0.6.0",
+]
+web = [
+    "trafilatura>=1.0.0",
+    "readability-lxml>=0.8.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -11,7 +11,7 @@ import httpx
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
 from omni_fetcher.schemas.base import FetchMetadata
-from omni_fetcher.schemas.documents import HTMLDocument
+from omni_fetcher.schemas.documents import WebPageDocument
 from omni_fetcher.schemas.atomics import TextDocument, TextFormat
 from omni_fetcher.schemas.structured import JSONData
 from omni_fetcher.auth import AuthConfig
@@ -129,7 +129,7 @@ class HTTPAuthFetcher(BaseFetcher):
             content = response.text
 
             if mime_type == "text/html":
-                return HTMLDocument(
+                return WebPageDocument(
                     metadata=metadata,
                     text=TextDocument(
                         source_uri=metadata.source_uri,

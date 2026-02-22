@@ -50,6 +50,12 @@ _MIGRATION_WEB_IMAGE = "WebImage has been removed. Use ImageDocument with option
 
 _MIGRATION_CSV_DATA = "CSVData has been removed. Use SpreadsheetDocument instead."
 
+_MIGRATION_HTML_DOCUMENT = (
+    "HTMLDocument has been removed. "
+    "Use WebPageDocument for clean webpage extraction, "
+    "or use raw HTML via custom fetcher if needed."
+)
+
 
 class _RemovedSchema:
     """Base class for removed schemas that raises ImportError on access."""
@@ -76,3 +82,4 @@ LocalAudio = _RemovedSchema(_MIGRATION_LOCAL_AUDIO)
 LocalImage = _RemovedSchema(_MIGRATION_LOCAL_IMAGE)
 WebImage = _RemovedSchema(_MIGRATION_WEB_IMAGE)
 CSVData = _RemovedSchema(_MIGRATION_CSV_DATA)
+HTMLDocument = _RemovedSchema(_MIGRATION_HTML_DOCUMENT)

@@ -8,12 +8,18 @@ from email.utils import parsedate_to_datetime
 from typing import Any, Optional
 
 import httpx
+from bs4 import BeautifulSoup
 
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
 from omni_fetcher.schemas.base import FetchMetadata, MediaType, DataCategory
-from omni_fetcher.schemas.documents import HTMLDocument
+from omni_fetcher.schemas.documents import WebPageDocument
 from omni_fetcher.schemas.atomics import TextDocument, ImageDocument, TextFormat
+
+try:
+    import trafilatura
+except ImportError:
+    trafilatura = None
 
 
 @source(
@@ -71,15 +77,7 @@ class HTTPURLFetcher(BaseFetcher):
             content = response.text
 
             if mime_type == "text/html":
-                return HTMLDocument(
-                    metadata=metadata,
-                    text=TextDocument(
-                        source_uri=metadata.source_uri,
-                        content=content,
-                        format=TextFormat.HTML,
-                    ),
-                    title=self._extract_title(content),
-                )
+                return self._create_webpage_document(response, metadata, content)
             elif mime_type == "text/markdown":
                 return TextDocument(
                     source_uri=metadata.source_uri,
@@ -123,12 +121,200 @@ class HTTPURLFetcher(BaseFetcher):
                 format=TextFormat.PLAIN,
             )
 
+    def _create_webpage_document(
+        self, response: httpx.Response, metadata: FetchMetadata, html: str
+    ) -> WebPageDocument:
+        """Create WebPageDocument from HTML content."""
+        url = str(response.url)
+        title = self._extract_title(html)
+        author = self._extract_author(html)
+        published_at = self._extract_published_date(html)
+        language = self._extract_language(html)
+        images = self._extract_images(html, url)
+
+        text_content, text_format = self._extract_text(html)
+
+        body = TextDocument(
+            source_uri=url,
+            content=text_content,
+            format=text_format,
+        )
+
+        return WebPageDocument(
+            url=url,
+            title=title,
+            body=body,
+            images=images,
+            author=author,
+            published_at=published_at,
+            language=language,
+            status_code=response.status_code,
+        )
+
+    def _extract_text(self, html: str) -> tuple[str, TextFormat]:
+        """Extract clean text from HTML using trafilatura or fallback."""
+        if trafilatura is not None:
+            try:
+                result = trafilatura.extract(
+                    html,
+                    include_comments=False,
+                    include_tables=True,
+                    output_format="markdown",
+                )
+                if result:
+                    return result, TextFormat.MARKDOWN
+            except Exception:
+                pass
+
+        return self._fallback_extract_text(html)
+
+    def _fallback_extract_text(self, html: str) -> tuple[str, TextFormat]:
+        """Fallback text extraction using BeautifulSoup."""
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+
+            for script in soup(["script", "style"]):
+                script.decompose()
+
+            text = soup.get_text(separator="\n")
+
+            lines = [line.strip() for line in text.split("\n")]
+            clean_lines = [line for line in lines if line]
+            clean_text = "\n".join(clean_lines)
+
+            return clean_text, TextFormat.PLAIN
+        except Exception:
+            return "", TextFormat.PLAIN
+
     def _extract_title(self, html: str) -> Optional[str]:
         """Extract title from HTML."""
-        match = re.search(r"<title>([^<]+)</title>", html, re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+
+            og_title = soup.find("meta", property="og:title")
+            if og_title and og_title.get("content"):
+                return og_title["content"].strip()
+
+            title_tag = soup.find("title")
+            if title_tag:
+                return title_tag.get_text().strip()
+
+            h1 = soup.find("h1")
+            if h1:
+                return h1.get_text().strip()
+        except Exception:
+            pass
         return None
+
+    def _extract_author(self, html: str) -> Optional[str]:
+        """Extract author from HTML meta tags."""
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+
+            author_meta = soup.find("meta", attrs={"name": "author"})
+            if author_meta and author_meta.get("content"):
+                return author_meta["content"].strip()
+
+            og_author = soup.find("meta", property="article:author")
+            if og_author and og_author.get("content"):
+                return og_author["content"].strip()
+
+            author_tag = soup.find("meta", attrs={"name": "twitter:creator"})
+            if author_tag and author_tag.get("content"):
+                return author_tag["content"].strip()
+        except Exception:
+            pass
+        return None
+
+    def _extract_published_date(self, html: str) -> Optional[datetime]:
+        """Extract published date from schema.org or meta tags."""
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+
+            schema = soup.find("script", type="application/ld+json")
+            if schema:
+                import json
+
+                try:
+                    data = json.loads(schema.string)
+                    if isinstance(data, dict):
+                        if data.get("datePublished"):
+                            return self._parse_iso_date(data["datePublished"])
+                        if data.get("dateCreated"):
+                            return self._parse_iso_date(data["dateCreated"])
+                    elif isinstance(data, list):
+                        for item in data:
+                            if isinstance(item, dict) and item.get("datePublished"):
+                                return self._parse_iso_date(item["datePublished"])
+                except Exception:
+                    pass
+
+            article_published = soup.find("meta", property="article:published_time")
+            if article_published and article_published.get("content"):
+                return self._parse_iso_date(article_published["content"])
+        except Exception:
+            pass
+        return None
+
+    def _parse_iso_date(self, date_str: str) -> Optional[datetime]:
+        """Parse ISO date string to datetime."""
+        try:
+            return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+        except Exception:
+            return None
+
+    def _extract_language(self, html: str) -> Optional[str]:
+        """Extract language from HTML."""
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+
+            html_tag = soup.find("html")
+            if html_tag and html_tag.get("lang"):
+                return html_tag["lang"].strip()
+
+            meta = soup.find("meta", attrs={"http-equiv": "content-language"})
+            if meta and meta.get("content"):
+                return meta["content"].strip()
+        except Exception:
+            pass
+        return None
+
+    def _extract_images(self, html: str, base_url: str) -> list[ImageDocument]:
+        """Extract images from main content area."""
+        images = []
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+
+            main_content = soup.find("main") or soup.find("article") or soup.find("body")
+
+            if main_content:
+                img_tags = main_content.find_all("img")
+
+                for img in img_tags:
+                    src = img.get("src") or img.get("data-src")
+                    if not src:
+                        continue
+
+                    if src.startswith("//"):
+                        src = "https:" + src
+                    elif src.startswith("/"):
+                        from urllib.parse import urljoin
+
+                        src = urljoin(base_url, src)
+
+                    if src.startswith("http://") or src.startswith("https://"):
+                        images.append(
+                            ImageDocument(
+                                source_uri=src,
+                                width=None,
+                                height=None,
+                                format="UNKNOWN",
+                            )
+                        )
+
+        except Exception:
+            pass
+        return images
 
     def _parse_date(self, date_str: Optional[str]) -> Optional[datetime]:
         """Parse HTTP date string to datetime."""
