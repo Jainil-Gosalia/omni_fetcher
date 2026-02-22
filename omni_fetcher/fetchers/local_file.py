@@ -121,9 +121,9 @@ class LocalFileFetcher(BaseFetcher):
                         encoding="utf-8",
                     )
                 elif mime_type == "text/html":
-                    from omni_fetcher.schemas.documents import HTMLDocument
+                    from omni_fetcher.schemas.documents import WebPageDocument
 
-                    return HTMLDocument(
+                    return WebPageDocument(
                         metadata=metadata,
                         text=TextDocument(
                             source_uri=metadata.source_uri,

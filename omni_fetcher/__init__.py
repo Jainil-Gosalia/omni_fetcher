@@ -12,8 +12,11 @@ from omni_fetcher.schemas import (
     VideoResolution,
     YouTubeVideo,
     LocalVideo,
-    HTMLDocument,
+    WebPageDocument,
     PDFDocument,
+    DOCXDocument,
+    PPTXDocument,
+    SlideDocument,
 )
 from omni_fetcher.schemas.atomics import (
     AtomicBase,
@@ -36,7 +39,7 @@ from omni_fetcher.schemas.compat import (
     CSVData,
 )
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
 __all__ = [
     "OmniFetcher",
@@ -53,8 +56,11 @@ __all__ = [
     "VideoResolution",
     "YouTubeVideo",
     "LocalVideo",
-    "HTMLDocument",
+    "WebPageDocument",
     "PDFDocument",
+    "DOCXDocument",
+    "PPTXDocument",
+    "SlideDocument",
     "AtomicBase",
     "TextFormat",
     "TextDocument",
