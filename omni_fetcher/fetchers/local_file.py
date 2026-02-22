@@ -11,8 +11,14 @@ from typing import Any, Optional
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
 from omni_fetcher.schemas.base import FetchMetadata, MediaType, DataCategory
-from omni_fetcher.schemas.media import LocalVideo, LocalAudio, LocalImage
-from omni_fetcher.schemas.documents import TextDocument, PDFDocument
+from omni_fetcher.schemas.atomics import (
+    VideoDocument,
+    AudioDocument,
+    ImageDocument,
+    TextDocument,
+    TextFormat,
+)
+from omni_fetcher.schemas.documents import PDFDocument
 from omni_fetcher.schemas.structured import JSONData, YAMLData
 
 
@@ -25,25 +31,25 @@ from omni_fetcher.schemas.structured import JSONData, YAMLData
 )
 class LocalFileFetcher(BaseFetcher):
     """Fetcher for local files."""
-    
+
     name = "local_file"
     priority = 10
-    
+
     def __init__(self):
         super().__init__()
         mimetypes.init()
-    
+
     @classmethod
     def can_handle(cls, uri: str) -> bool:
         """Check if this is a local file URI."""
         return uri.startswith("file://") or os.path.isabs(uri)
-    
+
     async def fetch(self, uri: str, **kwargs: Any) -> Any:
         """Fetch a local file.
-        
+
         Args:
             uri: File path (absolute or file:// URI)
-            
+
         Returns:
             Appropriate Pydantic model based on file type
         """
@@ -51,30 +57,30 @@ class LocalFileFetcher(BaseFetcher):
         if uri.startswith("file://"):
             # Handle both Unix and Windows file:// URIs
             path = uri[7:]  # Remove file://
-            if path.startswith("/") and not os.name == 'nt':
+            if path.startswith("/") and not os.name == "nt":
                 pass  # Unix absolute path
-            elif os.name == 'nt' and len(path) > 1 and path[1] == ':':
+            elif os.name == "nt" and len(path) > 1 and path[1] == ":":
                 pass  # Windows absolute path (e.g., C:)
             else:
                 # Could be file://relative or file://localhost/path
                 path = uri.replace("file://localhost/", "").replace("file:///", "")
         else:
             path = uri
-        
+
         # Get absolute path
         path_obj = Path(path).resolve()
-        
+
         if not path_obj.exists():
             raise FileNotFoundError(f"File not found: {path}")
-        
+
         if not path_obj.is_file():
             raise ValueError(f"Not a file: {path}")
-        
+
         # Get file stats
         stat = path_obj.stat()
         file_size = stat.st_size
         mime_type = self._guess_mime_type(path)
-        
+
         # Create metadata
         metadata = FetchMetadata(
             source_uri=uri,
@@ -84,19 +90,21 @@ class LocalFileFetcher(BaseFetcher):
             file_size=file_size,
             last_modified=datetime.fromtimestamp(stat.st_mtime),
         )
-        
+
         # Return appropriate model based on file type
-        return await self._create_result(path_obj, metadata, mime_type)
-    
+        return await self._create_result(path_obj, metadata, mime_type, uri, stat)
+
     def _guess_mime_type(self, path: str) -> Optional[str]:
         """Guess MIME type from file extension."""
         mime_type, _ = mimetypes.guess_type(path)
         return mime_type
-    
-    async def _create_result(self, path: Path, metadata: FetchMetadata, mime_type: Optional[str]) -> Any:
+
+    async def _create_result(
+        self, path: Path, metadata: FetchMetadata, mime_type: Optional[str], uri: str, stat: Any
+    ) -> Any:
         """Create appropriate result model based on file type."""
         content = None
-        
+
         if mime_type:
             # Text files
             if mime_type.startswith("text/"):
@@ -104,104 +112,125 @@ class LocalFileFetcher(BaseFetcher):
                     content = path.read_text(encoding="utf-8")
                 except UnicodeDecodeError:
                     content = path.read_text(encoding="latin-1")
-                
+
                 if mime_type == "text/markdown":
-                    from omni_fetcher.schemas.documents import MarkdownDocument
-                    return MarkdownDocument(
-                        metadata=metadata,
+                    return TextDocument(
+                        source_uri=metadata.source_uri,
                         content=content,
-                        title=path.stem,
+                        format=TextFormat.MARKDOWN,
+                        encoding="utf-8",
                     )
                 elif mime_type == "text/html":
                     from omni_fetcher.schemas.documents import HTMLDocument
+
                     return HTMLDocument(
                         metadata=metadata,
-                        content=content,
+                        text=TextDocument(
+                            source_uri=metadata.source_uri,
+                            content=content,
+                            format=TextFormat.HTML,
+                        ),
                         title=path.stem,
                     )
                 else:
                     return TextDocument(
-                        metadata=metadata,
+                        source_uri=metadata.source_uri,
                         content=content,
+                        format=TextFormat.PLAIN,
                         encoding="utf-8",
                     )
-            
+
             # JSON
             elif mime_type == "application/json":
                 import json
+
                 try:
                     data = json.loads(path.read_text())
                 except json.JSONDecodeError:
                     data = {}
-                
+
                 from omni_fetcher.schemas.structured import JSONData
+
                 return JSONData(
                     metadata=metadata,
                     data=data,
                     root_keys=list(data.keys()) if isinstance(data, dict) else None,
                     is_array=isinstance(data, list),
                 )
-            
+
             # YAML
             elif mime_type in ["application/x-yaml", "text/yaml"]:
                 try:
                     import yaml
+
                     data = yaml.safe_load(path.read_text())
                 except ImportError:
                     data = {}
                 except Exception:
                     data = {}
-                
+
                 from omni_fetcher.schemas.structured import YAMLData
+
                 return YAMLData(
                     metadata=metadata,
                     data=data,
                     root_keys=list(data.keys()) if isinstance(data, dict) else None,
                 )
-            
+
             # PDF
             elif mime_type == "application/pdf":
                 from omni_fetcher.schemas.documents import PDFDocument
+
                 return PDFDocument(
                     metadata=metadata,
-                    content="",  # PDF content extraction would require additional library
-                    title=path.stem,
-                    file_path=str(path),
-                    file_name=path.name,
+                    text=TextDocument(
+                        source_uri=metadata.source_uri,
+                        content="",
+                        format=TextFormat.PLAIN,
+                    ),
                 )
-            
+
             # Video
             elif mime_type.startswith("video/"):
-                return LocalVideo(
-                    metadata=metadata,
-                    file_path=str(path),
+                video_format = mime_type.split("/")[-1] if mime_type else "unknown"
+                return VideoDocument(
+                    source_uri=uri,
+                    duration_seconds=0.0,
+                    format=video_format,
                     file_name=path.name,
+                    file_size_bytes=stat.st_size,
                 )
-            
+
             # Audio
             elif mime_type.startswith("audio/"):
-                return LocalAudio(
-                    metadata=metadata,
-                    file_path=str(path),
+                audio_format = mime_type.split("/")[-1] if mime_type else "unknown"
+                return AudioDocument(
+                    source_uri=uri,
+                    duration_seconds=0.0,
+                    format=audio_format,
                     file_name=path.name,
+                    file_size_bytes=stat.st_size,
                 )
-            
+
             # Image
             elif mime_type.startswith("image/"):
-                return LocalImage(
-                    metadata=metadata,
-                    file_path=str(path),
+                image_format = mime_type.split("/")[-1] if mime_type else "unknown"
+                return ImageDocument(
+                    source_uri=uri,
+                    format=image_format,
                     file_name=path.name,
+                    file_size_bytes=stat.st_size,
                 )
-        
+
         # Default to text document
         try:
             content = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             content = path.read_text(encoding="latin-1")
-        
+
         return TextDocument(
-            metadata=metadata,
+            source_uri=metadata.source_uri,
             content=content,
+            format=TextFormat.PLAIN,
             encoding="utf-8",
         )
