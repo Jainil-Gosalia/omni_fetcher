@@ -29,6 +29,42 @@ OmniFetcher is a powerful, flexible data fetching library that provides a unifie
 - **Rate Limiting**: Built-in rate limiter for API compliance
 - **Pydantic Validation**: All data is validated and returned as typed Pydantic models
 
+## Tag System
+
+Every schema includes a `tags: list[str]` field that is automatically populated by fetchers. Tags can also be merged from user-supplied tags.
+
+### Automatic Tags
+
+Fetchers automatically apply tags based on the source type:
+
+| Fetcher | Tags |
+|---------|------|
+| local_file | `local`, `file`, format-specific (`text`, `json`, `pdf`, `video`, `audio`, `image`), `large_file` (>50MB) |
+| pdf | `pdf`, `document`, `scanned` |
+| docx | `docx`, `document`, `office`, `has_images`, `has_tables` |
+| pptx | `pptx`, `presentation`, `office` |
+| youtube | `video`, `youtube`, `has_transcript` |
+| rss | `rss`, `feed` |
+| s3 | `s3`, `cloud_storage`, `large_file` |
+| http_url | `web`, content-specific |
+| http_json | `json`, `api` |
+| graphql | `graphql`, `api` |
+| csv | `csv`, `spreadsheet` |
+
+### Tag Merging
+
+Composite schemas (PDFDocument, DOCXDocument, PPTXDocument, WebPageDocument, YouTubeVideo, etc.) automatically merge tags from their child fields.
+
+### User-Supplied Tags
+
+Pass custom tags via the `tags` kwarg:
+
+```python
+result = await fetcher.fetch("https://api.example.com/data", tags=["important", "reviewed"])
+```
+
+User tags are merged with fetcher-generated tags and deduplicated.
+
 ## Installation
 
 ```bash
@@ -138,6 +174,9 @@ OmniFetcher is built on a plugin/registry pattern that allows seamless addition 
 | `s3` | `s3://bucket/key` | AWS S3 object retrieval |
 | `pdf` | PDF file URLs or paths | PDF document parsing |
 | `csv` | CSV file URLs or paths | CSV data extraction |
+| `docx` | `.docx` files | Microsoft Word document parsing |
+| `pptx` | `.pptx` files | Microsoft PowerPoint parsing |
+| `graphql` | GraphQL endpoints | GraphQL query execution |
 
 ### URI Pattern Examples
 
@@ -575,6 +614,9 @@ The `examples/` directory contains comprehensive examples:
 | `06_auth_example.py` | Various authentication methods |
 | `07_oauth2_example.py` | OAuth2 authentication flow |
 | `08_s3_auth_example.py` | AWS S3 authentication |
+| `09_atomic_schemas_example.py` | Atomic schema primitives |
+| `10_office_webpage_example.py` | Office documents and web pages |
+| `11_audio_containers_example.py` | Container schemas for feeds and playlists |
 
 Run examples:
 
