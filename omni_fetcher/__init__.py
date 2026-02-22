@@ -39,7 +39,18 @@ from omni_fetcher.schemas.compat import (
     CSVData,
 )
 
-__version__ = "0.4.0"
+from omni_fetcher.schemas.github import (
+    GitHubFile,
+    GitHubIssue,
+    GitHubPR,
+    GitHubRelease,
+    GitHubRepo,
+    GitHubIssueContainer,
+    GitHubReleaseContainer,
+    GitHubPRContainer,
+)
+
+__version__ = "0.6.1"
 
 __all__ = [
     "OmniFetcher",
@@ -76,4 +87,13 @@ __all__ = [
     "WebImage",
     "LocalImage",
     "CSVData",
+    # GitHub
+    "GitHubFile",
+    "GitHubIssue",
+    "GitHubPR",
+    "GitHubRelease",
+    "GitHubRepo",
+    "GitHubIssueContainer",
+    "GitHubReleaseContainer",
+    "GitHubPRContainer",
 ]
