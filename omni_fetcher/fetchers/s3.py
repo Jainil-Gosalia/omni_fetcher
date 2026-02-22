@@ -77,10 +77,16 @@ class S3Fetcher(BaseFetcher):
 
         content = obj_data["content"]
 
+        tags = ["s3", "cloud_storage"]
+        file_size = obj_data.get("content_length", 0)
+        if file_size and file_size > 50 * 1024 * 1024:
+            tags.append("large_file")
+
         return TextDocument(
             source_uri=uri,
             content=content,
             format=TextFormat.PLAIN,
+            tags=tags,
         )
 
     def _parse_s3_uri(self, uri: str) -> tuple[str, str]:

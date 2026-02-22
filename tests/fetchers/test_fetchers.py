@@ -1,4 +1,5 @@
 """Tests for fetchers."""
+
 import pytest
 import asyncio
 import os
@@ -38,7 +39,7 @@ class TestLocalFileFetcher:
     async def test_fetch_nonexistent_file_raises(self):
         """Fetching non-existent file raises error."""
         fetcher = LocalFileFetcher()
-        
+
         with patch("pathlib.Path.exists", return_value=False):
             with pytest.raises(FileNotFoundError):
                 await fetcher.fetch("/nonexistent/file.txt")

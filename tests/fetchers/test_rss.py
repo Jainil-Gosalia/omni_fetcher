@@ -1,4 +1,5 @@
 """Tests for RSS/Atom fetcher."""
+
 import pytest
 from datetime import datetime
 from unittest.mock import Mock, patch
@@ -34,17 +35,17 @@ class TestRSSFetcher:
     async def test_parse_feed_entry(self):
         """Can parse a feed entry."""
         fetcher = RSSFetcher()
-        
+
         entry = {
-            'title': 'Test Article',
-            'link': 'https://example.com/article',
-            'published': '2024-01-15T10:00:00Z',
-            'summary': 'Article summary',
-            'author': 'John Doe',
-            'tags': [{'term': 'python'}, {'term': 'testing'}],
+            "title": "Test Article",
+            "link": "https://example.com/article",
+            "published": "2024-01-15T10:00:00Z",
+            "summary": "Article summary",
+            "author": "John Doe",
+            "tags": [{"term": "python"}, {"term": "testing"}],
         }
-        
+
         parsed = fetcher._parse_entry(entry)
-        
-        assert parsed['title'] == 'Test Article'
-        assert parsed['link'] == 'https://example.com/article'
+
+        assert parsed["title"] == "Test Article"
+        assert parsed["link"] == "https://example.com/article"

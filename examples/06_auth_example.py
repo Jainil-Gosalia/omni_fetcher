@@ -22,15 +22,18 @@ async def bearer_token_example():
     print("\n" + "=" * 60)
     print("Example 1: Bearer Token Auth with set_auth()")
     print("=" * 60)
-    
+
     fetcher = OmniFetcher(load_env_auth=False)
-    
+
     # Set auth for a source using set_auth()
-    fetcher.set_auth("http", {
-        "type": "bearer",
-        "token": "YOUR_BEARER_TOKEN_HERE",  # Replace with actual token
-    })
-    
+    fetcher.set_auth(
+        "http",
+        {
+            "type": "bearer",
+            "token": "YOUR_BEARER_TOKEN_HERE",  # Replace with actual token
+        },
+    )
+
     # Get the auth config to verify
     auth = fetcher.get_auth("http")
     if auth:
@@ -47,16 +50,19 @@ async def api_key_example():
     print("\n" + "=" * 60)
     print("Example 2: API Key Authentication")
     print("=" * 60)
-    
+
     fetcher = OmniFetcher(load_env_auth=False)
-    
+
     # API key with custom header
-    fetcher.set_auth("http", {
-        "type": "api_key",
-        "api_key": "YOUR_API_KEY_HERE",  # Replace with actual key
-        "api_key_header": "X-API-Key",    # Custom header name
-    })
-    
+    fetcher.set_auth(
+        "http",
+        {
+            "type": "api_key",
+            "api_key": "YOUR_API_KEY_HERE",  # Replace with actual key
+            "api_key_header": "X-API-Key",  # Custom header name
+        },
+    )
+
     auth = fetcher.get_auth("http")
     if auth:
         headers = auth.get_headers()
@@ -71,16 +77,19 @@ async def basic_auth_example():
     print("\n" + "=" * 60)
     print("Example 3: Basic Authentication")
     print("=" * 60)
-    
+
     fetcher = OmniFetcher(load_env_auth=False)
-    
+
     # Basic auth with username/password
-    fetcher.set_auth("http", {
-        "type": "basic",
-        "username": "admin",
-        "password": "password123",  # In production, use env vars
-    })
-    
+    fetcher.set_auth(
+        "http",
+        {
+            "type": "basic",
+            "username": "admin",
+            "password": "password123",  # In production, use env vars
+        },
+    )
+
     auth = fetcher.get_auth("http")
     if auth:
         headers = auth.get_headers()
@@ -95,15 +104,15 @@ async def env_variable_auth_example():
     print("\n" + "=" * 60)
     print("Example 4: Auth from Environment Variables")
     print("=" * 60)
-    
+
     # Set environment variables for demonstration
     os.environ["OMNI_MYSERVICE_TYPE"] = "bearer"
     os.environ["OMNI_MYSERVICE_TOKEN_ENV"] = "MY_SERVICE_TOKEN"
     os.environ["MY_SERVICE_TOKEN"] = "my_secret_token_from_env"
-    
+
     # Create fetcher with env loading enabled (default)
     fetcher = OmniFetcher(load_env_auth=True)
-    
+
     # Check what auth was loaded
     auth = fetcher.get_auth("myservice")
     if auth:
@@ -117,7 +126,7 @@ async def env_variable_auth_example():
         print("  MY_SERVICE_TOKEN=<secret>")
     else:
         print("No auth loaded from environment")
-    
+
     # Clean up
     del os.environ["OMNI_MYSERVICE_TYPE"]
     del os.environ["OMNI_MYSERVICE_TOKEN_ENV"]
@@ -129,39 +138,42 @@ async def constructor_auth_example():
     print("\n" + "=" * 60)
     print("Example 5: Auth via OmniFetcher Constructor")
     print("=" * 60)
-    
+
     # Auth configs passed directly to constructor
-    fetcher = OmniFetcher(load_env_auth=False, auth={
-        "github": {
-            "type": "bearer",
-            "token_env": "GITHUB_TOKEN",  # Will read from this env var
+    fetcher = OmniFetcher(
+        load_env_auth=False,
+        auth={
+            "github": {
+                "type": "bearer",
+                "token_env": "GITHUB_TOKEN",  # Will read from this env var
+            },
+            "api": {
+                "type": "api_key",
+                "api_key_env": "API_KEY",
+                "api_key_header": "Authorization",
+            },
         },
-        "api": {
-            "type": "api_key",
-            "api_key_env": "API_KEY",
-            "api_key_header": "Authorization",
-        },
-    })
-    
+    )
+
     # Set the env var for demo
     os.environ["GITHUB_TOKEN"] = "ghp_example_token"
-    
+
     github_auth = fetcher.get_auth("github")
     api_auth = fetcher.get_auth("api")
-    
+
     print("Auth configs set via constructor:")
     if github_auth:
         print(f"  - github: type={github_auth.type}, token_env={github_auth.token_env}")
     if api_auth:
         print(f"  - api: type={api_auth.type}, header={api_auth.api_key_header}")
-    
+
     # Demonstrate auth hierarchy (per-request > source > env)
     print("\nAuth resolution order:")
     print("  1. Per-request auth (passed to fetch())")
     print("  2. Explicit source auth (set_auth())")
     print("  3. Constructor auth")
     print("  4. Environment variable auth")
-    
+
     # Clean up
     del os.environ["GITHUB_TOKEN"]
 
@@ -171,22 +183,22 @@ async def auth_config_direct_usage():
     print("\n" + "=" * 60)
     print("Example 6: Direct AuthConfig Usage")
     print("=" * 60)
-    
+
     # Create AuthConfig directly
     auth = AuthConfig(
         type="bearer",
         token="my_direct_token",
     )
-    
+
     # Get headers for HTTP requests
     headers = auth.get_headers()
     print(f"Auth type: {auth.type}")
     print(f"Headers: {headers}")
-    
+
     # Convert to dict (with masked values)
     auth_dict = auth.to_dict()
     print(f"\nSerialized auth (masked): {auth_dict}")
-    
+
     # Test with environment variable fallback
     os.environ["TEST_TOKEN"] = "token_from_env"
     auth2 = AuthConfig(
@@ -202,14 +214,14 @@ async def main():
     """Run all authentication examples."""
     print("OmniFetcher Authentication Examples")
     print("=" * 60)
-    
+
     await bearer_token_example()
     await api_key_example()
     await basic_auth_example()
     await env_variable_auth_example()
     await constructor_auth_example()
     await auth_config_direct_usage()
-    
+
     print("\n" + "=" * 60)
     print("All examples completed!")
     print("=" * 60)

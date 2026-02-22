@@ -14,6 +14,7 @@ class AtomicBase(BaseModel):
     source_uri: str
     fetched_at: datetime = Field(default_factory=datetime.now)
     content_hash: str = ""
+    tags: list[str] = Field(default_factory=list)
 
     def model_post_init(self, __context) -> None:
         """Compute content_hash after initialization."""

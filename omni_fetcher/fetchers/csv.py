@@ -54,12 +54,14 @@ class CSVFetcher(BaseFetcher):
             col_count=len(parsed["headers"]) if parsed["headers"] else 0,
         )
 
+        tags = ["csv", "spreadsheet"]
         return SpreadsheetDocument(
             source_uri=uri,
             fetched_at=datetime.now(),
             sheets=[sheet_data],
             format="csv",
             sheet_count=1,
+            tags=tags,
         )
 
     async def _fetch_local(self, uri: str) -> str:

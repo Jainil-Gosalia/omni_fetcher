@@ -74,6 +74,12 @@ class DOCXFetcher(BaseFetcher):
 
         docx_info = await self._parse_docx(docx_data, uri)
 
+        tags = ["docx", "document", "office"]
+        if docx_info.get("images"):
+            tags.append("has_images")
+        if docx_info.get("tables"):
+            tags.append("has_tables")
+
         text_doc = docx_info.get("text")
         if text_doc is None:
             text_doc = TextDocument(source_uri=uri, content="", format=TextFormat.PLAIN)
@@ -90,6 +96,7 @@ class DOCXFetcher(BaseFetcher):
             modified_at=docx_info.get("modified_at"),
             category=DataCategory.DOCUMENT,
             media_type=MediaType.APPLICATION_DOCX,
+            tags=tags,
         )
 
     async def _fetch_local(self, uri: str) -> bytes:

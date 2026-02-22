@@ -9,7 +9,7 @@ import httpx
 
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
-from omni_fetcher.schemas.base import FetchMetadata, MediaType
+from omni_fetcher.schemas.base import FetchMetadata
 from omni_fetcher.schemas.structured import GraphQLResponse
 
 
@@ -151,6 +151,7 @@ class GraphQLFetcher(BaseFetcher):
                 variables=variables,
                 errors=errors,
                 extensions=extensions,
+                tags=["graphql", "api"],
             )
 
     async def fetch(self, uri: str, **kwargs: Any) -> GraphQLResponse:
