@@ -9,6 +9,7 @@ from omni_fetcher.core.exceptions import SourceNotFoundError, FetchError
 from omni_fetcher.fetchers.base import BaseFetcher
 from omni_fetcher.fetchers import (
     LocalFileFetcher,
+    AudioFetcher,
     HTTPURLFetcher,
     HTTPJSONFetcher,
 )
@@ -77,6 +78,7 @@ class OmniFetcher:
         # Import fetchers to trigger @source decorator registration
         # They register themselves when imported
         _ = LocalFileFetcher
+        _ = AudioFetcher
         _ = HTTPURLFetcher
         _ = HTTPJSONFetcher
         _ = YouTubeFetcher

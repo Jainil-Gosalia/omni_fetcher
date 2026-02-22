@@ -13,7 +13,6 @@ from omni_fetcher.fetchers.base import BaseFetcher
 from omni_fetcher.schemas.base import FetchMetadata, MediaType, DataCategory
 from omni_fetcher.schemas.atomics import (
     VideoDocument,
-    AudioDocument,
     ImageDocument,
     TextDocument,
     TextFormat,
@@ -217,19 +216,6 @@ class LocalFileFetcher(BaseFetcher):
                     source_uri=uri,
                     duration_seconds=0.0,
                     format=video_format,
-                    file_name=path.name,
-                    file_size_bytes=stat.st_size,
-                    tags=tags,
-                )
-
-            # Audio
-            elif mime_type.startswith("audio/"):
-                audio_format = mime_type.split("/")[-1] if mime_type else "unknown"
-                tags = build_tags(["local", "file", "audio"])
-                return AudioDocument(
-                    source_uri=uri,
-                    duration_seconds=0.0,
-                    format=audio_format,
                     file_name=path.name,
                     file_size_bytes=stat.st_size,
                     tags=tags,
