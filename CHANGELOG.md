@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-02-22
+
+### Added
+- DOCXDocument schema - Word documents with text, images, tables
+- PPTXDocument schema - PowerPoint presentations with slides
+- SlideDocument schema - Individual slides
+- WebPageDocument schema - Clean webpage extraction (replaces HTMLDocument)
+- DOCXFetcher - Fetch and parse .docx files
+- PPTXFetcher - Fetch and parse .pptx files
+
+### Changed
+- HTTP fetcher now returns WebPageDocument for HTML content (clean extraction via trafilatura)
+- HTMLDocument removed - use WebPageDocument instead
+
+### Deprecated
+- HTMLDocument - replaced by WebPageDocument
+
+### Added Dependencies
+- Optional: [office] - python-docx, python-pptx
+- Optional: [web] - trafilatura, readability-lxml
+
 ## [0.3.1] - 2026-02-21
 
 ### Added
@@ -60,7 +81,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Caching (file, memory), retry, rate limiting
 - Pydantic v2 data validation
 
-[Unreleased]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.1.0...v0.2.0
