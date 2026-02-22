@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-02-22
+
+### Added
+- AudioFetcher - Separate fetcher for audio files (local and remote)
+- utils/tags.py - Tag utilities for reuse
+
+### New Tests
+- test_audio.py - 20 tests for AudioFetcher
+- test_local_file.py - 20 tests for LocalFileFetcher
+
+### Changed
+- local_file.py - Removed audio handling (now in AudioFetcher)
+
+### AudioFetcher Features
+- Handles local and remote audio files
+- URI patterns: .mp3, .wav, .flac, .ogg, .m4a, .aac, .wma
+- Tags: audio, local/remote, large_file (>50MB)
+- Priority: 15
+
+### Testing
+- All 237 tests pass (was 198)
+
 ## [0.6.0] - 2026-02-22
 
 ### Added
