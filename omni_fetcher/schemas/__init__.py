@@ -42,6 +42,18 @@ from omni_fetcher.schemas.compat import (
     CSVData,
 )
 
+from omni_fetcher.schemas.github import (
+    GitHubFile,
+    GitHubIssue,
+    GitHubPR,
+    GitHubRelease,
+    GitHubRepo,
+    GitHubIssueContainer,
+    GitHubReleaseContainer,
+    GitHubPRContainer,
+    detect_language,
+)
+
 OldTextDocument = DeprecatedTextDocument
 
 __all__ = [
@@ -77,4 +89,14 @@ __all__ = [
     "WebImage",
     "LocalImage",
     "CSVData",
+    # GitHub
+    "GitHubFile",
+    "GitHubIssue",
+    "GitHubPR",
+    "GitHubRelease",
+    "GitHubRepo",
+    "GitHubIssueContainer",
+    "GitHubReleaseContainer",
+    "GitHubPRContainer",
+    "detect_language",
 ]

@@ -6,6 +6,7 @@ from omni_fetcher.fetchers.audio import AudioFetcher
 from omni_fetcher.fetchers.http_url import HTTPURLFetcher
 from omni_fetcher.fetchers.http_json import HTTPJSONFetcher
 from omni_fetcher.fetchers.graphql import GraphQLFetcher
+from omni_fetcher.fetchers.github import GitHubFetcher
 
 __all__ = [
     "BaseFetcher",
@@ -15,4 +16,5 @@ __all__ = [
     "HTTPURLFetcher",
     "HTTPJSONFetcher",
     "GraphQLFetcher",
+    "GitHubFetcher",
 ]
