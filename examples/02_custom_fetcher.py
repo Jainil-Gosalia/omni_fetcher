@@ -1,4 +1,4 @@
-"""Custom fetcher example - GitHub API fetcher."""
+"""Custom fetcher example - demonstrating the @source decorator."""
 
 import asyncio
 from datetime import datetime
@@ -12,16 +12,16 @@ from omni_fetcher.schemas.structured import JSONData
 
 
 @source(
-    name="github",
-    uri_patterns=["github.com", "api.github.com"],
+    name="bitbucket",
+    uri_patterns=["bitbucket.org"],
     mime_types=["application/json"],
     priority=15,
-    description="Fetch data from GitHub API",
+    description="Fetch data from Bitbucket API",
 )
-class GitHubFetcher(BaseFetcher):
-    """Fetcher for GitHub API endpoints."""
+class BitbucketFetcher(BaseFetcher):
+    """Fetcher for Bitbucket API endpoints."""
 
-    name = "github"
+    name = "bitbucket"
     priority = 15
 
     def __init__(self, token: Optional[str] = None):
@@ -30,18 +30,18 @@ class GitHubFetcher(BaseFetcher):
 
     @classmethod
     def can_handle(cls, uri: str) -> bool:
-        return "github.com" in uri.lower()
+        return "bitbucket.org" in uri.lower()
 
     async def fetch(self, uri: str, **kwargs):
         api_url = self._convert_to_api_url(uri)
 
         headers = {
-            "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "OmniFetcher-GitHub-Example",
+            "Accept": "application/json",
+            "User-Agent": "OmniFetcher-Bitbucket-Example",
         }
 
         if self.token:
-            headers["Authorization"] = f"token {self.token}"
+            headers["Authorization"] = f"Bearer {self.token}"
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(api_url, headers=headers)
@@ -63,23 +63,18 @@ class GitHubFetcher(BaseFetcher):
         )
 
     def _convert_to_api_url(self, uri: str) -> str:
-        if "api.github.com" in uri:
+        if "api.bitbucket.org" in uri:
             return uri
 
-        uri = uri.replace("https://github.com/", "")
-        uri = uri.replace("http://github.com/", "")
+        uri = uri.replace("https://bitbucket.org/", "")
+        uri = uri.replace("http://bitbucket.org/", "")
 
-        if uri.startswith("orgs/"):
-            return f"https://api.github.com/{uri}"
-        elif uri.startswith("repos/"):
-            return f"https://api.github.com/{uri}"
-        else:
-            return f"https://api.github.com/users/{uri.strip('/')}"
+        return f"https://api.bitbucket.org/2.0/{uri.strip('/')}"
 
 
 async def main():
     print("=" * 60)
-    print("Custom GitHub Fetcher Example")
+    print("Custom Fetcher Example - Bitbucket API")
     print("=" * 60)
 
     fetcher = OmniFetcher()
@@ -88,14 +83,9 @@ async def main():
     for s in fetcher.list_sources():
         print(f"  - {s}")
 
-    print("\nFetching GitHub user 'octocat'...")
-    try:
-        result = await fetcher.fetch("https://api.github.com/users/octocat")
-        print(f"\nLogin: {result.data.get('login')}")
-        print(f"Name: {result.data.get('name')}")
-        print(f"Followers: {result.data.get('followers')}")
-    except Exception as e:
-        print(f"Error: {e}")
+    print("\nNote: Bitbucket API requires authentication.")
+    print("This example demonstrates how to create a custom fetcher.")
+    print("The actual fetch would require a valid Bitbucket token.")
 
 
 if __name__ == "__main__":
