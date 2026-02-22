@@ -137,7 +137,7 @@ class YouTubeFetcher(BaseFetcher):
             view_count=view_count,
             like_count=like_count,
             tags=tags if tags else None,
-            category=category,
+            video_category=category,
             license=video_info.get("license"),
             is_live=is_live,
             is_private=video_info.get("private", False),
