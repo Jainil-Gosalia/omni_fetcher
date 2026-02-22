@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-02-22
+
+### Added
+- GitHubFetcher - Fetch repos, files, issues, PRs, releases from GitHub API
+- GitHub schemas: GitHubFile, GitHubIssue, GitHubPR, GitHubRelease, GitHubRepo
+- GitHub containers: GitHubIssueContainer, GitHubReleaseContainer, GitHubPRContainer
+
+### GitHubFetcher Features
+- Fetches repository metadata (stars, forks, language, topics)
+- Fetches README files
+- Fetches individual files with language detection
+- Fetches issues with comments
+- Fetches pull requests with diff support
+- Fetches releases with release notes
+- Bearer token auth via GITHUB_TOKEN env var
+
+### URI Patterns
+- `github.com/owner/repo` → GitHubRepo
+- `github.com/owner/repo/blob/branch/path` → GitHubFile
+- `github.com/owner/repo/issues/N` → GitHubIssue
+- `github.com/owner/repo/pull/N` → GitHubPR
+- `github.com/owner/repo/releases` → GitHubReleaseContainer
+
+### New Tests
+- test_github.py - 27 tests for GitHubFetcher
+
 ## [0.6.1] - 2026-02-22
 
 ### Added
@@ -26,6 +52,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Testing
 - All 237 tests pass (was 198)
+
+## [0.5.0] - 2026-02-22
+
+### Added
+- AudioFetcher - Fetch and parse audio files (local and remote)
+- AudioDocument schema - Audio metadata with transcript support
+- Container schemas module - BaseContainer, RSSFeed, S3Bucket, YouTubePlaylist
+
+### AudioFetcher Features
+- Handles local and remote audio files
+- URI patterns: .mp3, .wav, .flac, .ogg, .m4a, .aac, .wma
+- Extracts metadata: duration, sample_rate, channels, artist, album, genre
+- Optional transcript extraction
+- Tags: audio, local/remote, large_file (>50MB)
+
+### Container Features
+- BaseContainer with pagination support (next_page_token)
+- RSSFeed for RSS/Atom feeds
+- S3Bucket for S3 object listings
+- YouTubePlaylist for YouTube playlists
 
 ## [0.6.0] - 2026-02-22
 
@@ -135,7 +181,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Caching (file, memory), retry, rate limiting
 - Pydantic v2 data validation
 
-[Unreleased]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.6.1...v0.7.0
+[0.6.1]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Jainil-Gosalia/omni_fetcher/compare/v0.2.0...v0.3.0
