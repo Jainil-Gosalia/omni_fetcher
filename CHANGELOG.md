@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-02-22
+
+### Added
+- Tag System - All schemas now include a `tags: list[str]` field
+- Automatic tag population by fetchers based on source type
+- Tag merging in composite/container schemas via model_validator
+- User-supplied tags via `tags` kwarg in `OmniFetcher.fetch()`
+- Naming conflict resolution:
+  - YouTubeVideo.tags → youtube_tags (YouTube's original tags)
+  - RSSItem.tags → categories (RSS feed categories)
+- BaseContainer schema with merge_tags validator
+- large_file tag (>50MB) for local_file and s3 fetchers
+
+### Fetcher Tags
+| Fetcher | Tags |
+|---------|------|
+| local_file | local, file, format-specific, large_file |
+| pdf | pdf, document, scanned |
+| docx | docx, document, office, has_images, has_tables |
+| pptx | pptx, presentation, office |
+| youtube | video, youtube, has_transcript |
+| rss | rss, feed |
+| s3 | s3, cloud_storage, large_file |
+| http_url | web, content-specific |
+| http_json | json, api |
+| graphql | graphql, api |
+| csv | csv, spreadsheet |
+
+### Added Dependencies
+- schemas/containers.py - New module for container schemas
+
+### Backward Compatibility
+- All changes are additive - existing code works without modification
+
 ## [0.4.0] - 2026-02-22
 
 ### Added
