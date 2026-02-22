@@ -132,7 +132,20 @@ class OmniFetcher:
             fetcher.set_auth(auth_config)
 
         try:
+            # Extract user-supplied tags from kwargs before passing to fetcher
+            user_tags = kwargs.pop("tags", None)
+
             result = await fetcher.fetch(uri, **kwargs)
+
+            # Merge user tags with fetcher-generated tags
+            if user_tags and result and hasattr(result, "tags"):
+                if result.tags:
+                    combined = set(result.tags)
+                    combined.update(user_tags if isinstance(user_tags, list) else [user_tags])
+                    result.tags = sorted(combined)
+                else:
+                    result.tags = list(user_tags) if isinstance(user_tags, list) else [user_tags]
+
             return result
         except Exception as e:
             raise FetchError(uri, str(e))

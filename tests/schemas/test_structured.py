@@ -1,4 +1,5 @@
 """Tests for structured data Pydantic models."""
+
 import pytest
 from datetime import datetime
 from typing import Optional, Any

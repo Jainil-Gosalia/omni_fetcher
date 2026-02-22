@@ -87,6 +87,9 @@ class BaseFetchedData(BaseModel):
     metadata: FetchMetadata = Field(..., description="Metadata about the fetch operation")
     category: DataCategory = Field(..., description="Category of the data")
     media_type: MediaType = Field(..., description="Media type of the data")
+    tags: list[str] = Field(
+        default_factory=list, description="Tags for categorization and filtering"
+    )
 
     class Config:
         use_enum_values = True

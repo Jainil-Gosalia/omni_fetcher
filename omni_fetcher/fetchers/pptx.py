@@ -75,6 +75,8 @@ class PPTXFetcher(BaseFetcher):
 
         pptx_info = await self._parse_pptx(pptx_data, uri)
 
+        tags = ["pptx", "presentation", "office"]
+
         return PPTXDocument(
             metadata=metadata,
             slides=pptx_info.get("slides", []),
@@ -83,6 +85,7 @@ class PPTXFetcher(BaseFetcher):
             title=pptx_info.get("title"),
             category=DataCategory.DOCUMENT,
             media_type=MediaType.APPLICATION_PPTX,
+            tags=tags,
         )
 
     async def _fetch_local(self, uri: str) -> bytes:

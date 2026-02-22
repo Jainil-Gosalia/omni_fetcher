@@ -1,4 +1,5 @@
 """Tests for S3 fetcher."""
+
 import pytest
 from unittest.mock import Mock, patch
 
@@ -30,7 +31,7 @@ class TestS3Fetcher:
     async def test_parse_s3_uri(self):
         """Can parse S3 URI."""
         fetcher = S3Fetcher()
-        
+
         bucket, key = fetcher._parse_s3_uri("s3://my-bucket/path/to/file.txt")
         assert bucket == "my-bucket"
         assert key == "path/to/file.txt"
@@ -39,7 +40,7 @@ class TestS3Fetcher:
     async def test_parse_s3_uri_no_key(self):
         """Can parse S3 URI with no key."""
         fetcher = S3Fetcher()
-        
+
         bucket, key = fetcher._parse_s3_uri("s3://my-bucket")
         assert bucket == "my-bucket"
         assert key == ""

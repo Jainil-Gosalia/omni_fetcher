@@ -1,4 +1,5 @@
 """Integration tests for authenticated API calls."""
+
 import base64
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
@@ -61,9 +62,12 @@ class TestHTTPAuthFetcherBearerToken:
     @pytest.mark.asyncio
     async def test_full_fetch_request_with_bearer(self):
         """Test full fetch flow with bearer token."""
+
         async def mock_handler(request: httpx.Request) -> httpx.Response:
             auth = request.headers.get("Authorization")
-            assert auth == "Bearer full-test-token", f"Expected 'Bearer full-test-token', got '{auth}'"
+            assert auth == "Bearer full-test-token", (
+                f"Expected 'Bearer full-test-token', got '{auth}'"
+            )
             return httpx.Response(
                 status_code=200,
                 content=b"Hello World",
@@ -78,7 +82,7 @@ class TestHTTPAuthFetcherBearerToken:
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
             mock_client.get = AsyncMock()
-            
+
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"content-type": "text/plain"}
@@ -87,7 +91,7 @@ class TestHTTPAuthFetcherBearerToken:
             mock_response.elapsed.total_seconds = MagicMock(return_value=0.1)
             mock_response.url = "https://api.example.com/hello"
             mock_response.raise_for_status = MagicMock()
-            
+
             mock_client.get.return_value = mock_response
             mock_client_class.return_value = mock_client
 
@@ -140,11 +144,11 @@ class TestHTTPAuthFetcherAPIKey:
 
         transport = httpx.MockTransport(mock_handler)
         fetcher = HTTPAuthFetcher()
-        fetcher.set_auth(AuthConfig(
-            type="api_key",
-            api_key="custom-header-key",
-            api_key_header="X-Custom-Auth-Key"
-        ))
+        fetcher.set_auth(
+            AuthConfig(
+                type="api_key", api_key="custom-header-key", api_key_header="X-Custom-Auth-Key"
+            )
+        )
 
         async with httpx.AsyncClient(transport=transport) as client:
             await client.get("https://api.example.com/data", headers=fetcher._build_headers())
@@ -194,11 +198,7 @@ class TestHTTPAuthFetcherBasicAuth:
 
         transport = httpx.MockTransport(mock_handler)
         fetcher = HTTPAuthFetcher()
-        fetcher.set_auth(AuthConfig(
-            type="basic",
-            username="admin",
-            password="secret123"
-        ))
+        fetcher.set_auth(AuthConfig(type="basic", username="admin", password="secret123"))
 
         async with httpx.AsyncClient(transport=transport) as client:
             await client.get("https://api.example.com/data", headers=fetcher._build_headers())
@@ -259,12 +259,14 @@ class TestOAuth2TokenRefresh:
 
         async def mock_token_handler(request: httpx.Request) -> httpx.Response:
             nonlocal token_request_data
-            content = request.content.read() if hasattr(request.content, 'read') else request.content
+            content = (
+                request.content.read() if hasattr(request.content, "read") else request.content
+            )
             body_str = content.decode() if isinstance(content, bytes) else str(content)
             params = {}
-            for pair in body_str.split('&'):
-                if '=' in pair:
-                    k, v = pair.split('=', 1)
+            for pair in body_str.split("&"):
+                if "=" in pair:
+                    k, v = pair.split("=", 1)
                     params[k] = v
             token_request_data = params
             return httpx.Response(
@@ -303,6 +305,7 @@ class TestOAuth2TokenRefresh:
     @pytest.mark.asyncio
     async def test_token_is_cached_and_reused(self):
         """Verify token is cached and reused for subsequent requests."""
+
         async def mock_token_handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(
                 status_code=200,
@@ -354,11 +357,11 @@ class TestOAuth2TokenRefresh:
             mock_response1 = MagicMock()
             mock_response1.json.return_value = {"access_token": "token-v1", "expires_in": 3600}
             mock_response1.raise_for_status = MagicMock()
-            
+
             mock_response2 = MagicMock()
             mock_response2.json.return_value = {"access_token": "token-v2", "expires_in": 3600}
             mock_response2.raise_for_status = MagicMock()
-            
+
             mock_client.post = AsyncMock(side_effect=[mock_response1, mock_response2])
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -383,10 +386,7 @@ class TestOmniFetcherWithAuth:
     async def test_set_auth_on_omnifetcher(self):
         """Test setting auth on OmniFetcher."""
         fetcher = OmniFetcher()
-        fetcher.set_auth("github", {
-            "type": "bearer",
-            "token": "gh-token-123"
-        })
+        fetcher.set_auth("github", {"type": "bearer", "token": "gh-token-123"})
 
         auth = fetcher.get_auth("github")
         assert auth is not None
@@ -413,7 +413,7 @@ class TestOmniFetcherWithAuth:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
-            
+
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"content-type": "application/json"}
@@ -422,13 +422,13 @@ class TestOmniFetcherWithAuth:
             mock_response.elapsed.total_seconds = MagicMock(return_value=0.1)
             mock_response.url = "https://api.example.com/protected"
             mock_response.raise_for_status = MagicMock()
-            
+
             mock_client.get = AsyncMock(return_value=mock_response)
             mock_client_class.return_value = mock_client
 
             fetcher = HTTPAuthFetcher()
             fetcher.set_auth(AuthConfig(type="bearer", token="omni-test-token"))
-            
+
             result = await fetcher.fetch("https://api.example.com/protected")
 
         call_kwargs = mock_client.get.call_args
@@ -455,7 +455,7 @@ class TestOmniFetcherWithAuth:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
-            
+
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"content-type": "text/plain"}
@@ -464,15 +464,14 @@ class TestOmniFetcherWithAuth:
             mock_response.elapsed.total_seconds = MagicMock(return_value=0.1)
             mock_response.url = "https://api.example.com/data"
             mock_response.raise_for_status = MagicMock()
-            
+
             mock_client.get = AsyncMock(return_value=mock_response)
             mock_client_class.return_value = mock_client
 
             fetcher = HTTPAuthFetcher(bearer_token="default-token")
-            
+
             result = await fetcher.fetch(
-                "https://api.example.com/data",
-                bearer_token="override-token"
+                "https://api.example.com/data", bearer_token="override-token"
             )
 
         call_kwargs = mock_client.get.call_args
@@ -482,6 +481,7 @@ class TestOmniFetcherWithAuth:
     async def test_auth_registry_merges_with_env(self):
         """Test auth registry merges with env vars."""
         import os
+
         with pytest.MonkeyPatch.context() as m:
             m.setenv("TEST_API_TOKEN", "env-token-value")
             m.setenv("TEST_API_TYPE", "bearer")
@@ -512,7 +512,7 @@ class TestOmniFetcherWithAuth:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
-            
+
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"content-type": "application/json"}
@@ -521,13 +521,13 @@ class TestOmniFetcherWithAuth:
             mock_response.elapsed.total_seconds = MagicMock(return_value=0.1)
             mock_response.url = "https://api.example.com/key-protected"
             mock_response.raise_for_status = MagicMock()
-            
+
             mock_client.get = AsyncMock(return_value=mock_response)
             mock_client_class.return_value = mock_client
 
             fetcher = HTTPAuthFetcher()
             fetcher.set_auth(AuthConfig(type="api_key", api_key="omni-api-key"))
-            
+
             result = await fetcher.fetch("https://api.example.com/key-protected")
 
         call_kwargs = mock_client.get.call_args
@@ -583,7 +583,11 @@ class TestFullAuthFlowIntegration:
         async with httpx.AsyncClient(transport=transport) as client:
             token_response = await client.post(
                 "https://auth.example.com/token",
-                data={"grant_type": "client_credentials", "client_id": "client-id", "client_secret": "client-secret"},
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": "client-id",
+                    "client_secret": "client-secret",
+                },
             )
             token_data = token_response.json()
             config.set_oauth2_token(token_data["access_token"], token_data.get("expires_in"))
