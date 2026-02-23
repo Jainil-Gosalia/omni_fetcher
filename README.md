@@ -7,6 +7,10 @@
 
 Universal data fetcher that can fetch data from any source and return it as predefined Pydantic objects.
 
+## Version
+
+**Current: v0.11.2**
+
 ## Project Overview
 
 OmniFetcher is a powerful, flexible data fetching library that provides a unified interface for retrieving data from various sources. Whether you need to fetch data from local files, HTTP APIs, cloud storage, or media platforms, OmniFetcher handles them all with a consistent, type-safe API backed by Pydantic v2 for robust data validation.
@@ -177,6 +181,13 @@ OmniFetcher is built on a plugin/registry pattern that allows seamless addition 
 | `docx` | `.docx` files | Microsoft Word document parsing |
 | `pptx` | `.pptx` files | Microsoft PowerPoint parsing |
 | `graphql` | GraphQL endpoints | GraphQL query execution |
+| `github` | `github.com`, `api.github.com` | GitHub API integration |
+| `google_drive` | `drive.google.com` | Google Drive file fetching |
+| `notion` | `notion.so`, `api.notion.com` | Notion workspace data |
+| `jira` | Atlassian Jira instances | Jira issues and projects |
+| `confluence` | Confluence instances | Confluence pages and spaces |
+| `slack` | Slack workspaces | Slack messages and channels |
+| `audio` | Audio file URLs/paths | Audio file metadata extraction |
 
 ### URI Pattern Examples
 
@@ -607,7 +618,7 @@ The `examples/` directory contains comprehensive examples:
 | Example | Description |
 |---------|-------------|
 | `01_basic_usage.py` | Basic fetching from APIs and files |
-| `02_custom_fetcher.py` | Creating a custom GitHub fetcher |
+| `02_custom_fetcher.py` | Creating a custom fetcher |
 | `03_custom_schema.py` | Using custom Pydantic schemas |
 | `04_cli_example.py` | Building a CLI with OmniFetcher |
 | `05_media_example.py` | Fetching media (YouTube, images) |
@@ -617,6 +628,12 @@ The `examples/` directory contains comprehensive examples:
 | `09_atomic_schemas_example.py` | Atomic schema primitives |
 | `10_office_webpage_example.py` | Office documents and web pages |
 | `11_audio_containers_example.py` | Container schemas for feeds and playlists |
+| `12_github_example.py` | GitHub API integration |
+| `13_google_drive_example.py` | Google Drive file fetching |
+| `14_notion_example.py` | Notion workspace integration |
+| `15_confluence_example.py` | Confluence pages and spaces |
+| `16_slack_example.py` | Slack messaging integration |
+| `17_jira_example.py` | Jira issues and projects |
 
 Run examples:
 
@@ -647,19 +664,39 @@ pytest -v
 
 ```
 tests/
-├── conftest.py              # Pytest fixtures
-├── test_auth.py             # Authentication tests
-├── test_auth_integration.py # Auth integration tests
+├── conftest.py                    # Pytest fixtures
+├── test_auth.py                   # Authentication tests
+├── test_auth_integration.py       # Auth integration tests
+├── test_cli.py                   # CLI tests
 ├── core/
-│   └── test_registry.py     # Registry tests
+│   └── test_registry.py          # Registry tests
 ├── fetchers/
-│   ├── test_fetchers.py    # Fetcher tests
-│   ├── test_pdf.py         # PDF fetcher tests
-│   ├── test_rss.py         # RSS fetcher tests
-│   ├── test_s3.py          # S3 fetcher tests
-│   └── test_youtube.py     # YouTube fetcher tests
+│   ├── test_audio.py             # Audio fetcher tests
+│   ├── test_confluence.py        # Confluence fetcher tests
+│   ├── test_csv.py               # CSV fetcher tests
+│   ├── test_docx.py              # DOCX fetcher tests
+│   ├── test_fetchers.py          # Base fetcher tests
+│   ├── test_github.py            # GitHub fetcher tests
+│   ├── test_google_drive.py      # Google Drive fetcher tests
+│   ├── test_graphql.py           # GraphQL fetcher tests
+│   ├── test_jira.py              # Jira fetcher tests
+│   ├── test_local_file.py        # Local file fetcher tests
+│   ├── test_notion.py            # Notion fetcher tests
+│   ├── test_pdf.py               # PDF fetcher tests
+│   ├── test_pptx.py              # PPTX fetcher tests
+│   ├── test_rss.py               # RSS fetcher tests
+│   ├── test_s3.py                # S3 fetcher tests
+│   ├── test_slack.py             # Slack fetcher tests
+│   ├── test_webpage.py           # HTTP/webpage fetcher tests
+│   └── test_youtube.py           # YouTube fetcher tests
 └── schemas/
-    ├── test_base.py        # Base schema tests
+    ├── test_atomics.py           # Atomic schema tests
+    ├── test_base.py              # Base schema tests
+    ├── test_jira.py              # Jira schema tests
+    ├── test_media.py             # Media schema tests
+    ├── test_slack.py             # Slack schema tests
+    └── test_structured.py        # Structured data schema tests
+```
     ├── test_media.py       # Media schema tests
     └── test_structured.py  # Structured data tests
 ```

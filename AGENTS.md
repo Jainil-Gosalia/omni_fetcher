@@ -4,7 +4,7 @@ This file provides development guidelines for agents working on the OmniFetcher 
 
 ## Project Overview
 
-OmniFetcher (v0.4.0) is a universal data fetcher library that retrieves data from various sources (local files, HTTP APIs, S3, YouTube, RSS, etc.) and returns it as validated Pydantic models. It uses Python 3.10+ with async/await patterns.
+OmniFetcher (v0.11.2) is a universal data fetcher library that retrieves data from various sources (local files, HTTP APIs, S3, YouTube, RSS, etc.) and returns it as validated Pydantic models. It uses Python 3.10+ with async/await patterns.
 
 ## Build, Test, and Lint Commands
 
