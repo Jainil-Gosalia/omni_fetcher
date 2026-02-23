@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-02-23
+
+### Added
+- ConfluenceFetcher - Fetch pages and spaces from Confluence API
+- Confluence schemas: ConfluencePage, ConfluenceSpace, ConfluenceAttachment, ConfluenceUser, ConfluenceComment
+
+### ConfluenceFetcher Features
+- Fetches Confluence pages with HTML content
+- Fetches Confluence spaces as containers with pages and attachments
+- HTML→markdown conversion (headings, lists, code blocks, tables)
+- Bearer token auth via CONFLUENCE_TOKEN env var
+- Supports self-hosted Confluence via base_url kwarg
+- Supports Confluence Cloud (atlassian.net)
+
+### URI Patterns
+- `company.atlassian.net/wiki/spaces/SPACE/pages/PAGE_ID` → ConfluencePage
+- `confluence.company.com/pages/viewpage.action?pageId=PAGE_ID` → ConfluencePage
+- `company.atlassian.net/wiki/spaces/SPACE` → ConfluenceSpace
+- `confluence://page-id` → ConfluencePage
+
+### Dependencies
+- atlassian-python-api>=3.0.0
+
+### New Tests
+- test_confluence.py - 25 tests for ConfluenceFetcher
+
 ## [0.9.0] - 2026-02-23
 
 ### Added
