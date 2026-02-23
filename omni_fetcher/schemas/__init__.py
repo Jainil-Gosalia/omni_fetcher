@@ -63,6 +63,15 @@ from omni_fetcher.schemas.google import (
     GoogleSlidesPresentation,
 )
 
+from omni_fetcher.schemas.notion import (
+    NotionPage,
+    NotionDatabase,
+    NotionBlock,
+    NotionRichText,
+    NotionUser,
+    NotionProperty,
+)
+
 OldTextDocument = DeprecatedTextDocument
 
 __all__ = [
@@ -115,4 +124,11 @@ __all__ = [
     "GoogleSheetsSpreadsheet",
     "GoogleDocsDocument",
     "GoogleSlidesPresentation",
+    # Notion
+    "NotionPage",
+    "NotionDatabase",
+    "NotionBlock",
+    "NotionRichText",
+    "NotionUser",
+    "NotionProperty",
 ]
