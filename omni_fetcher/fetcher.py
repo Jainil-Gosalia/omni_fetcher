@@ -21,6 +21,7 @@ from omni_fetcher.fetchers.csv import CSVFetcher
 from omni_fetcher.fetchers.graphql import GraphQLFetcher
 from omni_fetcher.fetchers.http_auth import HTTPAuthFetcher
 from omni_fetcher.fetchers.slack import SlackFetcher
+from omni_fetcher.fetchers.jira import JiraFetcher
 from omni_fetcher.auth import AuthConfig, load_auth_from_env
 
 
@@ -90,6 +91,7 @@ class OmniFetcher:
         _ = GraphQLFetcher
         _ = HTTPAuthFetcher
         _ = SlackFetcher
+        _ = JiraFetcher
 
     async def fetch(self, uri: str, **kwargs: Any) -> Any:
         """Fetch data from the given URI.
