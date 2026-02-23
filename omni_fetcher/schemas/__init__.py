@@ -54,6 +54,15 @@ from omni_fetcher.schemas.github import (
     detect_language,
 )
 
+from omni_fetcher.schemas.google import (
+    GoogleDriveFile,
+    GoogleDriveFolder,
+    GoogleDriveContainer,
+    GoogleSheetsSpreadsheet,
+    GoogleDocsDocument,
+    GoogleSlidesPresentation,
+)
+
 OldTextDocument = DeprecatedTextDocument
 
 __all__ = [
@@ -99,4 +108,11 @@ __all__ = [
     "GitHubReleaseContainer",
     "GitHubPRContainer",
     "detect_language",
+    # Google Drive/Sheets/Docs/Slides
+    "GoogleDriveFile",
+    "GoogleDriveFolder",
+    "GoogleDriveContainer",
+    "GoogleSheetsSpreadsheet",
+    "GoogleDocsDocument",
+    "GoogleSlidesPresentation",
 ]

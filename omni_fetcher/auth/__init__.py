@@ -69,6 +69,14 @@ class AuthConfig(BaseModel):
     oauth2_access_token: Optional[str] = Field(None, description="OAuth2 access token (cached)")
     oauth2_token_expiry: Optional[float] = Field(None, description="OAuth2 token expiry timestamp")
 
+    # Google Service Account
+    google_service_account_env: Optional[str] = Field(
+        None, description="Env var name for Google service account JSON"
+    )
+    google_service_account_json: Optional[str] = Field(
+        None, description="Google service account JSON content"
+    )
+
     def get_token(self) -> Optional[str]:
         """Get bearer token, checking env var first."""
         if self.token_env:
@@ -143,6 +151,12 @@ class AuthConfig(BaseModel):
         if self.oauth2_token_expiry:
             return time.time() < self.oauth2_token_expiry - 30
         return True
+
+    def get_google_service_account_json(self) -> Optional[str]:
+        """Get Google service account JSON, checking env var first."""
+        if self.google_service_account_env:
+            return os.environ.get(self.google_service_account_env, self.google_service_account_json)
+        return self.google_service_account_json
 
     async def refresh_oauth2_token(self) -> Optional[str]:
         """Refresh OAuth2 access token.
@@ -317,6 +331,12 @@ def load_auth_from_env(prefix: str = "OMNI_") -> Dict[str, AuthConfig]:
                 config["oauth2_refresh_token"] = props_lower["oauth2_refresh_token"]
             elif "oauth2_refresh_token_env" in props_lower:
                 config["oauth2_refresh_token_env"] = props_lower["oauth2_refresh_token_env"]
+
+        elif auth_type == "google_service_account":
+            if "google_service_account_env" in props_lower:
+                config["google_service_account_env"] = props_lower["google_service_account_env"]
+            if "google_service_account_json" in props_lower:
+                config["google_service_account_json"] = props_lower["google_service_account_json"]
 
         auth_configs[source] = AuthConfig(**config)
 

@@ -50,6 +50,15 @@ from omni_fetcher.schemas.github import (
     GitHubPRContainer,
 )
 
+from omni_fetcher.schemas.google import (
+    GoogleDriveFile,
+    GoogleDriveFolder,
+    GoogleDriveContainer,
+    GoogleSheetsSpreadsheet,
+    GoogleDocsDocument,
+    GoogleSlidesPresentation,
+)
+
 __version__ = "0.7.0"
 
 __all__ = [
@@ -96,4 +105,11 @@ __all__ = [
     "GitHubIssueContainer",
     "GitHubReleaseContainer",
     "GitHubPRContainer",
+    # Google Drive/Sheets/Docs/Slides
+    "GoogleDriveFile",
+    "GoogleDriveFolder",
+    "GoogleDriveContainer",
+    "GoogleSheetsSpreadsheet",
+    "GoogleDocsDocument",
+    "GoogleSlidesPresentation",
 ]
