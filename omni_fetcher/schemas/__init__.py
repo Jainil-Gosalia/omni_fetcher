@@ -72,6 +72,14 @@ from omni_fetcher.schemas.notion import (
     NotionProperty,
 )
 
+from omni_fetcher.schemas.confluence import (
+    ConfluencePage,
+    ConfluenceSpace,
+    ConfluenceAttachment,
+    ConfluenceUser,
+    ConfluenceComment,
+)
+
 OldTextDocument = DeprecatedTextDocument
 
 __all__ = [
@@ -131,4 +139,10 @@ __all__ = [
     "NotionRichText",
     "NotionUser",
     "NotionProperty",
+    # Confluence
+    "ConfluencePage",
+    "ConfluenceSpace",
+    "ConfluenceAttachment",
+    "ConfluenceUser",
+    "ConfluenceComment",
 ]

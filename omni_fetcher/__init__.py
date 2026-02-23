@@ -68,6 +68,14 @@ from omni_fetcher.schemas.notion import (
     NotionProperty,
 )
 
+from omni_fetcher.schemas.confluence import (
+    ConfluencePage,
+    ConfluenceSpace,
+    ConfluenceAttachment,
+    ConfluenceUser,
+    ConfluenceComment,
+)
+
 __version__ = "0.9.0"
 
 __all__ = [
@@ -128,4 +136,10 @@ __all__ = [
     "NotionRichText",
     "NotionUser",
     "NotionProperty",
+    # Confluence
+    "ConfluencePage",
+    "ConfluenceSpace",
+    "ConfluenceAttachment",
+    "ConfluenceUser",
+    "ConfluenceComment",
 ]

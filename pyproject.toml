@@ -65,6 +65,9 @@ gdrive = [
 notion = [
     "notion-client>=2.0.0",
 ]
+confluence = [
+    "atlassian-python-api>=3.0.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
