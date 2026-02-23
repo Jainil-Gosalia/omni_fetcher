@@ -76,6 +76,13 @@ from omni_fetcher.schemas.confluence import (
     ConfluenceComment,
 )
 
+from omni_fetcher.schemas.slack import (
+    SlackMessage,
+    SlackThread,
+    SlackChannel,
+    SlackDM,
+)
+
 __version__ = "0.9.0"
 
 __all__ = [
@@ -142,4 +149,9 @@ __all__ = [
     "ConfluenceAttachment",
     "ConfluenceUser",
     "ConfluenceComment",
+    # Slack
+    "SlackMessage",
+    "SlackThread",
+    "SlackChannel",
+    "SlackDM",
 ]
