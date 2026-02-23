@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-02-23
+
+### Added
+- NotionFetcher - Fetch pages and databases from Notion API
+- Notion schemas: NotionPage, NotionDatabase, NotionBlock, NotionRichText, NotionUser, NotionProperty
+- Notion media types in base.py
+
+### NotionFetcher Features
+- Fetches Notion pages with block content
+- Fetches Notion databases as SpreadsheetDocument (properties as headers, pages as rows)
+- Block→markdown conversion for 18 block types (paragraph, headings, lists, code, quote, callout, image, video, embed, bookmark, etc.)
+- Rich text with markdown annotations (bold, italic, code, links)
+- Bearer token auth via NOTION_TOKEN env var
+- Recursive block fetching support
+- Uses notion-client SDK with pagination helpers
+
+### URI Patterns
+- `notion.so/page-id` → NotionPage
+- `notion.so/workspace/page-name-32charid` → NotionPage
+- `notion://page-id` → NotionPage
+
+### Dependencies
+- notion-client>=2.0.0
+
+### New Tests
+- test_notion.py - 23 tests for NotionFetcher
+
+## [0.8.0] - 2026-02-22
+
+### Added
+- GoogleDriveFetcher - Fetch files and folders from Google Drive
+- GoogleSheetsFetcher - Fetch Google Sheets as CSV/JSON
+- GoogleDocsFetcher - Fetch Google Docs as markdown
+- GoogleSlidesFetcher - Fetch Google Slides as text per slide
+- Google schemas: GoogleDriveFile, GoogleDriveFolder, GoogleDriveContainer, GoogleSheetsSpreadsheet, GoogleDocsDocument, GoogleSlidesPresentation
+
+### Google Features
+- Fetches Drive files with metadata (size, mime type, timestamps)
+- Recursive folder fetching
+- Service account authentication via GOOGLE_SERVICE_ACCOUNT_JSON
+- Exports Sheets as CSV/JSON
+- Converts Docs to markdown
+- Extracts text from Slides
+
+### URI Patterns
+- `drive.google.com/file/d/FILE_ID` → GoogleDriveFile
+- `drive.google.com/drive/folders/FOLDER_ID` → GoogleDriveFolder
+- `docs.google.com/spreadsheets/d/FILE_ID` → GoogleSheetsSpreadsheet
+- `docs.google.com/document/d/FILE_ID` → GoogleDocsDocument
+- `docs.google.com/presentation/d/FILE_ID` → GoogleSlidesPresentation
+
+### Dependencies
+- google-api-python-client>=2.0.0
+- google-auth>=2.0.0
+
 ## [0.7.0] - 2026-02-22
 
 ### Added
