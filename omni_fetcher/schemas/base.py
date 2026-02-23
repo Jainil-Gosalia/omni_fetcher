@@ -59,6 +59,12 @@ class MediaType(str, Enum):
     APPLICATION_PPTX = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     APPLICATION_OCTET = "application/octet-stream"
 
+    # Google types
+    APPLICATION_VND_GOOGLE_SPREADSHEET = "application/vnd.google-apps.spreadsheet"
+    APPLICATION_VND_GOOGLE_DOCUMENT = "application/vnd.google-apps.document"
+    APPLICATION_VND_GOOGLE_SLIDES = "application/vnd.google-apps.presentation"
+    APPLICATION_VND_GOOGLE_FOLDER = "application/vnd.google-apps.folder"
+
 
 class FetchMetadata(BaseModel):
     """Metadata about a fetched resource."""
