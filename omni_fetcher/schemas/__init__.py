@@ -80,6 +80,13 @@ from omni_fetcher.schemas.confluence import (
     ConfluenceComment,
 )
 
+from omni_fetcher.schemas.slack import (
+    SlackMessage,
+    SlackThread,
+    SlackChannel,
+    SlackDM,
+)
+
 OldTextDocument = DeprecatedTextDocument
 
 __all__ = [
@@ -145,4 +152,9 @@ __all__ = [
     "ConfluenceAttachment",
     "ConfluenceUser",
     "ConfluenceComment",
+    # Slack
+    "SlackMessage",
+    "SlackThread",
+    "SlackChannel",
+    "SlackDM",
 ]
