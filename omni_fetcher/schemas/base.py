@@ -65,6 +65,10 @@ class MediaType(str, Enum):
     APPLICATION_VND_GOOGLE_SLIDES = "application/vnd.google-apps.presentation"
     APPLICATION_VND_GOOGLE_FOLDER = "application/vnd.google-apps.folder"
 
+    # Notion types
+    APPLICATION_VND_NOTION_PAGE = "application/vnd.notion.page"
+    APPLICATION_VND_NOTION_DATABASE = "application/vnd.notion.database"
+
 
 class FetchMetadata(BaseModel):
     """Metadata about a fetched resource."""
