@@ -71,6 +71,9 @@ confluence = [
 slack = [
     "slack-sdk>=3.0.0",
 ]
+jira = [
+    "atlassian-python-api>=3.0.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

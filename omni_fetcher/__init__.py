@@ -83,6 +83,13 @@ from omni_fetcher.schemas.slack import (
     SlackDM,
 )
 
+from omni_fetcher.schemas.jira import (
+    JiraIssue,
+    JiraEpic,
+    JiraSprint,
+    JiraProject,
+)
+
 __version__ = "0.9.0"
 
 __all__ = [
@@ -154,4 +161,9 @@ __all__ = [
     "SlackThread",
     "SlackChannel",
     "SlackDM",
+    # Jira
+    "JiraIssue",
+    "JiraEpic",
+    "JiraSprint",
+    "JiraProject",
 ]

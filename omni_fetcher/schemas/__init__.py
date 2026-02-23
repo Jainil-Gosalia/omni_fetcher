@@ -87,6 +87,13 @@ from omni_fetcher.schemas.slack import (
     SlackDM,
 )
 
+from omni_fetcher.schemas.jira import (
+    JiraIssue,
+    JiraEpic,
+    JiraSprint,
+    JiraProject,
+)
+
 OldTextDocument = DeprecatedTextDocument
 
 __all__ = [
@@ -157,4 +164,9 @@ __all__ = [
     "SlackThread",
     "SlackChannel",
     "SlackDM",
+    # Jira
+    "JiraIssue",
+    "JiraEpic",
+    "JiraSprint",
+    "JiraProject",
 ]

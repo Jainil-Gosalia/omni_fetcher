@@ -102,9 +102,9 @@ def convert_mrkdwn_to_markdown(text: str, user_map: dict[str, str]) -> str:
         result,
     )
 
-    result = re.sub(r"<!here\|@here>", "@here", result)
-    result = re.sub(r"<!channel\|@channel>", "@channel", result)
-    result = re.sub(r"<!everyone\|@everyone>", "@everyone", result)
+    result = re.sub(r"<!here>", "@here", result)
+    result = re.sub(r"<!channel>", "@channel", result)
+    result = re.sub(r"<!everyone>", "@everyone", result)
 
     result = re.sub(
         r"<([^|>]+)\|([^>]+)>",
