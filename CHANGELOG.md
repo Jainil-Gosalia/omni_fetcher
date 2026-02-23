@@ -53,25 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Testing
 - All 237 tests pass (was 198)
 
-## [0.5.0] - 2026-02-22
-
-### Added
-- AudioFetcher - Fetch and parse audio files (local and remote)
-- AudioDocument schema - Audio metadata with transcript support
-- Container schemas module - BaseContainer, RSSFeed, S3Bucket, YouTubePlaylist
-
-### AudioFetcher Features
-- Handles local and remote audio files
-- URI patterns: .mp3, .wav, .flac, .ogg, .m4a, .aac, .wma
-- Extracts metadata: duration, sample_rate, channels, artist, album, genre
-- Optional transcript extraction
-- Tags: audio, local/remote, large_file (>50MB)
-
-### Container Features
-- BaseContainer with pagination support (next_page_token)
-- RSSFeed for RSS/Atom feeds
-- S3Bucket for S3 object listings
-- YouTubePlaylist for YouTube playlists
 
 ## [0.6.0] - 2026-02-22
 
@@ -106,6 +87,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Backward Compatibility
 - All changes are additive - existing code works without modification
+
+## [0.5.0] - 2026-02-22
+
+### Added
+- AudioFetcher - Fetch and parse audio files (local and remote)
+- AudioDocument schema - Audio metadata with transcript support
+- Container schemas module - BaseContainer, RSSFeed, S3Bucket, YouTubePlaylist
+
+### AudioFetcher Features
+- Handles local and remote audio files
+- URI patterns: .mp3, .wav, .flac, .ogg, .m4a, .aac, .wma
+- Extracts metadata: duration, sample_rate, channels, artist, album, genre
+- Optional transcript extraction
+- Tags: audio, local/remote, large_file (>50MB)
+
+### Container Features
+- BaseContainer with pagination support (next_page_token)
+- RSSFeed for RSS/Atom feeds
+- S3Bucket for S3 object listings
+- YouTubePlaylist for YouTube playlists
+
 
 ## [0.4.0] - 2026-02-22
 
