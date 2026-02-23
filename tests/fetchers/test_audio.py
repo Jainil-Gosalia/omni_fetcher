@@ -3,7 +3,6 @@
 import pytest
 import os
 import tempfile
-from pathlib import Path
 from unittest.mock import patch, AsyncMock, MagicMock
 
 from omni_fetcher.fetchers.audio import AudioFetcher

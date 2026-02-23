@@ -105,7 +105,7 @@ async def s3_env_credentials_example():
     )
 
     creds = auth.get_aws_credentials()
-    print(f"\n  Via AuthConfig:")
+    print("\n  Via AuthConfig:")
     print(f"    Access Key: {creds.get('aws_access_key_id')}")
     print(f"    Region: {creds.get('region_name')}")
 

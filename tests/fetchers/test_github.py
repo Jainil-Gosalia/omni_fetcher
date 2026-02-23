@@ -12,8 +12,6 @@ from omni_fetcher.schemas.github import (
     GitHubRelease,
     GitHubRepo,
     GitHubIssueContainer,
-    GitHubReleaseContainer,
-    GitHubPRContainer,
     detect_language,
 )
 from omni_fetcher.schemas.atomics import TextDocument, TextFormat

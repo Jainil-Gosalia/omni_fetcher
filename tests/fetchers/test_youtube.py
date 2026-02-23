@@ -1,12 +1,10 @@
 """Tests for YouTube fetcher."""
 
 import pytest
-from datetime import datetime
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import patch
 
 from omni_fetcher.fetchers.youtube import YouTubeFetcher
 from omni_fetcher.schemas.media import YouTubeVideo
-from omni_fetcher.schemas.base import FetchMetadata
 
 
 class TestYouTubeFetcher:

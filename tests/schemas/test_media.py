@@ -1,7 +1,5 @@
 """Tests for media Pydantic models."""
 
-import pytest
-from datetime import datetime
 
 from omni_fetcher.schemas.media import YouTubeVideo, LocalVideo, VideoResolution
 from omni_fetcher.schemas.atomics import TextDocument, AudioDocument, ImageDocument, TextFormat

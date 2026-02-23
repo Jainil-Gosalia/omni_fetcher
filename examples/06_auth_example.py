@@ -14,7 +14,7 @@ import asyncio
 import os
 
 from omni_fetcher import OmniFetcher
-from omni_fetcher.auth import AuthConfig, load_auth_from_env
+from omni_fetcher.auth import AuthConfig
 
 
 async def bearer_token_example():
@@ -116,7 +116,7 @@ async def env_variable_auth_example():
     # Check what auth was loaded
     auth = fetcher.get_auth("myservice")
     if auth:
-        print(f"Loaded auth for source: 'myservice'")
+        print("Loaded auth for source: 'myservice'")
         print(f"Auth type: {auth.type}")
         print(f"Token env var: {auth.token_env}")
         print(f"Actual token: {auth.get_token()}")
@@ -205,7 +205,7 @@ async def auth_config_direct_usage():
         type="bearer",
         token_env="TEST_TOKEN",
     )
-    print(f"\nWith token_env fallback:")
+    print("\nWith token_env fallback:")
     print(f"  Token: {auth2.get_token()}")
     del os.environ["TEST_TOKEN"]
 

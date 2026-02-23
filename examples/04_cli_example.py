@@ -1,7 +1,6 @@
 """CLI example for OmniFetcher using Typer."""
 
 import asyncio
-from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -24,7 +23,6 @@ def fetch(uri: str):
         console.print(f"[green]Success![/green] Type: {type(result).__name__}")
 
         if hasattr(result, "data"):
-            import json
 
             console.print(result.data)
         elif hasattr(result, "content"):

@@ -2,7 +2,6 @@
 
 import pytest
 from datetime import datetime
-from typing import Optional
 
 from omni_fetcher.schemas.base import (
     BaseFetchedData,

@@ -1,11 +1,7 @@
 """Tests for fetchers."""
 
 import pytest
-import asyncio
-import os
-from datetime import datetime
-from pathlib import Path
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import patch
 
 from omni_fetcher.fetchers.base import BaseFetcher
 from omni_fetcher.fetchers.local_file import LocalFileFetcher

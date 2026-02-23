@@ -480,7 +480,6 @@ class TestOmniFetcherWithAuth:
     @pytest.mark.asyncio
     async def test_auth_registry_merges_with_env(self):
         """Test auth registry merges with env vars."""
-        import os
 
         with pytest.MonkeyPatch.context() as m:
             m.setenv("TEST_API_TOKEN", "env-token-value")

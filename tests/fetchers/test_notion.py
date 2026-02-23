@@ -1,8 +1,7 @@
 """Tests for NotionFetcher."""
 
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
-from datetime import datetime
+from unittest.mock import patch
 
 from omni_fetcher.fetchers.notion import (
     NotionFetcher,
@@ -11,7 +10,6 @@ from omni_fetcher.fetchers.notion import (
     parse_notion_uri,
 )
 from omni_fetcher.schemas.notion import NotionPage, NotionDatabase
-from omni_fetcher.schemas.atomics import TextDocument, TextFormat
 
 
 class TestNotionFetcherCreation:

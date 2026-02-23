@@ -1,8 +1,6 @@
 """Tests for the source registry system."""
 
 import pytest
-from dataclasses import dataclass
-from typing import Optional
 
 from omni_fetcher.core.registry import SourceRegistry, SourceInfo, source
 

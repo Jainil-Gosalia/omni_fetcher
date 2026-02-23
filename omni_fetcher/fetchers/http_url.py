@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 from typing import Any, Optional
@@ -12,7 +11,7 @@ from bs4 import BeautifulSoup
 
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
-from omni_fetcher.schemas.base import FetchMetadata, MediaType, DataCategory
+from omni_fetcher.schemas.base import FetchMetadata
 from omni_fetcher.schemas.documents import WebPageDocument
 from omni_fetcher.schemas.atomics import TextDocument, ImageDocument, TextFormat
 

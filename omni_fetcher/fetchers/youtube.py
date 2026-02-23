@@ -15,10 +15,8 @@ from omni_fetcher.schemas.media import YouTubeVideo
 from omni_fetcher.schemas.atomics import (
     TextDocument,
     ImageDocument,
-    AudioDocument,
     TextFormat,
 )
-from omni_fetcher.auth import AuthConfig
 
 
 @source(

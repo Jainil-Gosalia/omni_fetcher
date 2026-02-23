@@ -1,9 +1,7 @@
 """Tests for the CLI module."""
 
 from unittest.mock import MagicMock, patch, AsyncMock
-import json
 
-import pytest
 from typer.testing import CliRunner
 
 from omni_fetcher.cli import app

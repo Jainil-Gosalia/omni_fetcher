@@ -1,7 +1,6 @@
 """Tests for S3 fetcher."""
 
 import pytest
-from unittest.mock import Mock, patch
 
 from omni_fetcher.fetchers.s3 import S3Fetcher
 

@@ -329,9 +329,9 @@ async def main():
     print("\n" + "=" * 60)
     print("Summary: Custom schemas built with atomics")
     print("-" * 40)
-    print(f"PodcastEpisode uses: TextDocument, AudioDocument, VideoDocument, ImageDocument")
-    print(f"ProductDocument uses: TextDocument, ImageDocument, SpreadsheetDocument")
-    print(f"CourseMaterial uses: TextDocument, VideoDocument, ImageDocument")
+    print("PodcastEpisode uses: TextDocument, AudioDocument, VideoDocument, ImageDocument")
+    print("ProductDocument uses: TextDocument, ImageDocument, SpreadsheetDocument")
+    print("CourseMaterial uses: TextDocument, VideoDocument, ImageDocument")
     print("\nAtomics are composable - mix and match as needed!")
 
 

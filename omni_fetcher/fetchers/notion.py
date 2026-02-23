@@ -16,7 +16,6 @@ from omni_fetcher.schemas.notion import (
     NotionPage,
     NotionDatabase,
     NotionBlock,
-    NotionRichText,
     NotionUser,
     NotionProperty,
 )

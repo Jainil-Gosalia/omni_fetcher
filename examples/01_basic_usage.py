@@ -1,7 +1,6 @@
 """Basic usage examples for OmniFetcher."""
 
 import asyncio
-import os
 
 from omni_fetcher import OmniFetcher
 

@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
-from omni_fetcher.schemas.base import FetchMetadata, MediaType
+from omni_fetcher.schemas.base import FetchMetadata
 from omni_fetcher.schemas.structured import JSONData, GraphQLResponse
 
 

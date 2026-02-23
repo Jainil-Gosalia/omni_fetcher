@@ -10,15 +10,13 @@ from typing import Any, Optional
 
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
-from omni_fetcher.schemas.base import FetchMetadata, MediaType, DataCategory
+from omni_fetcher.schemas.base import FetchMetadata
 from omni_fetcher.schemas.atomics import (
     VideoDocument,
     ImageDocument,
     TextDocument,
     TextFormat,
 )
-from omni_fetcher.schemas.documents import PDFDocument
-from omni_fetcher.schemas.structured import JSONData, YAMLData
 
 
 @source(

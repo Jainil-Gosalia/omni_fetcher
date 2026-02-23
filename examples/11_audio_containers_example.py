@@ -75,7 +75,7 @@ async def main():
             print(f"Description: {feed.description}")
             print(f"Item count: {feed.item_count}")
             print(f"Fetched fully: {feed.fetched_fully}")
-            print(f"Items:")
+            print("Items:")
             for i, item in enumerate(feed.items[:3]):
                 print(f"  [{i + 1}] {item.title}")
                 if item.link:
@@ -100,7 +100,7 @@ async def main():
             print(f"Channel: {playlist.uploader}")
             print(f"Total items: {playlist.item_count_total}")
             print(f"Fetched items: {playlist.item_count}")
-            print(f"Videos:")
+            print("Videos:")
             for i, video in enumerate(playlist.items[:3]):
                 print(f"  [{i + 1}] {video.title}")
                 print(f"      Duration: {video.duration_seconds}s")
@@ -123,7 +123,7 @@ async def main():
                 print(f"Prefix: {bucket.prefix}")
             print(f"Item count: {bucket.item_count}")
             print(f"Fetched fully: {bucket.fetched_fully}")
-            print(f"Objects:")
+            print("Objects:")
             for obj in bucket.items[:5]:
                 print(f"  - {obj.key}")
                 if obj.size:
