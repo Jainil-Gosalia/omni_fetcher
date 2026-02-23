@@ -1,7 +1,7 @@
 """Tests for JiraFetcher."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from omni_fetcher.fetchers.jira import (
     JiraFetcher,

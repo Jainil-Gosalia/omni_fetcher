@@ -64,6 +64,8 @@ class SourceRegistry:
     @classmethod
     def reset_instance(cls) -> None:
         """Reset the singleton instance to None."""
+        if cls._instance is not None:
+            cls._instance._sources = {}
         cls._instance = None
 
     def register(

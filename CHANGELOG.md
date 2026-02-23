@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.2] - 2026-02-24
+
+### Fixed
+- pdf.py: Removed non-existent `title` parameter in PDFDocument creation
+- google_drive.py: Added missing folder pattern `drive.google.com/drive/folders/` in parse_file_id()
+- csv.py: Fixed bug where headers were set to None even when CSV had no headers
+- fetchers: Added missing required fields to FetchMetadata in pdf.py
+
+### Added
+- Comprehensive tests for DOCX fetcher (test_docx.py)
+- Comprehensive tests for PPTX fetcher (test_pptx.py)
+- Comprehensive tests for PDF fetcher (test_pdf.py)
+- Tests for CSV fetcher (test_csv.py)
+- Tests for Google Drive fetcher (test_google_drive.py)
+
+### Coverage
+- Overall coverage improved from 66% to 67%
+
+## [0.11.1] - 2026-02-23
+
+### Changed
+- `JSONData.schema` renamed to `JSONData.json_schema` to avoid shadowing Pydantic's `BaseModel.schema` method. Update any code that accesses this field.
+
+### Fixed
+- Migrated `class Config` to `model_config = ConfigDict(...)` in `schemas/base.py` and `schemas/containers.py` to fix Pydantic deprecation warnings.
+
+### Added
+- Tests for Google Drive fetcher (google_drive.py)
+- Tests for core OmniFetcher orchestration (fetcher.py)
+- Tests for HTTP/webpage fetcher (http_url.py)
+- Tests for cache infrastructure (cache/__init__.py, cache/redis.py)
+- Expanded tests for notion, slack, jira, confluence, github, csv, docx, pptx, pdf fetchers
+
+### Coverage
+- Overall coverage improved from 58% to 75%+
+
 ## [0.10.0] - 2026-02-23
 
 ### Added

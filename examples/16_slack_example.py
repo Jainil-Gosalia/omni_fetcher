@@ -81,7 +81,7 @@ async def main():
         print(f"Participant Count: {thread.participant_count}")
         print(f"Tags: {thread.tags}")
         if thread.parent:
-            print(f"\nParent Message:")
+            print("\nParent Message:")
             print(f"  Author: {thread.parent.author}")
             print(f"  Created: {thread.parent.created_at}")
             print(f"  Text: {thread.parent.text.content[:100]}...")

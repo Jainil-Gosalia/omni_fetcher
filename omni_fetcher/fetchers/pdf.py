@@ -55,6 +55,12 @@ class PDFFetcher(BaseFetcher):
             source_name=self.name,
             mime_type="application/pdf",
             file_size=len(pdf_data),
+            fetch_duration_ms=None,
+            cache_hit=False,
+            status_code=None,
+            encoding=None,
+            last_modified=None,
+            etag=None,
         )
 
         # Parse PDF
@@ -66,7 +72,6 @@ class PDFFetcher(BaseFetcher):
 
         return PDFDocument(
             metadata=metadata,
-            title=pdf_info.get("title"),
             text=TextDocument(
                 source_uri=uri,
                 content=pdf_info.get("text", ""),

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, Generic, Optional, TypeVar
 from typing_extensions import Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from omni_fetcher.schemas.base import DataCategory, MediaType
 from omni_fetcher.schemas.media import YouTubeVideo
@@ -42,8 +42,7 @@ class BaseContainer(BaseModel, Generic[T]):
         self.tags = sorted(all_tags)
         return self
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class RSSItem(BaseModel):

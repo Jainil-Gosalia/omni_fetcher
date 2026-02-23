@@ -57,6 +57,7 @@ def parse_file_id(uri: str) -> Optional[str]:
     patterns = [
         r"drive\.google\.com/file/d/([a-zA-Z0-9_-]+)",
         r"drive\.google\.com/uc\?id=([a-zA-Z0-9_-]+)",
+        r"drive\.google\.com/drive/folders/([a-zA-Z0-9_-]+)",
         r"docs\.google\.com/document/d/([a-zA-Z0-9_-]+)",
         r"spreadsheets/d/([a-zA-Z0-9_-]+)",
         r"presentation/d/([a-zA-Z0-9_-]+)",
