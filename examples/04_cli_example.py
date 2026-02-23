@@ -23,7 +23,6 @@ def fetch(uri: str):
         console.print(f"[green]Success![/green] Type: {type(result).__name__}")
 
         if hasattr(result, "data"):
-
             console.print(result.data)
         elif hasattr(result, "content"):
             console.print(result.content[:500])

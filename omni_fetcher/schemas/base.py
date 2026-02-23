@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DataCategory(str, Enum):
@@ -101,5 +101,4 @@ class BaseFetchedData(BaseModel):
         default_factory=list, description="Tags for categorization and filtering"
     )
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)

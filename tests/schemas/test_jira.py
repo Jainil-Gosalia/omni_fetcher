@@ -2,7 +2,6 @@
 
 from datetime import datetime
 
-import pytest
 
 from omni_fetcher.schemas.jira import (
     JiraEpic,

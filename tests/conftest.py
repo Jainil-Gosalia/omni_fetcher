@@ -1,28 +1,17 @@
 """Pytest configuration."""
 
-import importlib
 import pytest
+import importlib
 
 
 @pytest.fixture(autouse=True)
 def reset_registry():
-    """Reset the SourceRegistry singleton before each test, then reload fetcher modules to re-run decorators."""
+    """Reset the SourceRegistry singleton before each test."""
     from omni_fetcher.core.registry import SourceRegistry
+    from omni_fetcher import fetcher as fetcher_module
 
     SourceRegistry.reset_instance()
-
-    fetcher_modules = [
-        "omni_fetcher.fetchers.local_file",
-        "omni_fetcher.fetchers.http_url",
-        "omni_fetcher.fetchers.http_json",
-        "omni_fetcher.fetchers.http_auth",
-        "omni_fetcher.fetchers.youtube",
-        "omni_fetcher.fetchers.s3",
-        "omni_fetcher.fetchers.rss",
-        "omni_fetcher.fetchers.pdf",
-        "omni_fetcher.fetchers.csv",
-    ]
-
-    for module_name in fetcher_modules:
-        importlib.import_module(module_name)
-        importlib.reload(importlib.import_module(module_name))
+    yield
+    # Re-import fetcher to re-register sources after test
+    importlib.reload(fetcher_module)
+    SourceRegistry.reset_instance()

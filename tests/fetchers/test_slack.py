@@ -8,7 +8,7 @@ from omni_fetcher.fetchers.slack import (
     parse_slack_uri,
     convert_mrkdwn_to_markdown,
 )
-from omni_fetcher.schemas.slack import SlackMessage, SlackChannel, SlackThread, SlackDM
+from omni_fetcher.schemas.slack import SlackMessage, SlackChannel, SlackDM
 from omni_fetcher.schemas.atomics import TextDocument, TextFormat
 from datetime import datetime
 

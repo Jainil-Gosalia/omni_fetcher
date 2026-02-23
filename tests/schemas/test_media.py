@@ -1,6 +1,5 @@
 """Tests for media Pydantic models."""
 
-
 from omni_fetcher.schemas.media import YouTubeVideo, LocalVideo, VideoResolution
 from omni_fetcher.schemas.atomics import TextDocument, AudioDocument, ImageDocument, TextFormat
 from omni_fetcher.schemas.base import MediaType

@@ -39,14 +39,14 @@ class TestJSONData:
             metadata=metadata,
             data={"users": [{"id": 1, "name": "John"}]},
             root_keys=["users"],
-            schema=None,
+            json_schema=None,
             is_array=False,
         )
         assert "users" in json_data.data
         assert json_data.root_keys == ["users"]
         assert json_data.is_array is False
 
-    def test_json_data_with_schema(self):
+    def test_json_data_with_json_schema(self):
         metadata = FetchMetadata(
             source_uri="https://api.example.com/user",
             fetched_at=datetime.now(),
@@ -55,9 +55,9 @@ class TestJSONData:
         json_data = JSONData(
             metadata=metadata,
             data={"id": 1, "name": "John"},
-            schema={"type": "object", "properties": {"id": {"type": "integer"}}},
+            json_schema={"type": "object", "properties": {"id": {"type": "integer"}}},
         )
-        assert json_data.schema is not None
+        assert json_data.json_schema is not None
 
     def test_json_data_array(self):
         metadata = FetchMetadata(

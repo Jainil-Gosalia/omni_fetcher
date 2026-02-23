@@ -22,7 +22,7 @@ class JSONData(BaseStructuredData):
 
     media_type: MediaType = MediaType.TEXT_JSON
     root_keys: Optional[list[str]] = Field(None, description="Top-level keys")
-    schema: Optional[dict[str, Any]] = Field(None, description="JSON schema if validated")
+    json_schema: Optional[dict[str, Any]] = Field(None, description="JSON schema if validated")
     is_array: bool = Field(False, description="Whether root is an array")
     array_length: Optional[int] = Field(None, ge=0, description="Array length if root is array")
     item_type: Optional[str] = Field(None, description="Type of items in array")

@@ -48,7 +48,7 @@ class CSVFetcher(BaseFetcher):
 
         sheet_data = SheetData(
             name="Sheet1",
-            headers=parsed["headers"] if parsed["has_header"] else None,
+            headers=parsed["headers"],
             rows=parsed["rows"],
             row_count=parsed["row_count"],
             col_count=len(parsed["headers"]) if parsed["headers"] else 0,
