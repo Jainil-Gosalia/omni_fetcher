@@ -76,7 +76,7 @@ async def main():
             language="markdown",
         ),
     )
-    print(f"\nNotionPage with content:")
+    print("\nNotionPage with content:")
     if page_with_content.content:
         print(f"  Content: {page_with_content.content.content[:50]}...")
 
@@ -147,7 +147,7 @@ async def main():
         },
         data=spreadsheet_doc,
     )
-    print(f"\nNotionDatabase with data:")
+    print("\nNotionDatabase with data:")
     print(f"  Schema keys: {list(database_with_data.properties_schema.keys())}")
     if database_with_data.data:
         print(f"  Sheet rows: {database_with_data.data.sheets[0].row_count}")

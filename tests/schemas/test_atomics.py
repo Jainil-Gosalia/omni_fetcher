@@ -1,10 +1,8 @@
 """Tests for atomic schemas."""
 
-import pytest
 from datetime import datetime
 
 from omni_fetcher.schemas.atomics import (
-    AtomicBase,
     TextDocument,
     TextFormat,
     AudioDocument,

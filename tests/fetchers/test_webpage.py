@@ -1,11 +1,7 @@
 """Tests for WebPage fetcher (HTTP URL fetcher for HTML content)."""
 
-import pytest
 
 from omni_fetcher.fetchers.http_url import HTTPURLFetcher
-from omni_fetcher.schemas.documents import WebPageDocument
-from omni_fetcher.schemas.atomics import TextDocument, ImageDocument
-from omni_fetcher.schemas.base import DataCategory
 
 
 class TestHTTPURLFetcher:

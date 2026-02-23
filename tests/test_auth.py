@@ -84,7 +84,6 @@ class TestOmniFetcherAuth:
 
     def test_auth_in_source_info(self):
         """Auth config stored in source info."""
-        from omni_fetcher.core.registry import SourceRegistry
 
         fetcher = OmniFetcher()
         info = fetcher.get_source_info("http_auth")

@@ -1,8 +1,6 @@
 """Tests for RSS/Atom fetcher."""
 
 import pytest
-from datetime import datetime
-from unittest.mock import Mock, patch
 
 from omni_fetcher.fetchers.rss import RSSFetcher
 

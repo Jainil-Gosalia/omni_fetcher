@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-import re
 from datetime import datetime
-from typing import Any, Optional
-from urllib.parse import urljoin
+from typing import Any
 
 import feedparser
 
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
-from omni_fetcher.schemas.base import FetchMetadata, MediaType, DataCategory
+from omni_fetcher.schemas.base import FetchMetadata
 
 
 @source(

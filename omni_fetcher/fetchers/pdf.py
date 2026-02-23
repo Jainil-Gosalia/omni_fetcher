@@ -16,7 +16,6 @@ from omni_fetcher.schemas.documents import PDFDocument
 from omni_fetcher.schemas.atomics import (
     TextDocument,
     TextFormat,
-    ImageDocument,
 )
 
 

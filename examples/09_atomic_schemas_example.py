@@ -278,7 +278,7 @@ async def main():
         captions=subtitles,
     )
 
-    print(f"Composed video from separate atomics:")
+    print("Composed video from separate atomics:")
     print(f"  - Source: {composed_video.source_uri}")
     print(f"  - Thumbnail: {composed_video.thumbnail.source_uri}")
     print(

@@ -9,7 +9,6 @@ from typing_extensions import Self
 from pydantic import BaseModel, Field, model_validator
 
 from omni_fetcher.schemas.atomics import TextDocument
-from omni_fetcher.schemas.base import DataCategory, MediaType
 
 
 EXTENSION_TO_LANGUAGE: dict[str, str] = {

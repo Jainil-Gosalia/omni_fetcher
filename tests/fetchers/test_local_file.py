@@ -3,12 +3,11 @@
 import pytest
 import os
 import tempfile
-from pathlib import Path
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch
 
 from omni_fetcher.fetchers.local_file import LocalFileFetcher
 from omni_fetcher.schemas.atomics import TextDocument, VideoDocument, ImageDocument
-from omni_fetcher.schemas.documents import PDFDocument, WebPageDocument
+from omni_fetcher.schemas.documents import PDFDocument
 from omni_fetcher.schemas.structured import JSONData
 
 

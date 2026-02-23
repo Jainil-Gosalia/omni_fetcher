@@ -1,11 +1,7 @@
 """Tests for DOCX fetcher."""
 
-import pytest
 
 from omni_fetcher.fetchers.docx import DOCXFetcher
-from omni_fetcher.schemas.documents import DOCXDocument
-from omni_fetcher.schemas.atomics import TextDocument
-from omni_fetcher.schemas.base import DataCategory, MediaType
 
 
 class TestDOCXFetcher:

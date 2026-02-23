@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -14,11 +13,10 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.table import Table
 from rich.panel import Panel
-from rich import print as rprint
 from rich.theme import Theme
 
 from omni_fetcher import OmniFetcher, SourceInfo
-from omni_fetcher.cache import FileCacheBackend, MemoryCacheBackend
+from omni_fetcher.cache import FileCacheBackend
 from omni_fetcher.auth import AuthConfig
 from omni_fetcher.core.exceptions import OmniFetcherError, SourceNotFoundError, FetchError
 
@@ -206,7 +204,7 @@ def fetch(
                         else:
                             console.print(formatted)
 
-                except Exception as e:
+                except Exception:
                     progress.stop()
                     raise
 

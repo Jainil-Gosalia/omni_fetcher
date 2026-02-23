@@ -1,8 +1,5 @@
 """Tests for PDF fetcher."""
 
-import pytest
-from datetime import datetime
-from unittest.mock import Mock, patch, MagicMock
 
 from omni_fetcher.fetchers.pdf import PDFFetcher
 

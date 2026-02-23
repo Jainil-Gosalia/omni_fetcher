@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from functools import wraps
-from typing import Any, Callable, Optional, Type
+from typing import Callable, Optional
 
 from omni_fetcher.core.exceptions import FetchError
 

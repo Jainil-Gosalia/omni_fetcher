@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
-from omni_fetcher.schemas.base import BaseFetchedData, DataCategory, MediaType, FetchMetadata
+from omni_fetcher.schemas.base import BaseFetchedData, DataCategory, MediaType
 
 
 class BaseStructuredData(BaseFetchedData):

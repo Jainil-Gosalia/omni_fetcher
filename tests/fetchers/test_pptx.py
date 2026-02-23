@@ -1,11 +1,7 @@
 """Tests for PPTX fetcher."""
 
-import pytest
 
 from omni_fetcher.fetchers.pptx import PPTXFetcher
-from omni_fetcher.schemas.documents import PPTXDocument, SlideDocument
-from omni_fetcher.schemas.atomics import TextDocument
-from omni_fetcher.schemas.base import DataCategory, MediaType
 
 
 class TestPPTXFetcher:

@@ -1,6 +1,6 @@
 """Core exceptions for OmniFetcher."""
 
-from typing import Any, Optional
+from typing import Optional
 
 
 class OmniFetcherError(Exception):
