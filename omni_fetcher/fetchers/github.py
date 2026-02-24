@@ -93,6 +93,10 @@ class GitHubFetcher(BaseFetcher):
         path = parsed.path.strip("/")
         parts = path.split("/")
 
+        if "api.github.com" in uri.lower():
+            if len(parts) >= 3 and parts[0] == "repos":
+                parts = parts[1:]
+
         if len(parts) < 2:
             raise SourceNotFoundError(f"Invalid GitHub URI: {uri}")
 
