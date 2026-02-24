@@ -10,6 +10,7 @@ import os
 
 import pytest
 
+from omni_fetcher.auth import AuthConfig
 from omni_fetcher.fetchers.github import GitHubFetcher
 from omni_fetcher.fetchers.s3 import S3Fetcher
 from omni_fetcher.fetchers.slack import SlackFetcher
@@ -80,7 +81,7 @@ class TestGitHubFetcherIntegration:
             pytest.skip("GITHUB_TOKEN not set")
 
         fetcher = GitHubFetcher()
-        fetcher.set_auth(token)
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
 
         result = await fetcher.fetch("https://github.com/psf/requests")
 
@@ -95,7 +96,7 @@ class TestGitHubFetcherIntegration:
             pytest.skip("GITHUB_TOKEN not set")
 
         fetcher = GitHubFetcher()
-        fetcher.set_auth(token)
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
 
         result = await fetcher.fetch("https://api.github.com/repos/psf/requests")
 
@@ -110,9 +111,208 @@ class TestGitHubFetcherIntegration:
             pytest.skip("GITHUB_TOKEN not set")
 
         fetcher = GitHubFetcher()
-        fetcher.set_auth(token)
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
 
         result = await fetcher.fetch("https://github.com/psf/requests/issues")
+
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_fetch_github_file(self):
+        """Can fetch a single file from repository."""
+        token = check_github_credentials()
+        if not token:
+            pytest.skip("GITHUB_TOKEN not set")
+
+        fetcher = GitHubFetcher()
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
+
+        result = await fetcher.fetch("https://github.com/psf/requests/blob/main/README.md")
+
+        assert result is not None
+        assert hasattr(result, "path")
+        assert hasattr(result, "content")
+
+    @pytest.mark.asyncio
+    async def test_fetch_github_single_issue(self):
+        """Can fetch a single issue with comments."""
+        token = check_github_credentials()
+        if not token:
+            pytest.skip("GITHUB_TOKEN not set")
+
+        fetcher = GitHubFetcher()
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
+
+        result = await fetcher.fetch("https://github.com/psf/requests/issues/1")
+
+        assert result is not None
+        assert hasattr(result, "number")
+        assert hasattr(result, "title")
+
+    @pytest.mark.asyncio
+    async def test_fetch_github_prs(self):
+        """Can fetch pull requests list."""
+        token = check_github_credentials()
+        if not token:
+            pytest.skip("GITHUB_TOKEN not set")
+
+        fetcher = GitHubFetcher()
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
+
+        result = await fetcher.fetch("https://github.com/psf/requests/pulls")
+
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_fetch_github_single_pr(self):
+        """Can fetch a single pull request."""
+        token = check_github_credentials()
+        if not token:
+            pytest.skip("GITHUB_TOKEN not set")
+
+        fetcher = GitHubFetcher()
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
+
+        try:
+            result = await fetcher.fetch(
+                "https://github.com/Jainil-Gosalia/omni-fetcher-test/pull/3"
+            )
+        except Exception as e:
+            if "403" in str(e) or "rate" in str(e).lower():
+                pytest.skip("Rate limited or token lacks permissions for this repo")
+            raise
+
+        assert result is not None
+        assert hasattr(result, "number")
+
+    @pytest.mark.asyncio
+    async def test_fetch_github_releases(self):
+        """Can fetch releases list."""
+        token = check_github_credentials()
+        if not token:
+            pytest.skip("GITHUB_TOKEN not set")
+
+        fetcher = GitHubFetcher()
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
+
+        result = await fetcher.fetch("https://github.com/psf/requests/releases")
+
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_fetch_github_with_invalid_token(self):
+        """Handles invalid token gracefully."""
+        fetcher = GitHubFetcher()
+        fetcher.set_auth(AuthConfig(type="bearer", token="invalid_token_12345"))
+
+        with pytest.raises(Exception) as exc_info:
+            await fetcher.fetch("https://github.com/psf/requests")
+
+        assert (
+            "401" in str(exc_info.value)
+            or "403" in str(exc_info.value)
+            or "Unauthorized" in str(exc_info.value)
+            or "Forbidden" in str(exc_info.value)
+        )
+
+    @pytest.mark.asyncio
+    async def test_fetch_github_rate_limit(self):
+        """Handles rate limiting when no token is provided - fetcher works without token for public repos."""
+        fetcher = GitHubFetcher()
+
+        result = await fetcher.fetch("https://github.com/psf/requests")
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_fetch_github_invalid_repo(self):
+        """Handles non-existent repository."""
+        token = check_github_credentials()
+        if not token:
+            pytest.skip("GITHUB_TOKEN not set")
+
+        fetcher = GitHubFetcher()
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
+
+        from omni_fetcher.core.exceptions import SourceNotFoundError
+
+        with pytest.raises(SourceNotFoundError):
+            await fetcher.fetch("https://github.com/nonexistent/repo12345")
+
+    @pytest.mark.asyncio
+    async def test_fetch_user_repo(self):
+        """Can fetch from user's own repository."""
+        token = check_github_credentials()
+        if not token:
+            pytest.skip("GITHUB_TOKEN not set")
+
+        fetcher = GitHubFetcher()
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
+
+        result = await fetcher.fetch("https://github.com/Jainil-Gosalia/omni-fetcher-test")
+
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_fetch_user_repo_file(self):
+        """Can fetch a file from user's repository."""
+        token = check_github_credentials()
+        if not token:
+            pytest.skip("GITHUB_TOKEN not set")
+
+        fetcher = GitHubFetcher()
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
+
+        try:
+            result = await fetcher.fetch(
+                "https://github.com/Jainil-Gosalia/omni-fetcher-test/blob/main/README.md"
+            )
+        except Exception as e:
+            if "403" in str(e) or "rate" in str(e).lower():
+                pytest.skip("Rate limited or token lacks permissions for this repo")
+            raise
+
+        assert result is not None
+        assert hasattr(result, "content")
+
+    @pytest.mark.asyncio
+    async def test_fetch_user_repo_issues(self):
+        """Can fetch issues from user's repository."""
+        token = check_github_credentials()
+        if not token:
+            pytest.skip("GITHUB_TOKEN not set")
+
+        fetcher = GitHubFetcher()
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
+
+        try:
+            result = await fetcher.fetch(
+                "https://github.com/Jainil-Gosalia/omni-fetcher-test/issues"
+            )
+        except Exception as e:
+            if "403" in str(e) or "rate" in str(e).lower():
+                pytest.skip("Rate limited or token lacks permissions for this repo")
+            raise
+
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_fetch_user_repo_releases(self):
+        """Can fetch releases from user's repository."""
+        token = check_github_credentials()
+        if not token:
+            pytest.skip("GITHUB_TOKEN not set")
+
+        fetcher = GitHubFetcher()
+        fetcher.set_auth(AuthConfig(type="bearer", token=token))
+
+        try:
+            result = await fetcher.fetch(
+                "https://github.com/Jainil-Gosalia/omni-fetcher-test/releases"
+            )
+        except Exception as e:
+            if "403" in str(e) or "rate" in str(e).lower():
+                pytest.skip("Rate limited or token lacks permissions for this repo")
+            raise
 
         assert result is not None
 
