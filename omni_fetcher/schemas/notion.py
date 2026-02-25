@@ -89,6 +89,16 @@ class NotionPage(BaseModel):
         self.tags = tags
 
 
+class NotionSearchResult(BaseModel):
+    """Search result from Notion API."""
+
+    id: str = Field(..., description="Page or database ID")
+    title: str = Field(..., description="Page or database title")
+    object_type: str = Field(..., description="Object type: page or database")
+    url: Optional[str] = Field(None, description="Notion URL")
+    icon: Optional[str] = Field(None, description="Icon (emoji or URL)")
+
+
 class NotionDatabase(BaseModel):
     """Notion database representation."""
 
