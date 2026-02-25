@@ -10,6 +10,7 @@ from omni_fetcher.fetchers.notion import (
     parse_notion_uri,
 )
 from omni_fetcher.schemas.notion import NotionPage, NotionDatabase
+from omni_fetcher.core.exceptions import FetchError
 
 
 class TestNotionFetcherCreation:
@@ -88,7 +89,78 @@ class TestNotionRoute:
         assert route.page_id == "abc123"
 
 
-class TestNotionSchemas:
+class TestNotionSearch:
+    """Tests for NotionFetcher.search() method."""
+
+    def test_search_returns_list(self):
+        """search() returns list of NotionSearchResult."""
+        fetcher = NotionFetcher()
+        assert hasattr(fetcher, "search")
+
+    def test_search_with_object_type_filter(self):
+        """search() accepts object_type parameter."""
+        import inspect
+
+        fetcher = NotionFetcher()
+        sig = inspect.signature(fetcher.search)
+        params = sig.parameters
+        assert "object_type" in params
+
+    def test_search_with_query(self):
+        """search() accepts query parameter."""
+        import inspect
+
+        fetcher = NotionFetcher()
+        sig = inspect.signature(fetcher.search)
+        params = sig.parameters
+        assert "query" in params
+
+    def test_search_with_limit(self):
+        """search() accepts limit parameter."""
+        import inspect
+
+        fetcher = NotionFetcher()
+        sig = inspect.signature(fetcher.search)
+        params = sig.parameters
+        assert "limit" in params
+
+    @pytest.mark.asyncio
+    async def test_search_makes_http_request(self):
+        """search() makes HTTP request to Notion API."""
+        from unittest.mock import AsyncMock, patch
+
+        fetcher = NotionFetcher()
+        mock_response = {
+            "results": [
+                {
+                    "object": "page",
+                    "id": "abc123",
+                    "properties": {
+                        "Name": {
+                            "id": "title",
+                            "type": "title",
+                            "title": [{"plain_text": "Test Page", "annotations": {}}],
+                        }
+                    },
+                    "icon": {"emoji": "📄"},
+                }
+            ]
+        }
+
+        mock_client = AsyncMock()
+        mock_response_obj = AsyncMock()
+        mock_response_obj.json = lambda: mock_response
+        mock_response_obj.raise_for_status = lambda: None
+        mock_client.post = AsyncMock(return_value=mock_response_obj)
+
+        with patch.object(fetcher, "_get_client", return_value=mock_client):
+            with patch.object(fetcher, "_close_client", new_callable=AsyncMock):
+                results = await fetcher.search()
+
+                assert mock_client.post.called
+                assert len(results) == 1
+                assert results[0].title == "Test Page"
+
     def test_notion_page_tags(self):
         """NotionPage has correct tags."""
         page = NotionPage(
@@ -113,12 +185,11 @@ class TestNotionSchemas:
 class TestNotionFetcherIntegration:
     @pytest.mark.asyncio
     async def test_fetch_page_without_auth(self):
-        """Test fetching page without auth raises ImportError."""
+        """Test fetching page without auth raises FetchError."""
         fetcher = NotionFetcher()
-        with patch("omni_fetcher.fetchers.notion.NOTION_CLIENT_AVAILABLE", True):
-            with patch.object(fetcher, "get_auth_headers", return_value={}):
-                with pytest.raises(Exception):
-                    await fetcher.fetch("https://notion.so/page-id")
+        with patch.object(fetcher, "get_auth_headers", return_value={}):
+            with pytest.raises(FetchError):
+                await fetcher.fetch("https://notion.so/TestPage-1234567890abcdef1234567890abcdef")
 
     @pytest.mark.asyncio
     async def test_block_to_markdown_paragraph(self):

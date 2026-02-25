@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
 from urllib.parse import urlparse
+
+import httpx
 
 from omni_fetcher.core.exceptions import FetchError, SourceNotFoundError
 from omni_fetcher.core.registry import source
@@ -18,16 +21,8 @@ from omni_fetcher.schemas.notion import (
     NotionBlock,
     NotionUser,
     NotionProperty,
+    NotionSearchResult,
 )
-
-try:
-    from notion_client import AsyncClient
-    from notion_client.helpers import async_collect_paginated_api
-    from notion_client.primitives import is_full_page, is_full_block
-
-    NOTION_CLIENT_AVAILABLE = True
-except ImportError:
-    NOTION_CLIENT_AVAILABLE = False
 
 
 NOTION_API_BASE = "https://api.notion.com/v1"
@@ -109,7 +104,7 @@ class NotionFetcher(BaseFetcher):
     def __init__(self, timeout: float = 30.0):
         super().__init__()
         self.timeout = timeout
-        self._client: Optional[AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     @classmethod
     def can_handle(cls, uri: str) -> bool:
@@ -119,15 +114,13 @@ class NotionFetcher(BaseFetcher):
         lower_uri = uri.lower()
         return "notion.so" in lower_uri or lower_uri.startswith("notion://")
 
-    def _get_client(self) -> AsyncClient:
-        """Get or create Notion client."""
-        if not NOTION_CLIENT_AVAILABLE:
-            raise ImportError(
-                "notion-client is not installed. Install with: pip install notion-client"
-            )
-
+    def _get_auth_token(self) -> str:
+        """Get authentication token from headers or environment."""
         auth_headers = self.get_auth_headers()
         token = auth_headers.get("Authorization", "").replace("Bearer ", "")
+
+        if not token:
+            token = os.environ.get("NOTION_TOKEN", "")
 
         if not token:
             raise FetchError(
@@ -135,47 +128,62 @@ class NotionFetcher(BaseFetcher):
                 "Notion requires authentication. Set NOTION_TOKEN environment variable.",
             )
 
-        return AsyncClient(
-            auth=token,
-            base_url=NOTION_API_BASE,
-            timeout=self.timeout,
-        )
+        return token
+
+    def _get_client(self) -> httpx.AsyncClient:
+        """Get or create httpx client for Notion API."""
+        if self._client is None:
+            token = self._get_auth_token()
+            self._client = httpx.AsyncClient(
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Notion-Version": "2022-06-28",
+                    "Content-Type": "application/json",
+                },
+                base_url=NOTION_API_BASE,
+                timeout=self.timeout,
+            )
+        return self._client
+
+    async def _close_client(self) -> None:
+        """Close the httpx client."""
+        if self._client:
+            await self._client.aclose()
+            self._client = None
 
     async def fetch(self, uri: str, **kwargs: Any) -> Any:
         """Fetch from Notion based on URI type."""
-        if not NOTION_CLIENT_AVAILABLE:
-            raise ImportError(
-                "notion-client is not installed. Install with: pip install notion-client"
-            )
-
         route = parse_notion_uri(uri)
 
         if not route.page_id and not route.database_id:
             raise SourceNotFoundError(f"Invalid Notion URI: {uri}")
 
-        client = self._get_client()
-
         try:
+            client = self._get_client()
             if route.database_id:
                 return await self._fetch_database(client, route.database_id, uri, **kwargs)
-            else:
+            elif route.page_id:
                 return await self._fetch_page(client, route.page_id, uri, **kwargs)
-        except Exception as e:
-            if "404" in str(e) or "object" in str(e).lower():
+            else:
+                raise SourceNotFoundError(f"Invalid Notion URI: {uri}")
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
                 raise SourceNotFoundError(f"Notion page or database not found: {uri}")
             raise FetchError(uri, str(e))
+        except Exception as e:
+            raise FetchError(uri, str(e))
+        finally:
+            await self._close_client()
 
     async def _fetch_page(
-        self, client: AsyncClient, page_id: str, uri: str, **kwargs: Any
+        self, client: httpx.AsyncClient, page_id: str, uri: str, **kwargs: Any
     ) -> NotionPage:
         """Fetch a Notion page."""
         recursive = kwargs.get("recursive", False)
 
-        page_response = await client.pages.retrieve(page_id=page_id)
-        if not is_full_page(page_response):
-            raise FetchError(uri, "Failed to retrieve Notion page")
-
-        page_data = page_response
+        response = await client.get(f"/pages/{page_id}")
+        response.raise_for_status()
+        page_data = response.json()
 
         title = self._extract_title(page_data)
 
@@ -229,13 +237,10 @@ class NotionFetcher(BaseFetcher):
         content_text = ""
 
         try:
-            blocks = await async_collect_paginated_api(
-                client.blocks.children.list(block_id=page_id)
-            )
-            blocks = [b for b in blocks if is_full_block(b)]
+            blocks = await self._fetch_block_children(client, page_id)
 
             if recursive:
-                blocks = await self._fetch_block_children(client, blocks)
+                blocks = await self._fetch_all_block_children(client, blocks)
 
             content_text = self._blocks_to_markdown(blocks)
         except Exception:
@@ -268,11 +273,12 @@ class NotionFetcher(BaseFetcher):
         )
 
     async def _fetch_database(
-        self, client: AsyncClient, database_id: str, uri: str, **kwargs: Any
+        self, client: httpx.AsyncClient, database_id: str, uri: str, **kwargs: Any
     ) -> NotionDatabase:
         """Fetch a Notion database."""
-        database_response = await client.databases.retrieve(database_id=database_id)
-        database_data = database_response
+        response = await client.get(f"/databases/{database_id}")
+        response.raise_for_status()
+        database_data = response.json()
 
         title = self._extract_title(database_data)
 
@@ -308,10 +314,13 @@ class NotionFetcher(BaseFetcher):
 
         items = []
         try:
-            pages = await async_collect_paginated_api(
-                client.databases.query(database_id=database_id)
+            response = await client.post(
+                f"/databases/{database_id}/query",
+                json={"page_size": 100},
             )
-            pages = [p for p in pages if is_full_page(p)]
+            response.raise_for_status()
+            pages_data = response.json()
+            pages = pages_data.get("results", [])
 
             for page in pages:
                 page_id = page.get("id", "")
@@ -342,7 +351,16 @@ class NotionFetcher(BaseFetcher):
             data=spreadsheet_data,
         )
 
-    async def _fetch_block_children(self, client: AsyncClient, blocks: list[dict]) -> list[dict]:
+    async def _fetch_block_children(self, client: httpx.AsyncClient, block_id: str) -> list[dict]:
+        """Fetch children for a block."""
+        response = await client.get(f"/blocks/{block_id}/children")
+        response.raise_for_status()
+        data = response.json()
+        return data.get("results", [])
+
+    async def _fetch_all_block_children(
+        self, client: httpx.AsyncClient, blocks: list[dict]
+    ) -> list[dict]:
         """Recursively fetch children for blocks that have them."""
         all_blocks = []
 
@@ -351,13 +369,10 @@ class NotionFetcher(BaseFetcher):
 
             if block.get("has_children"):
                 try:
-                    children = await async_collect_paginated_api(
-                        client.blocks.children.list(block_id=block["id"])
-                    )
-                    children = [c for c in children if is_full_block(c)]
+                    children = await self._fetch_block_children(client, block["id"])
 
                     if children:
-                        children_with_grandchildren = await self._fetch_block_children(
+                        children_with_grandchildren = await self._fetch_all_block_children(
                             client, children
                         )
                         block["children"] = children_with_grandchildren
@@ -616,3 +631,80 @@ class NotionFetcher(BaseFetcher):
             format="notion",
             sheet_count=1,
         )
+
+    async def search(
+        self,
+        query: str | None = None,
+        object_type: str | None = None,
+        limit: int = 100,
+    ) -> list[NotionSearchResult]:
+        """Search all accessible pages and databases in Notion.
+
+        Args:
+            query: Optional text search query
+            object_type: Filter by "page", "database", or None for both
+            limit: Maximum number of results to return (default 100)
+
+        Returns:
+            List of NotionSearchResult objects
+
+        Raises:
+            FetchError: If authentication fails or API call fails
+        """
+        client = self._get_client()
+
+        request_json: dict[str, Any] = {
+            "query": query or "",
+            "page_size": min(limit, 100),
+        }
+
+        if object_type in ("page", "database"):
+            request_json["filter"] = {"value": object_type, "property": "object"}
+
+        try:
+            response = await client.post("/search", json=request_json)
+            response.raise_for_status()
+            results = response.json()
+        except httpx.HTTPStatusError as e:
+            raise FetchError("notion://search", str(e)) from e
+        except Exception as e:
+            raise FetchError("notion://search", str(e)) from e
+
+        search_results: list[NotionSearchResult] = []
+
+        for item in results.get("results", []):
+            obj_type = item.get("object")
+            if obj_type not in ("page", "database"):
+                continue
+
+            title = ""
+            if obj_type == "page":
+                title = self._extract_title(item)
+            elif obj_type == "database":
+                title_db = item.get("title", [])
+                if title_db:
+                    title = title_db[0].get("plain_text", "")
+
+            icon = None
+            if item.get("icon"):
+                if item["icon"].get("emoji"):
+                    icon = item["icon"]["emoji"]
+                elif item["icon"].get("external"):
+                    icon = item["icon"]["external"].get("url")
+                elif item["icon"].get("file"):
+                    icon = item["icon"]["file"].get("url")
+
+            obj_id = item.get("id", "")
+            url = f"https://notion.so/{obj_id.replace('-', '')}" if obj_id else None
+
+            search_results.append(
+                NotionSearchResult(
+                    id=obj_id,
+                    title=title or "Untitled",
+                    object_type=obj_type,
+                    url=url,
+                    icon=icon,
+                )
+            )
+
+        return search_results

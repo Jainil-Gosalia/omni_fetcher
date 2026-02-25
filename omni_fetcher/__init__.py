@@ -66,6 +66,7 @@ from omni_fetcher.schemas.notion import (
     NotionRichText,
     NotionUser,
     NotionProperty,
+    NotionSearchResult,
 )
 
 from omni_fetcher.schemas.confluence import (
@@ -150,6 +151,7 @@ __all__ = [
     "NotionRichText",
     "NotionUser",
     "NotionProperty",
+    "NotionSearchResult",
     # Confluence
     "ConfluencePage",
     "ConfluenceSpace",
