@@ -351,18 +351,20 @@ class NotionFetcher(BaseFetcher):
             data=spreadsheet_data,
         )
 
-    async def _fetch_block_children(self, client: httpx.AsyncClient, block_id: str) -> list[dict]:
+    async def _fetch_block_children(
+        self, client: httpx.AsyncClient, block_id: str
+    ) -> list[dict[str, Any]]:
         """Fetch children for a block."""
         response = await client.get(f"/blocks/{block_id}/children")
         response.raise_for_status()
-        data = response.json()
+        data: dict[str, Any] = response.json()
         return data.get("results", [])
 
     async def _fetch_all_block_children(
-        self, client: httpx.AsyncClient, blocks: list[dict]
-    ) -> list[dict]:
+        self, client: httpx.AsyncClient, blocks: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Recursively fetch children for blocks that have them."""
-        all_blocks = []
+        all_blocks: list[dict[str, Any]] = []
 
         for block in blocks:
             all_blocks.append(block)
@@ -383,23 +385,25 @@ class NotionFetcher(BaseFetcher):
 
     def _extract_title(self, data: dict[str, Any]) -> str:
         """Extract title from Notion page or database."""
-        properties = data.get("properties", {})
+        properties: dict[str, Any] = data.get("properties", {}) or {}
 
         for prop_name, prop_value in properties.items():
             prop_type = prop_value.get("type")
             if prop_type == "title":
-                title_texts = prop_value.get("title", [])
+                title_texts: list[Any] = prop_value.get("title", []) or []
                 if title_texts:
                     return self._rich_text_to_plain(title_texts[0])
 
         for prop_name, prop_value in properties.items():
             prop_type = prop_value.get("type")
             if prop_type == "name":
-                name_texts = prop_value.get("name", [])
+                name_texts: list[Any] = prop_value.get("name", []) or []
                 if name_texts:
                     return self._rich_text_to_plain(name_texts[0])
 
-        return data.get("title", {}).get("title", [{}])[0].get("plain_text", "Untitled")
+        title_obj: dict[str, Any] = data.get("title", {}) or {}
+        title_list: list[dict[str, Any]] = title_obj.get("title", [{}]) or [{}]
+        return title_list[0].get("plain_text", "Untitled") or "Untitled"
 
     def _parse_properties(self, properties: dict[str, Any]) -> dict[str, NotionProperty]:
         """Parse Notion page properties."""
@@ -576,9 +580,9 @@ class NotionFetcher(BaseFetcher):
 
     def _rich_text_to_markdown(self, text: dict[str, Any]) -> str:
         """Convert single rich text element to markdown."""
-        plain_text = text.get("plain_text", "")
-        annotations = text.get("annotations", {})
-        href = text.get("href")
+        plain_text: str = text.get("plain_text", "") or ""
+        annotations: dict[str, Any] = text.get("annotations", {}) or {}
+        href: str | None = text.get("href")
 
         if href:
             return f"[{plain_text}]({href})"
@@ -598,7 +602,7 @@ class NotionFetcher(BaseFetcher):
 
     def _rich_text_to_plain(self, text: dict[str, Any]) -> str:
         """Convert rich text to plain text."""
-        return text.get("plain_text", "")
+        return text.get("plain_text", "") or ""
 
     def _database_to_spreadsheet(
         self, schema: dict[str, Any], items: list[NotionPage]
