@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -138,10 +139,17 @@ class SlackFetcher(BaseFetcher):
 
     def _get_headers(self) -> dict[str, str]:
         auth_headers = self.get_auth_headers()
-        return {
+        headers = {
             **auth_headers,
             "Content-Type": "application/json; charset=utf-8",
         }
+
+        if "Authorization" not in headers:
+            token = os.environ.get("SLACK_BOT_TOKEN")
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+
+        return headers
 
     async def _get_channel_id(self, channel_name: str, client: httpx.AsyncClient) -> str:
         if channel_name.startswith("C") or channel_name.startswith("G"):
@@ -150,6 +158,7 @@ class SlackFetcher(BaseFetcher):
         response = await client.get(
             f"{SLACK_API_BASE}/conversations.list",
             params={"types": "public_channel,private_channel", "limit": 200},
+            headers=self._get_headers(),
         )
         data = response.json()
 
