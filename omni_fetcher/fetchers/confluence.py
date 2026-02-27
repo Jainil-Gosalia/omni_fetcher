@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from datetime import datetime
 from typing import Any, Optional
@@ -67,9 +68,19 @@ def parse_confluence_uri(uri: str) -> dict[str, Any]:
     parsed = urlparse(uri)
     path = parsed.path
 
+    if not path or path == "/" or path.strip("/") == "":
+        return {"type": "root"}
+
+    if path.strip("/") == "wiki":
+        return {"type": "root"}
+
     page_match = re.search(r"/pages/(\d+)", path)
     if page_match:
         return {"type": "page", "page_id": page_match.group(1)}
+
+    space_match = re.search(r"/spaces/(~[a-fA-F0-9]+)", path)
+    if space_match:
+        return {"type": "space", "space_key": space_match.group(1)}
 
     space_match = re.search(r"/spaces/([A-Z0-9]+)", path)
     if space_match:
@@ -123,12 +134,25 @@ class ConfluenceFetcher(BaseFetcher):
         token = auth_headers.get("Authorization", "").replace("Bearer ", "")
 
         if not token:
+            token = os.environ.get("CONFLUENCE_TOKEN", "")
+
+        if not token:
             raise FetchError(
                 "confluence:// or https://company.atlassian.net/wiki/...",
                 "Confluence requires authentication. Set CONFLUENCE_TOKEN environment variable.",
             )
 
-        url = base_url or CONFLUENCE_CLOUD_URL
+        username = os.environ.get("CONFLUENCE_USER", "")
+
+        url = base_url or os.environ.get("CONFLUENCE_URL", CONFLUENCE_CLOUD_URL)
+
+        if username:
+            return AtlassianConfluence(
+                url=url,
+                username=username,
+                password=token,
+                timeout=self.timeout,
+            )
 
         return AtlassianConfluence(
             url=url,
@@ -207,6 +231,8 @@ class ConfluenceFetcher(BaseFetcher):
                 return await self._fetch_space(client, route["space_key"], uri, **kwargs)
             elif route["type"] == "page":
                 return await self._fetch_page(client, route["page_id"], uri, **kwargs)
+            elif route["type"] == "root":
+                return await self._fetch_root(client, uri, **kwargs)
         except Exception as e:
             if "404" in str(e) or "Not Found" in str(e):
                 raise SourceNotFoundError(f"Confluence resource not found: {uri}")
@@ -394,6 +420,44 @@ class ConfluenceFetcher(BaseFetcher):
             page_count=page_count,
             attachment_count=attachment_count,
         )
+
+    async def _fetch_root(
+        self, client: AtlassianConfluence, uri: str, **kwargs: Any
+    ) -> ConfluenceSpace:
+        """Fetch Confluence home/root - returns user's personal space or first accessible space."""
+        import asyncio
+
+        get_pages = kwargs.get("get_pages", True)
+
+        try:
+            user = await asyncio.to_thread(client.get_myself)
+            account_id = user.get("accountId", "")
+        except Exception:
+            account_id = ""
+
+        if account_id:
+            personal_space_key = f"~{account_id}"
+            try:
+                return await self._fetch_space(client, personal_space_key, uri, get_pages=get_pages)
+            except Exception:
+                pass
+
+        try:
+            spaces_data = await asyncio.to_thread(
+                client.get, "rest/api/space", params={"limit": 10}
+            )
+            results = spaces_data.get("results", []) if spaces_data else []
+
+            if results:
+                first_space_key = results[0].get("key")
+                if first_space_key:
+                    return await self._fetch_space(
+                        client, first_space_key, uri, get_pages=get_pages
+                    )
+        except Exception as e:
+            raise FetchError(uri, f"Could not fetch spaces: {e}")
+
+        raise FetchError(uri, "Could not fetch Confluence home - no accessible spaces")
 
     def _get_domain_from_client(self, uri: str) -> str:
         """Extract domain from URI for building URLs."""
