@@ -101,6 +101,21 @@ class TestParseConfluenceUri:
         route = parse_confluence_uri("https://example.com/page")
         assert route["type"] == "unknown"
 
+    def test_parse_root_url_with_slash(self):
+        """Parse root URL with trailing slash."""
+        route = parse_confluence_uri("https://omnifetcher.atlassian.net/")
+        assert route["type"] == "root"
+
+    def test_parse_root_url_without_slash(self):
+        """Parse root URL without trailing slash."""
+        route = parse_confluence_uri("https://omnifetcher.atlassian.net")
+        assert route["type"] == "root"
+
+    def test_parse_root_url_with_wiki_path(self):
+        """Parse root URL with /wiki path."""
+        route = parse_confluence_uri("https://omnifetcher.atlassian.net/wiki/")
+        assert route["type"] == "root"
+
 
 class TestConfluenceSchemas:
     def test_confluence_page_tags(self):
