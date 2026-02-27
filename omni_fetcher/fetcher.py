@@ -128,10 +128,13 @@ class OmniFetcher:
             if auth_dict:
                 auth_config = AuthConfig(**auth_dict)
         else:
-            # Check if this source has auth configured
+            # Check if this source has auth configured in user registry
             auth_dict = self._auth_registry.get(source_info.name)
             if auth_dict:
                 auth_config = auth_dict
+            # Fall back to source's registered auth config (from @source decorator)
+            elif source_info.auth_config:
+                auth_config = AuthConfig(**source_info.auth_config)
 
         # Apply auth to fetcher if supported
         if auth_config and hasattr(fetcher, "set_auth"):
