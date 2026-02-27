@@ -4,10 +4,26 @@ from __future__ import annotations
 
 import os
 import time
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 import httpx
 from pydantic import BaseModel, Field
+
+try:
+    from dotenv import load_dotenv
+
+    env_paths = [
+        Path.cwd() / ".env",
+        Path(__file__).parent.parent.parent / ".env",
+        Path.cwd().parent / ".env",
+    ]
+    for env_path in env_paths:
+        if env_path.exists():
+            load_dotenv(env_path)
+            break
+except ImportError:
+    pass
 
 
 class AuthConfig(BaseModel):

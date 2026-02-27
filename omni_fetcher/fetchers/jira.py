@@ -222,10 +222,15 @@ def _get_text_from_nodes(nodes: list[dict[str, Any]]) -> list[str]:
 
 @source(
     name="jira",
-    uri_patterns=["atlassian.net/browse", "atlassian.net/jira", "jira://"],
+    uri_patterns=[
+        "atlassian.net/browse",
+        "atlassian.net/jira",
+        "atlassian.net/projects",
+        "jira://",
+    ],
     priority=15,
     description="Fetch from Jira — issues, projects, sprints, epics",
-    auth={"type": "bearer", "token_env": "JIRA_TOKEN"},
+    auth={"type": "basic", "username_env": "JIRA_USER", "password_env": "JIRA_TOKEN"},
 )
 class JiraFetcher(BaseFetcher):
     """Fetcher for Jira API - issues, projects, sprints, and epics."""
@@ -245,6 +250,7 @@ class JiraFetcher(BaseFetcher):
         return (
             "atlassian.net/browse" in lower_uri
             or "atlassian.net/jira" in lower_uri
+            or "atlassian.net/projects" in lower_uri
             or lower_uri.startswith("jira://")
         )
 
@@ -254,20 +260,38 @@ class JiraFetcher(BaseFetcher):
                 "atlassian-python-api is not installed. Install with: pip install atlassian-python-api"
             )
 
-        auth_headers = self.get_auth_headers()
-        auth_value = auth_headers.get("Authorization", "").replace("Bearer ", "")
+        if self._auth_config:
+            username = self._auth_config.get_username()
+            password = self._auth_config.get_password()
+            token = self._auth_config.get_token()
+        else:
+            username = None
+            password = None
+            token = None
 
-        if not auth_value:
+        if not username and not token:
             raise FetchError(
                 "jira:// or https://company.atlassian.net/browse/...",
-                "Jira requires authentication. Set JIRA_TOKEN environment variable.",
+                "Jira requires authentication. Set JIRA_USER and JIRA_TOKEN environment variables.",
             )
 
         url = base_url or JIRA_CLOUD_URL
 
+        if username and password:
+            return AtlassianJira(
+                url=url,
+                username=username,
+                password=password,
+                api_version="3",
+                cloud=True,
+                timeout=self.timeout,
+            )
+
         return AtlassianJira(
             url=url,
-            token=auth_value,
+            token=token,
+            api_version="3",
+            cloud=True,
             timeout=self.timeout,
         )
 
