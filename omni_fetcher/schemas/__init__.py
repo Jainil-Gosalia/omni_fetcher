@@ -94,6 +94,13 @@ from omni_fetcher.schemas.jira import (
     JiraProject,
 )
 
+from omni_fetcher.schemas.linear import (
+    LinearIssue,
+    LinearTeam,
+    LinearProject,
+    LinearCycle,
+)
+
 OldTextDocument = DeprecatedTextDocument
 
 __all__ = [
@@ -169,4 +176,9 @@ __all__ = [
     "JiraEpic",
     "JiraSprint",
     "JiraProject",
+    # Linear
+    "LinearIssue",
+    "LinearTeam",
+    "LinearProject",
+    "LinearCycle",
 ]
