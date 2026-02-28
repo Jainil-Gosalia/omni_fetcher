@@ -101,6 +101,12 @@ from omni_fetcher.schemas.linear import (
     LinearCycle,
 )
 
+from omni_fetcher.schemas.sharepoint import (
+    SharePointFile,
+    SharePointLibrary,
+    SharePointSite,
+)
+
 OldTextDocument = DeprecatedTextDocument
 
 __all__ = [
@@ -181,4 +187,8 @@ __all__ = [
     "LinearTeam",
     "LinearProject",
     "LinearCycle",
+    # SharePoint
+    "SharePointFile",
+    "SharePointLibrary",
+    "SharePointSite",
 ]
