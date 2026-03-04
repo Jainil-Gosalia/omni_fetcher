@@ -96,4 +96,3 @@ jobs:
 
       - name: Run pip-audit
         run: pip-audit -r pyproject.toml
-        continue-on-error: true
