@@ -22,6 +22,14 @@ from omni_fetcher.fetchers.graphql import GraphQLFetcher
 from omni_fetcher.fetchers.http_auth import HTTPAuthFetcher
 from omni_fetcher.fetchers.slack import SlackFetcher
 from omni_fetcher.fetchers.jira import JiraFetcher
+from omni_fetcher.fetchers.github import GitHubFetcher
+from omni_fetcher.fetchers.notion import NotionFetcher
+from omni_fetcher.fetchers.confluence import ConfluenceFetcher
+from omni_fetcher.fetchers.google_drive import GoogleDriveFetcher
+from omni_fetcher.fetchers.linear import LinearFetcher
+from omni_fetcher.fetchers.sharepoint import SharePointFetcher
+from omni_fetcher.fetchers.docx import DOCXFetcher
+from omni_fetcher.fetchers.pptx import PPTXFetcher
 from omni_fetcher.auth import AuthConfig, load_auth_from_env
 
 
@@ -92,6 +100,14 @@ class OmniFetcher:
         _ = HTTPAuthFetcher
         _ = SlackFetcher
         _ = JiraFetcher
+        _ = GitHubFetcher
+        _ = NotionFetcher
+        _ = ConfluenceFetcher
+        _ = GoogleDriveFetcher
+        _ = LinearFetcher
+        _ = SharePointFetcher
+        _ = DOCXFetcher
+        _ = PPTXFetcher
 
     async def fetch(self, uri: str, **kwargs: Any) -> Any:
         """Fetch data from the given URI.
