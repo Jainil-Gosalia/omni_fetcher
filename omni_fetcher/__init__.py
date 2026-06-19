@@ -91,7 +91,12 @@ from omni_fetcher.schemas.jira import (
     JiraProject,
 )
 
-__version__ = "0.9.0"
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+try:
+    __version__ = _pkg_version("omni_fetcher")
+except PackageNotFoundError:  # running from source without an installed dist
+    __version__ = "0.0.0+unknown"
 
 __all__ = [
     "OmniFetcher",
