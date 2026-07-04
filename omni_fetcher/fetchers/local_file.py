@@ -134,9 +134,13 @@ class LocalFileFetcher(BaseFetcher):
                     from omni_fetcher.schemas.documents import WebPageDocument
 
                     tags = build_tags(["local", "file", "text"])
+                    # url and body are required fields; the old text=
+                    # keyword was silently ignored by pydantic and left
+                    # the model unconstructible at runtime.
                     return WebPageDocument(
                         metadata=metadata,
-                        text=TextDocument(
+                        url=metadata.source_uri,
+                        body=TextDocument(
                             source_uri=metadata.source_uri,
                             content=content,
                             format=TextFormat.HTML,

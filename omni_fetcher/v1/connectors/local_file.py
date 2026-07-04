@@ -24,7 +24,7 @@ import mimetypes
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator, Optional, Union
 from urllib.parse import unquote, urlparse
 
 from omni_fetcher.v1.atoms import Table, Text, TextFormat
@@ -311,6 +311,7 @@ class LocalFileFetcher(BaseFetcher):
         except (UnicodeError, OSError) as exc:
             return from_exception(exc, kind=ErrorKind.PARSE_ERROR, locator=uri)
 
+        atom: Union[Table, Text]
         if tabular:
             try:
                 atom = _parse_table(text, path, mime_type)

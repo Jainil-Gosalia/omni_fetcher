@@ -82,8 +82,12 @@ def _mime_type(content_type: Optional[str]) -> str:
 def _extract_title(soup: BeautifulSoup) -> Optional[str]:
     """Extract a page title from og:title, <title>, or the first <h1>."""
     og_title = soup.find("meta", property="og:title")
-    if og_title and og_title.get("content"):
-        return og_title["content"].strip()
+    if og_title:
+        # Attribute values may be multi-valued lists in bs4; only a plain
+        # string is a usable title.
+        content = og_title.get("content")
+        if isinstance(content, str) and content.strip():
+            return content.strip()
     title_tag = soup.find("title")
     if title_tag and title_tag.get_text().strip():
         return title_tag.get_text().strip()

@@ -46,6 +46,8 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.1.0",
     "mypy>=1.0",
+    "types-PyYAML",
+    "types-python-dateutil",
     "pre-commit>=3.0",
     "python-dotenv>=1.0.0",
 ]
@@ -90,6 +92,31 @@ target-version = "py310"
 
 [tool.mypy]
 python_version = "3.10"
-warn_return_any = true
+# A stray local virtualenv under the package dir must never be checked.
+exclude = ["venv"]
+# The plugin teaches mypy pydantic's positional Field(default, ...) form;
+# without it every such field looks required at call sites.
+plugins = ["pydantic.mypy"]
+warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+# Optional/untyped third-party dependencies with no usable type stubs.
+module = [
+    "atlassian.*",
+    "boto3.*",
+    "botocore.*",
+    "docx.*",
+    "feedparser.*",
+    "google.*",
+    "googleapiclient.*",
+    "jwt.*",
+    "magic.*",
+    "pptx.*",
+    "readability.*",
+    "slack_sdk.*",
+    "trafilatura.*",
+    "yt_dlp.*",
+]
+ignore_missing_imports = true

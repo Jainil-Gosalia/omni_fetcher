@@ -34,7 +34,9 @@ class RedisCacheBackend(CacheBackend):
 
     async def _get_client(self) -> redis.Redis:
         if self._client is None:
-            self._client = redis.Redis(
+            # The stubs type decode_responses as Literal[True]/[False]
+            # overloads, which a runtime bool cannot satisfy.
+            self._client = redis.Redis(  # type: ignore[call-overload]
                 host=self.host,
                 port=self.port,
                 db=self.db,
@@ -146,7 +148,7 @@ class RedisCacheBackend(CacheBackend):
             await self._client.close()
             self._client = None
 
-    async def pipeline(self) -> redis.Pipeline:
+    async def pipeline(self) -> redis.client.Pipeline:
         client = await self._get_client()
         return client.pipeline()
 

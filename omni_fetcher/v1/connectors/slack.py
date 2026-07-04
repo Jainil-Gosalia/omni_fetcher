@@ -534,6 +534,9 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return None, err
+        # _call returns exactly one of (data, err) non-None; narrow for
+        # the type checker.
+        assert data is not None
         for channel in data.get("channels", []):
             if channel.get("name") == route.channel_name:
                 return channel["id"], None
@@ -554,6 +557,7 @@ class SlackConnector(BaseFetcher):
         channel_id, err = await self._resolve_channel_id(client, route, headers, uri)
         if err is not None:
             return err
+        assert channel_id is not None
 
         info, err = await self._call(
             client,
@@ -564,6 +568,7 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return err
+        assert info is not None
 
         channel = info.get("channel", {})
 
@@ -576,6 +581,7 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return err
+        assert history is not None
 
         messages = history.get("messages", [])
         user_map = await self._collect_users(client, messages, headers)
@@ -630,6 +636,7 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return err
+        assert data is not None
 
         messages = data.get("messages", [])
         if not messages:
@@ -686,6 +693,7 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return err
+        assert listing is not None
 
         dm_id: Optional[str] = None
         for channel in listing.get("channels", []):
@@ -708,6 +716,7 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return err
+        assert history is not None
 
         messages = history.get("messages", [])
         user_map = await self._collect_users(client, messages, headers)

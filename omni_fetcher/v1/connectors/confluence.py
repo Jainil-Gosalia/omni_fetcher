@@ -35,7 +35,7 @@ from __future__ import annotations
 import asyncio
 import re
 from datetime import datetime
-from typing import Any, AsyncIterator, Optional
+from typing import Any, AsyncIterator, Optional, Union
 from urllib.parse import urlparse
 
 from omni_fetcher.v1.atoms import Text, TextFormat
@@ -406,7 +406,7 @@ class ConfluenceConnector(BaseFetcher):
         except Exception as exc:
             return from_exception(exc, kind=_classify_exception(exc), locator=uri)
 
-    def _build_client(self, uri: str, auth: AuthCredential) -> Any:
+    def _build_client(self, uri: str, auth: Union[BasicAuth, BearerAuth]) -> Any:
         """Construct a fresh Confluence client from the per-call credential.
 
         Reuses the v0.11 fetcher's two client shapes -- username/password for
