@@ -69,8 +69,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,office,web,gdrive,confluence,slack,jira]"
 
+      # tests/integration hits live services (httpbin, wikipedia,
+      # YouTube, ...) and needs real credentials; it is for local,
+      # opt-in runs and is excluded from CI.
       - name: Run pytest
-        run: pytest --cov=omni_fetcher --cov-report=xml
+        run: pytest --cov=omni_fetcher --cov-report=xml --ignore=tests/integration
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

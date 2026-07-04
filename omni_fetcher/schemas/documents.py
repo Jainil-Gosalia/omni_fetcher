@@ -13,7 +13,9 @@ from omni_fetcher.schemas.atomics import (
     ImageDocument,
     SpreadsheetDocument,
 )
-from typing import Self
+
+# typing.Self is 3.11+; typing_extensions ships with pydantic and covers 3.10.
+from typing_extensions import Self
 
 
 class WebPageDocument(BaseFetchedData):

@@ -39,7 +39,11 @@ class LocalFileFetcher(BaseFetcher):
     @classmethod
     def can_handle(cls, uri: str) -> bool:
         """Check if this is a local file URI."""
-        return uri.startswith("file://") or os.path.isabs(uri)
+        if uri.startswith("file://") or os.path.isabs(uri):
+            return True
+        # os.path.isabs on POSIX rejects Windows drive paths; accept
+        # them explicitly so the decision is host-independent.
+        return len(uri) >= 3 and uri[0].isalpha() and uri[1] == ":" and uri[2] in "\\/"
 
     async def fetch(self, uri: str, **kwargs: Any) -> Any:
         """Fetch a local file.
