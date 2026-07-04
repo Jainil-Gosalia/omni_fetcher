@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Self
+from typing import Optional
+
+# typing.Self is 3.11+; typing_extensions ships with pydantic and covers 3.10.
+from typing_extensions import Self
 
 from pydantic import BaseModel, Field, model_validator
 
