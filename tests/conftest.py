@@ -1,11 +1,11 @@
 """Pytest configuration."""
 
+import importlib
+
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
-
-import pytest
-import importlib
 
 
 @pytest.fixture(autouse=True)

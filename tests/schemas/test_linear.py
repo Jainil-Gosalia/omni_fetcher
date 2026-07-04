@@ -1,8 +1,7 @@
 """Tests for Linear schemas."""
 
-from datetime import datetime, date
+from datetime import datetime
 
-import pytest
 
 from omni_fetcher.schemas.linear import (
     LinearIssue,
@@ -12,7 +11,6 @@ from omni_fetcher.schemas.linear import (
     priority_to_slug,
     state_type_to_slug,
 )
-from omni_fetcher.schemas.atomics import TextDocument, TextFormat
 
 
 class TestPriorityToSlug:

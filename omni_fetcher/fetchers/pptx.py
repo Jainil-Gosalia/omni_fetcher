@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import io
 from datetime import datetime
 from pathlib import Path
@@ -9,9 +10,7 @@ from typing import Any, List, Optional
 
 import httpx
 
-try:
-    import pptx
-except ImportError:
+if importlib.util.find_spec("pptx") is None:
     raise ImportError(
         "python-pptx is required for PPTX fetching. Install with: pip install omni_fetcher[office]"
     )

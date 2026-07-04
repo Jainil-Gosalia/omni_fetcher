@@ -2,10 +2,9 @@
 
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
-from datetime import datetime
 
 from omni_fetcher.fetchers.csv import CSVFetcher
-from omni_fetcher.schemas.atomics import SpreadsheetDocument, SheetData
+from omni_fetcher.schemas.atomics import SpreadsheetDocument
 
 
 class TestCSVFetcher:

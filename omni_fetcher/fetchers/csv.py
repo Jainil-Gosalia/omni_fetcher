@@ -110,9 +110,6 @@ class CSVFetcher(BaseFetcher):
             headers = [f"column_{i}" for i in range(len(rows[0]))]
             data_rows = rows
 
-        # Get sample rows (first 5)
-        sample_rows = data_rows[:5]
-
         return {
             "headers": headers,
             "row_count": len(data_rows),

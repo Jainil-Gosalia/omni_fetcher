@@ -2,14 +2,13 @@
 
 from datetime import datetime
 
-import pytest
 
 from omni_fetcher.schemas.sharepoint import (
     SharePointFile,
     SharePointLibrary,
     SharePointSite,
 )
-from omni_fetcher.schemas.atomics import TextDocument, ImageDocument
+from omni_fetcher.schemas.atomics import TextDocument
 
 
 class TestSharePointFileSchema:

@@ -34,7 +34,7 @@ from omni_fetcher.v1.connectors.jira import (
 )
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.node import CompositionNode
-from omni_fetcher.v1.result import Error, Partial, Success
+from omni_fetcher.v1.result import Error, Success
 
 BASE_URL = "https://acme.atlassian.net"
 AUTH = BasicAuth(username="dev@acme.io", password="api-token")
@@ -303,9 +303,7 @@ async def test_project_is_container_node() -> None:
 
     assert isinstance(result, Success)
     assert result.tree.metadata.kind == PROJECT_KIND
-    child_nodes = [
-        c for c in result.tree.children if isinstance(c, CompositionNode)
-    ]
+    child_nodes = [c for c in result.tree.children if isinstance(c, CompositionNode)]
     assert len(child_nodes) == 2
     assert all(c.metadata.kind == ISSUE_KIND for c in child_nodes)
     extra = result.tree.metadata.source_extra[JIRA_NAMESPACE]
@@ -334,15 +332,11 @@ async def test_sprint_is_container_node() -> None:
 
     assert isinstance(result, Success)
     assert result.tree.metadata.kind == SPRINT_KIND
-    child_nodes = [
-        c for c in result.tree.children if isinstance(c, CompositionNode)
-    ]
+    child_nodes = [c for c in result.tree.children if isinstance(c, CompositionNode)]
     assert len(child_nodes) == 1
     assert child_nodes[0].metadata.kind == ISSUE_KIND
     # Sprint goal is content -> a Text atom directly on the sprint node.
-    goal_atoms = [
-        c for c in result.tree.children if getattr(c, "kind", None) is AtomKind.TEXT
-    ]
+    goal_atoms = [c for c in result.tree.children if getattr(c, "kind", None) is AtomKind.TEXT]
     assert any("Ship the feature" in a.content for a in goal_atoms)
     assert result.tree.metadata.source_extra[JIRA_NAMESPACE]["state"] == "active"
 
@@ -359,9 +353,7 @@ async def test_epic_is_container_node() -> None:
 
     assert isinstance(result, Success)
     assert result.tree.metadata.kind == EPIC_KIND
-    child_nodes = [
-        c for c in result.tree.children if isinstance(c, CompositionNode)
-    ]
+    child_nodes = [c for c in result.tree.children if isinstance(c, CompositionNode)]
     assert len(child_nodes) == 2
 
 
@@ -390,9 +382,7 @@ async def test_not_an_epic_is_invalid_input() -> None:
         (503, ErrorKind.TRANSIENT),
     ],
 )
-async def test_http_status_maps_to_error(
-    status: int, expected: ErrorKind
-) -> None:
+async def test_http_status_maps_to_error(status: int, expected: ErrorKind) -> None:
     """An HTTP failure from the client maps onto the typed taxonomy."""
     client = _FakeClient(raises=_FakeHTTPError(status))
     connector = _connector_with(client)

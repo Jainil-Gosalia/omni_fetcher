@@ -2,7 +2,6 @@
 
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from datetime import datetime
 
 from omni_fetcher.fetchers.http_url import HTTPURLFetcher
 from omni_fetcher.schemas.documents import WebPageDocument
