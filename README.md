@@ -9,7 +9,14 @@ Universal data fetcher that can fetch data from any source and return it as pred
 
 ## Version
 
-**Current: v0.11.2**
+**Current: v1.0.0**
+
+> **v1.0 canonical contract.** As of v1.0, connectors emit a single canonical
+> contract — a `CompositionNode` tree of typed atoms plus a uniform
+> `FetchMetadata` core and namespaced `source_extra` — instead of the ~50
+> source-specific schema classes (`GitHubIssue`, `NotionPage`, `JiraIssue`, …),
+> which are no longer part of the public API. See
+> [docs/migration-v1.md](docs/migration-v1.md) for the field-by-field mapping.
 
 ## Project Overview
 

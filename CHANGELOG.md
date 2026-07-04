@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-07-04
+
+The v1.0 clean break: every connector now emits a single **canonical contract**
+(a `CompositionNode` tree of typed atoms + uniform `FetchMetadata` + namespaced
+`source_extra`, wrapped in a `Result`).
+
+### Removed
+- Source-specific public schema classes are no longer part of the public API:
+  `GitHub*`, `GoogleDrive*`/`GoogleSheets*`/`GoogleDocs*`/`GoogleSlides*`,
+  `Notion*`, `Confluence*`, `Slack*`, and `Jira*` are no longer exported from
+  `omni_fetcher`. Their modules remain on disk for the legacy fetchers' internal
+  use only. See the migration guide below.
+
+### Added
+- `docs/migration-v1.md` — maps every removed schema family onto the canonical
+  atoms + metadata core + `source_extra`.
+- Multi-tenant isolation proof: concurrency tests (`tests/v1/test_isolation.py`)
+  that drive one shared resolver/registry/orchestrator from many threads and
+  interleaved coroutines with distinct tenant credentials, asserting no
+  cross-tenant leakage of auth or data.
+
+### Changed
+- `FetchMetadata.content_hash` is documented as an opt-in Merkle content
+  fingerprint (populate on demand via `CompositionNode.populate_hashes`);
+  `prev_hash` remains reserved and is never auto-populated. No verification
+  logic ships.
+
+### Migration
+- See [docs/migration-v1.md](docs/migration-v1.md).
+
 ## [0.11.2] - 2026-02-24
 
 ### Fixed

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=64", "wheel", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "omni_fetcher"
-version = "0.11.2"
+dynamic = ["version"]
 description = "Universal data fetcher with Pydantic schemas"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -77,6 +77,12 @@ jira = [
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.setuptools_scm]
+# Version is derived from the latest git tag (e.g. tag "v1.0.0" -> "1.0.0").
+# Between tags, a dev version is produced. fallback_version is used when
+# building outside a git checkout (e.g. from an sdist without .git).
+fallback_version = "0.0.0"
 
 [tool.ruff]
 line-length = 100

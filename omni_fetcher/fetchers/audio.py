@@ -76,7 +76,7 @@ class AudioFetcher(BaseFetcher):
         stat = path_obj.stat()
         file_size = stat.st_size
         mime_type = self._guess_mime_type(path)
-        audio_format = mime_type.split("/")[-1] if mime_type else "unknown"
+        audio_format = self._format_from_mime(mime_type) if mime_type else "unknown"
 
         tags = self._build_tags(file_size)
 
@@ -99,7 +99,7 @@ class AudioFetcher(BaseFetcher):
 
             content_type = response.headers.get("content-type", "audio/mpeg")
             mime_type = content_type.split(";")[0].strip()
-            audio_format = mime_type.split("/")[-1] if "/" in mime_type else "mp3"
+            audio_format = self._format_from_mime(mime_type) if "/" in mime_type else "mp3"
 
             file_size = len(response.content)
             tags = self._build_tags(file_size)
@@ -134,6 +134,14 @@ class AudioFetcher(BaseFetcher):
         """Guess MIME type from file extension."""
         mime_type, _ = mimetypes.guess_type(path)
         return mime_type
+
+    @staticmethod
+    def _format_from_mime(mime_type: str) -> str:
+        """Derive the audio format from a MIME type or subtype."""
+        # Some platforms register legacy subtypes (audio/x-wav on
+        # Linux vs audio/wav on Windows); strip the x- prefix so the
+        # reported format does not depend on the host.
+        return mime_type.split("/")[-1].removeprefix("x-")
 
     def _extract_filename(self, uri: str, content_disposition: str) -> str:
         """Extract filename from URL or Content-Disposition header."""
