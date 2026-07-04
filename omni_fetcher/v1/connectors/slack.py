@@ -185,7 +185,7 @@ def parse_slack_uri(uri: str) -> Optional[SlackRoute]:
     if not uri.startswith("slack://"):
         return None
 
-    path = uri[len("slack://"):].strip("/")
+    path = uri[len("slack://") :].strip("/")
     if not path:
         return None
     parts = path.split("/")
@@ -433,11 +433,7 @@ class SlackConnector(BaseFetcher):
                 continue
             user = data.get("user", {})
             profile = user.get("profile", {})
-            display = (
-                profile.get("display_name")
-                or user.get("real_name")
-                or uid
-            )
+            display = profile.get("display_name") or user.get("real_name") or uid
             user_map[uid] = display
         return user_map
 
@@ -497,9 +493,7 @@ class SlackConnector(BaseFetcher):
         for msg in messages:
             if msg.get("subtype") == "bot_message":
                 continue
-            nodes.append(
-                self._build_message_node(msg, channel_id, user_map, uri, counter)
-            )
+            nodes.append(self._build_message_node(msg, channel_id, user_map, uri, counter))
         return nodes
 
     async def _collect_users(
@@ -540,6 +534,9 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return None, err
+        # _call returns exactly one of (data, err) non-None; narrow for
+        # the type checker.
+        assert data is not None
         for channel in data.get("channels", []):
             if channel.get("name") == route.channel_name:
                 return channel["id"], None
@@ -560,6 +557,7 @@ class SlackConnector(BaseFetcher):
         channel_id, err = await self._resolve_channel_id(client, route, headers, uri)
         if err is not None:
             return err
+        assert channel_id is not None
 
         info, err = await self._call(
             client,
@@ -570,6 +568,7 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return err
+        assert info is not None
 
         channel = info.get("channel", {})
 
@@ -582,13 +581,12 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return err
+        assert history is not None
 
         messages = history.get("messages", [])
         user_map = await self._collect_users(client, messages, headers)
         counter = SequenceCounter()
-        children = self._build_message_nodes(
-            messages, channel_id, user_map, uri, counter
-        )
+        children = self._build_message_nodes(messages, channel_id, user_map, uri, counter)
 
         source_fields: dict[str, Any] = {
             "channel_id": channel_id,
@@ -638,6 +636,7 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return err
+        assert data is not None
 
         messages = data.get("messages", [])
         if not messages:
@@ -649,13 +648,9 @@ class SlackConnector(BaseFetcher):
 
         user_map = await self._collect_users(client, messages, headers)
         counter = SequenceCounter()
-        children = self._build_message_nodes(
-            messages, route.channel_id, user_map, uri, counter
-        )
+        children = self._build_message_nodes(messages, route.channel_id, user_map, uri, counter)
 
-        participant_ids = sorted(
-            {msg["user"] for msg in messages if msg.get("user")}
-        )
+        participant_ids = sorted({msg["user"] for msg in messages if msg.get("user")})
         source_fields: dict[str, Any] = {
             "channel_id": route.channel_id,
             "thread_ts": route.thread_ts,
@@ -698,6 +693,7 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return err
+        assert listing is not None
 
         dm_id: Optional[str] = None
         for channel in listing.get("channels", []):
@@ -720,13 +716,12 @@ class SlackConnector(BaseFetcher):
         )
         if err is not None:
             return err
+        assert history is not None
 
         messages = history.get("messages", [])
         user_map = await self._collect_users(client, messages, headers)
         counter = SequenceCounter()
-        children = self._build_message_nodes(
-            messages, dm_id, user_map, uri, counter
-        )
+        children = self._build_message_nodes(messages, dm_id, user_map, uri, counter)
 
         source_fields: dict[str, Any] = {
             "dm_id": dm_id,

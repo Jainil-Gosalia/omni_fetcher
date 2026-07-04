@@ -24,7 +24,7 @@ import mimetypes
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator, Optional, Union
 from urllib.parse import unquote, urlparse
 
 from omni_fetcher.v1.atoms import Table, Text, TextFormat
@@ -143,8 +143,9 @@ def _parse_table(text: str, path: Path, mime_type: Optional[str]) -> Table:
     return Table(headers=None, rows=grid)
 
 
-def _source_fields(path: Path, stat: os.stat_result, mime_type: Optional[str],
-                   encoding: Optional[str]) -> dict[str, object]:
+def _source_fields(
+    path: Path, stat: os.stat_result, mime_type: Optional[str], encoding: Optional[str]
+) -> dict[str, object]:
     """Assemble the namespaced descriptive fields for a file node."""
     fields: dict[str, object] = {
         "path": str(path),
@@ -240,9 +241,7 @@ class LocalFileFetcher(BaseFetcher):
         if not isinstance(result, Error):
             # Success / Partial both carry a ``tree`` to stamp; an Error has
             # no node to order.
-            stamp_temporal(
-                result.tree, sequence=counter.next(), timestamp=now_utc()
-            )
+            stamp_temporal(result.tree, sequence=counter.next(), timestamp=now_utc())
         yield result
 
     def _read_one(self, uri: str) -> Result:
@@ -312,6 +311,7 @@ class LocalFileFetcher(BaseFetcher):
         except (UnicodeError, OSError) as exc:
             return from_exception(exc, kind=ErrorKind.PARSE_ERROR, locator=uri)
 
+        atom: Union[Table, Text]
         if tabular:
             try:
                 atom = _parse_table(text, path, mime_type)

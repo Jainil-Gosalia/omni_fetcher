@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import typer
 import yaml
@@ -74,8 +74,9 @@ def handle_error(e: Exception) -> None:
     raise typer.Exit(code=1)
 
 
-def format_output(data: any, format: str) -> str:
-    """Format data according to the specified format."""
+def format_output(data: Any, format: str) -> Any:
+    """Format data for the given format; strings, or a rich Table for
+    the table format."""
     if format == "json":
         return json.dumps(data, indent=2, default=str)
     elif format == "yaml":
@@ -330,11 +331,12 @@ def cache_stats() -> None:
 
 def _format_size(size: int) -> str:
     """Format size in bytes to human-readable string."""
+    value = float(size)
     for unit in ["B", "KB", "MB", "GB"]:
-        if size < 1024:
-            return f"{size:.2f} {unit}"
-        size /= 1024
-    return f"{size:.2f} TB"
+        if value < 1024:
+            return f"{value:.2f} {unit}"
+        value /= 1024
+    return f"{value:.2f} TB"
 
 
 @app.command()

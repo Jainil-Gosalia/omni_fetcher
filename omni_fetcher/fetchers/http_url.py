@@ -18,7 +18,19 @@ from omni_fetcher.schemas.atomics import TextDocument, ImageDocument, TextFormat
 try:
     import trafilatura
 except ImportError:
-    trafilatura = None
+    trafilatura = None  # type: ignore[assignment]
+
+
+def _attr_str(tag: Any, name: str) -> Optional[str]:
+    """Return a tag attribute stripped, only when it is a plain string.
+
+    bs4 attribute values may be multi-valued lists (e.g. ``class``); those
+    are never usable as titles/authors/dates, so they map to ``None``.
+    """
+    value = tag.get(name)
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
 
 
 @source(
@@ -201,8 +213,10 @@ class HTTPURLFetcher(BaseFetcher):
             soup = BeautifulSoup(html, "html.parser")
 
             og_title = soup.find("meta", property="og:title")
-            if og_title and og_title.get("content"):
-                return og_title["content"].strip()
+            if og_title:
+                title = _attr_str(og_title, "content")
+                if title:
+                    return title
 
             title_tag = soup.find("title")
             if title_tag:
@@ -220,17 +234,15 @@ class HTTPURLFetcher(BaseFetcher):
         try:
             soup = BeautifulSoup(html, "html.parser")
 
-            author_meta = soup.find("meta", attrs={"name": "author"})
-            if author_meta and author_meta.get("content"):
-                return author_meta["content"].strip()
-
-            og_author = soup.find("meta", property="article:author")
-            if og_author and og_author.get("content"):
-                return og_author["content"].strip()
-
-            author_tag = soup.find("meta", attrs={"name": "twitter:creator"})
-            if author_tag and author_tag.get("content"):
-                return author_tag["content"].strip()
+            for tag in (
+                soup.find("meta", attrs={"name": "author"}),
+                soup.find("meta", property="article:author"),
+                soup.find("meta", attrs={"name": "twitter:creator"}),
+            ):
+                if tag:
+                    author = _attr_str(tag, "content")
+                    if author:
+                        return author
         except Exception:
             pass
         return None
@@ -241,7 +253,7 @@ class HTTPURLFetcher(BaseFetcher):
             soup = BeautifulSoup(html, "html.parser")
 
             schema = soup.find("script", type="application/ld+json")
-            if schema:
+            if schema and schema.string:
                 import json
 
                 try:
@@ -259,8 +271,10 @@ class HTTPURLFetcher(BaseFetcher):
                     pass
 
             article_published = soup.find("meta", property="article:published_time")
-            if article_published and article_published.get("content"):
-                return self._parse_iso_date(article_published["content"])
+            if article_published:
+                published = _attr_str(article_published, "content")
+                if published:
+                    return self._parse_iso_date(published)
         except Exception:
             pass
         return None
@@ -278,12 +292,16 @@ class HTTPURLFetcher(BaseFetcher):
             soup = BeautifulSoup(html, "html.parser")
 
             html_tag = soup.find("html")
-            if html_tag and html_tag.get("lang"):
-                return html_tag["lang"].strip()
+            if html_tag:
+                lang = _attr_str(html_tag, "lang")
+                if lang:
+                    return lang
 
             meta = soup.find("meta", attrs={"http-equiv": "content-language"})
-            if meta and meta.get("content"):
-                return meta["content"].strip()
+            if meta:
+                language = _attr_str(meta, "content")
+                if language:
+                    return language
         except Exception:
             pass
         return None
@@ -301,7 +319,7 @@ class HTTPURLFetcher(BaseFetcher):
 
                 for img in img_tags:
                     src = img.get("src") or img.get("data-src")
-                    if not src:
+                    if not isinstance(src, str) or not src:
                         continue
 
                     if src.startswith("//"):

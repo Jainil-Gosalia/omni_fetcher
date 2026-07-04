@@ -167,7 +167,7 @@ def _parse_sharepoint_protocol(uri: str) -> SharePointRoute:
     """Parse a ``sharepoint://`` protocol URI."""
     uri = uri.replace("sharepoint://", "")
     if uri.startswith("sites/"):
-        uri = uri[len("sites/"):]
+        uri = uri[len("sites/") :]
 
     if "/" not in uri:
         return SharePointRoute(type=SITE_KIND, hostname="", site_name=uri)
@@ -224,9 +224,7 @@ def _parse_sharepoint_url(uri: str) -> SharePointRoute:
             site_name=site_name,
             library_name=library_name,
         )
-    return SharePointRoute(
-        type=SITE_KIND, hostname=hostname, site_name=site_name
-    )
+    return SharePointRoute(type=SITE_KIND, hostname=hostname, site_name=site_name)
 
 
 def _parse_non_sites_path(
@@ -396,9 +394,7 @@ class SharePointConnector(BaseFetcher):
         if not uri:
             return False
         lower = uri.lower()
-        if "sharepoint.com" not in lower and not lower.startswith(
-            "sharepoint://"
-        ):
+        if "sharepoint.com" not in lower and not lower.startswith("sharepoint://"):
             return False
         return "-my.sharepoint.com" not in lower
 
@@ -444,9 +440,7 @@ class SharePointConnector(BaseFetcher):
         counter = SequenceCounter()
         result = await self._fetch(uri, auth)
         if not isinstance(result, Error):
-            stamp_temporal(
-                result.tree, sequence=counter.next(), timestamp=now_utc()
-            )
+            stamp_temporal(result.tree, sequence=counter.next(), timestamp=now_utc())
         yield result
 
     async def _fetch(
@@ -473,9 +467,7 @@ class SharePointConnector(BaseFetcher):
         try:
             route = parse_sharepoint_uri(uri)
         except ValueError as exc:
-            return from_exception(
-                exc, kind=ErrorKind.INVALID_INPUT, locator=uri
-            )
+            return from_exception(exc, kind=ErrorKind.INVALID_INPUT, locator=uri)
 
         headers = self._resolver.resolve_headers(auth)
         try:
@@ -487,13 +479,9 @@ class SharePointConnector(BaseFetcher):
         except _GraphError as exc:
             return error(kind=exc.kind, message=exc.message, locator=uri)
         except httpx.TimeoutException as exc:
-            return from_exception(
-                exc, kind=ErrorKind.TRANSIENT, locator=uri
-            )
+            return from_exception(exc, kind=ErrorKind.TRANSIENT, locator=uri)
         except httpx.HTTPError as exc:
-            return from_exception(
-                exc, kind=ErrorKind.TRANSIENT, locator=uri
-            )
+            return from_exception(exc, kind=ErrorKind.TRANSIENT, locator=uri)
 
     # ------------------------------------------------------------------
     # Graph traversal
@@ -508,9 +496,7 @@ class SharePointConnector(BaseFetcher):
         async with self._client() as client:
             site = await self._get_site(client, route, headers)
             site_id = site.get("id", "")
-            drives = await self._graph(
-                client, f"/sites/{site_id}/drives", headers
-            )
+            drives = await self._graph(client, f"/sites/{site_id}/drives", headers)
 
             children: list[CompositionNode] = []
             for drive in drives.get("value", []):
@@ -543,9 +529,7 @@ class SharePointConnector(BaseFetcher):
         async with self._client() as client:
             site = await self._get_site(client, route, headers)
             site_id = site.get("id", "")
-            drives = await self._graph(
-                client, f"/sites/{site_id}/drives", headers
-            )
+            drives = await self._graph(client, f"/sites/{site_id}/drives", headers)
             drive = self._select_drive(drives, route.library_name)
             if drive is None:
                 return error(
@@ -564,9 +548,7 @@ class SharePointConnector(BaseFetcher):
             file_nodes: list[CompositionNode] = []
             for item in listing.get("value", []):
                 if "file" in item:
-                    file_nodes.append(
-                        self._file_node(item, drive_id, content=None)
-                    )
+                    file_nodes.append(self._file_node(item, drive_id, content=None))
 
         node = self._library_node(drive, files=file_nodes)
         return success(node)
@@ -588,9 +570,7 @@ class SharePointConnector(BaseFetcher):
         async with self._client() as client:
             site = await self._get_site(client, route, headers)
             site_id = site.get("id", "")
-            drives = await self._graph(
-                client, f"/sites/{site_id}/drives", headers
-            )
+            drives = await self._graph(client, f"/sites/{site_id}/drives", headers)
             drive = self._select_drive(drives, route.library_name)
             if drive is None:
                 return error(
@@ -605,9 +585,7 @@ class SharePointConnector(BaseFetcher):
                 f"/drives/{drive_id}/root:/{route.file_name}",
                 headers,
             )
-            content, gap_detail = await self._maybe_download(
-                client, item, drive_id, headers
-            )
+            content, gap_detail = await self._maybe_download(client, item, drive_id, headers)
 
         node = self._file_node(item, drive_id, content=content)
         if gap_detail is not None:
@@ -661,8 +639,7 @@ class SharePointConnector(BaseFetcher):
             raise _GraphError(ErrorKind.INVALID_INPUT, "site name not specified")
         if route.hostname:
             filter_query = (
-                f"siteCollection/hostname eq '{route.hostname}' "
-                f"and name eq '{route.site_name}'"
+                f"siteCollection/hostname eq '{route.hostname}' and name eq '{route.site_name}'"
             )
         else:
             filter_query = f"name eq '{route.site_name}'"
@@ -675,9 +652,7 @@ class SharePointConnector(BaseFetcher):
         )
         sites = result.get("value", [])
         if not sites:
-            raise _GraphError(
-                ErrorKind.NOT_FOUND, f"site not found: {route.site_name}"
-            )
+            raise _GraphError(ErrorKind.NOT_FOUND, f"site not found: {route.site_name}")
         return sites[0]
 
     @staticmethod
@@ -739,15 +714,11 @@ class SharePointConnector(BaseFetcher):
         created_by = item.get("createdBy", {}).get("user", {})
         author = created_by.get("displayName") or created_by.get("email")
         modified_by = item.get("lastModifiedBy", {}).get("user", {})
-        last_modifier = modified_by.get("displayName") or modified_by.get(
-            "email"
-        )
+        last_modifier = modified_by.get("displayName") or modified_by.get("email")
 
         atoms: list[Text] = []
         if content is not None:
-            atoms.append(
-                Text(content=content, format=_text_format_for(mime_type))
-            )
+            atoms.append(Text(content=content, format=_text_format_for(mime_type)))
 
         return build_node(
             kind=FILE_KIND,
@@ -788,9 +759,7 @@ class SharePointConnector(BaseFetcher):
         params: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """GET a Graph JSON endpoint, raising ``_GraphError`` on a bad status."""
-        response = await client.get(
-            f"{GRAPH_BASE}{endpoint}", params=params, headers=headers
-        )
+        response = await client.get(f"{GRAPH_BASE}{endpoint}", params=params, headers=headers)
         if 200 <= response.status_code <= 299:
             return response.json()
         raise _GraphError(

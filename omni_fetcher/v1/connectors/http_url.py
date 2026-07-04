@@ -82,8 +82,12 @@ def _mime_type(content_type: Optional[str]) -> str:
 def _extract_title(soup: BeautifulSoup) -> Optional[str]:
     """Extract a page title from og:title, <title>, or the first <h1>."""
     og_title = soup.find("meta", property="og:title")
-    if og_title and og_title.get("content"):
-        return og_title["content"].strip()
+    if og_title:
+        # Attribute values may be multi-valued lists in bs4; only a plain
+        # string is a usable title.
+        content = og_title.get("content")
+        if isinstance(content, str) and content.strip():
+            return content.strip()
     title_tag = soup.find("title")
     if title_tag and title_tag.get_text().strip():
         return title_tag.get_text().strip()
@@ -249,15 +253,9 @@ class HTTPURLConnector(BaseFetcher):
             title = _extract_title(soup)
             if title:
                 atoms.append(Text(content=title, format=TextFormat.PLAIN))
-            atoms.append(
-                Text(content=_extract_text(soup), format=TextFormat.PLAIN)
-            )
+            atoms.append(Text(content=_extract_text(soup), format=TextFormat.PLAIN))
         else:
-            text_format = (
-                TextFormat.MARKDOWN
-                if mime == "text/markdown"
-                else TextFormat.PLAIN
-            )
+            text_format = TextFormat.MARKDOWN if mime == "text/markdown" else TextFormat.PLAIN
             atoms.append(Text(content=body, format=text_format))
 
         source_fields: dict[str, Any] = {

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import redis.asyncio as redis
 
@@ -34,7 +34,9 @@ class RedisCacheBackend(CacheBackend):
 
     async def _get_client(self) -> redis.Redis:
         if self._client is None:
-            self._client = redis.Redis(
+            # The stubs type decode_responses as Literal[True]/[False]
+            # overloads, which a runtime bool cannot satisfy.
+            self._client = redis.Redis(  # type: ignore[call-overload]
                 host=self.host,
                 port=self.port,
                 db=self.db,
@@ -54,7 +56,9 @@ class RedisCacheBackend(CacheBackend):
     def _serialize(self, value: Any) -> str:
         return json.dumps(value, default=str)
 
-    def _deserialize(self, value: Optional[str]) -> Optional[Any]:
+    def _deserialize(self, value: Union[bytes, str, None]) -> Optional[Any]:
+        # redis returns bytes unless decode_responses is set; json.loads
+        # accepts both, so handle either shape.
         if value is None:
             return None
         try:
@@ -146,7 +150,7 @@ class RedisCacheBackend(CacheBackend):
             await self._client.close()
             self._client = None
 
-    async def pipeline(self) -> redis.Pipeline:
+    async def pipeline(self) -> redis.client.Pipeline:
         client = await self._get_client()
         return client.pipeline()
 

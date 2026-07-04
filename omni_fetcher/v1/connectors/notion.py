@@ -140,9 +140,7 @@ def _parse_uri(uri: str) -> Optional[_Route]:
     lowered = uri.lower()
     parsed = urlparse(uri)
 
-    if lowered.startswith("notion://database/") or lowered.startswith(
-        "notion://database:"
-    ):
+    if lowered.startswith("notion://database/") or lowered.startswith("notion://database:"):
         object_id = _extract_notion_id(uri)
         return _Route(DATABASE_KIND, object_id) if object_id else None
 
@@ -452,9 +450,7 @@ class NotionConnector(BaseFetcher):
             blocks = await self._fetch_block_children(client, page_id)
             atoms = self._blocks_to_atoms(blocks)
         except _NotionAPIError as exc:
-            gaps.append(
-                gap(kind=exc.kind, locator=exc.locator, detail=exc.message)
-            )
+            gaps.append(gap(kind=exc.kind, locator=exc.locator, detail=exc.message))
 
         node = self._page_node_from_data(page_id, page_data, atoms)
         return node, gaps
@@ -522,9 +518,7 @@ class NotionConnector(BaseFetcher):
             )
             rows = query.get("results", []) or []
         except _NotionAPIError as exc:
-            gaps.append(
-                gap(kind=exc.kind, locator=exc.locator, detail=exc.message)
-            )
+            gaps.append(gap(kind=exc.kind, locator=exc.locator, detail=exc.message))
 
         child_nodes: list[CompositionNode] = []
         for row in rows:
@@ -534,9 +528,7 @@ class NotionConnector(BaseFetcher):
                 child_nodes.append(child)
                 gaps.extend(row_gaps)
             except _NotionAPIError as exc:
-                gaps.append(
-                    gap(kind=exc.kind, locator=exc.locator, detail=exc.message)
-                )
+                gaps.append(gap(kind=exc.kind, locator=exc.locator, detail=exc.message))
 
         node = self._database_node_from_data(database_id, db_data, child_nodes)
         if gaps:
@@ -586,9 +578,7 @@ class NotionConnector(BaseFetcher):
         block_id: str,
     ) -> list[dict[str, Any]]:
         """Fetch the direct block children of a page/block (one page worth)."""
-        data = await self._request(
-            client, "GET", f"/blocks/{block_id}/children"
-        )
+        data = await self._request(client, "GET", f"/blocks/{block_id}/children")
         return data.get("results", []) or []
 
     def _blocks_to_atoms(self, blocks: list[dict[str, Any]]) -> list[AnyAtom]:
@@ -614,9 +604,7 @@ class NotionConnector(BaseFetcher):
                 continue
             markdown = self._block_to_markdown(block)
             if markdown:
-                atoms.append(
-                    Text(content=markdown, format=TextFormat.MARKDOWN)
-                )
+                atoms.append(Text(content=markdown, format=TextFormat.MARKDOWN))
         return atoms
 
     def _image_atom(self, image_data: dict[str, Any]) -> Optional[Image]:

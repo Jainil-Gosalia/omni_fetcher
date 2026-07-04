@@ -239,7 +239,7 @@ async def main():
     )
 
     print(f"Doc 1 hash: {doc1.content_hash[:16]}...")
-    print(f"Doc 2 hash: {doc1.content_hash[:16]} (same content = same hash)")
+    print(f"Doc 2 hash: {doc2.content_hash[:16]} (same content = same hash)")
     print(f"Doc 3 hash: {doc3.content_hash[:16]} (different content = different hash)")
 
     print("\n7. Composing VideoDocument from separate components")

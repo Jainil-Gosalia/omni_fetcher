@@ -166,9 +166,7 @@ async def test_csv_object_becomes_table(monkeypatch):
 
 async def test_per_call_aws_auth_is_used_not_ambient(monkeypatch):
     recorder: dict[str, Any] = {}
-    client = _FakeClient(
-        response={"Body": _FakeBody(b"x"), "ContentType": "text/plain"}
-    )
+    client = _FakeClient(response={"Body": _FakeBody(b"x"), "ContentType": "text/plain"})
     _install_fake_client(monkeypatch, client, recorder)
 
     auth = AwsAuth(
@@ -246,9 +244,7 @@ async def test_non_aws_auth_is_auth_failed(monkeypatch):
 
     monkeypatch.setattr(s3_module.boto3, "client", _explode)
 
-    result = await S3Fetcher().fetch(
-        "s3://bkt/obj.txt", auth=BearerAuth(token="nope")
-    )
+    result = await S3Fetcher().fetch("s3://bkt/obj.txt", auth=BearerAuth(token="nope"))
 
     assert isinstance(result, Error)
     assert result.kind == ErrorKind.AUTH_FAILED

@@ -71,34 +71,26 @@ def _definition(
 def test_resolve_matches_glob_pattern():
     # fnmatch globs match the whole URI, so an interior host match needs
     # leading/trailing wildcards.
-    registry = FrozenRegistry(
-        (_definition("gh", AlphaFetcher, ("*github.com/*",)),)
-    )
+    registry = FrozenRegistry((_definition("gh", AlphaFetcher, ("*github.com/*",)),))
 
     assert registry.resolve("https://github.com/foo/bar") is AlphaFetcher
 
 
 def test_resolve_matches_substring_pattern():
-    registry = FrozenRegistry(
-        (_definition("notion", AlphaFetcher, ("notion.so",)),)
-    )
+    registry = FrozenRegistry((_definition("notion", AlphaFetcher, ("notion.so",)),))
 
     assert registry.resolve("https://www.notion.so/page") is AlphaFetcher
 
 
 def test_resolve_matches_regex_pattern():
-    registry = FrozenRegistry(
-        (_definition("re", AlphaFetcher, (r"\.pdf$",)),)
-    )
+    registry = FrozenRegistry((_definition("re", AlphaFetcher, (r"\.pdf$",)),))
 
     assert registry.resolve("file:///docs/report.pdf") is AlphaFetcher
     assert registry.resolve("file:///docs/report.txt") is None
 
 
 def test_unknown_uri_returns_none():
-    registry = FrozenRegistry(
-        (_definition("gh", AlphaFetcher, ("github.com/*",)),)
-    )
+    registry = FrozenRegistry((_definition("gh", AlphaFetcher, ("github.com/*",)),))
 
     assert registry.resolve("https://example.com/nope") is None
     assert registry.definition_for("https://example.com/nope") is None
@@ -169,9 +161,7 @@ def test_registry_satisfies_registry_protocol():
 
 
 def test_cannot_set_attribute_after_build():
-    registry = FrozenRegistry(
-        (_definition("gh", AlphaFetcher, ("github.com/*",)),)
-    )
+    registry = FrozenRegistry((_definition("gh", AlphaFetcher, ("github.com/*",)),))
 
     with pytest.raises(AttributeError):
         registry._definitions = ()  # type: ignore[misc]
@@ -181,18 +171,14 @@ def test_cannot_set_attribute_after_build():
 
 
 def test_cannot_delete_attribute_after_build():
-    registry = FrozenRegistry(
-        (_definition("gh", AlphaFetcher, ("github.com/*",)),)
-    )
+    registry = FrozenRegistry((_definition("gh", AlphaFetcher, ("github.com/*",)),))
 
     with pytest.raises(AttributeError):
         del registry._definitions
 
 
 def test_definitions_view_is_immutable_tuple():
-    registry = FrozenRegistry(
-        (_definition("gh", AlphaFetcher, ("github.com/*",)),)
-    )
+    registry = FrozenRegistry((_definition("gh", AlphaFetcher, ("github.com/*",)),))
 
     definitions = registry.definitions()
     assert isinstance(definitions, tuple)
@@ -244,9 +230,9 @@ def test_builder_decorator_registers_source():
 
 def test_builder_add_is_chainable():
     builder = RegistryBuilder()
-    result = builder.add(
-        _definition("a", AlphaFetcher, ("a",))
-    ).add(_definition("b", BetaFetcher, ("b",)))
+    result = builder.add(_definition("a", AlphaFetcher, ("a",))).add(
+        _definition("b", BetaFetcher, ("b",))
+    )
 
     assert result is builder
     registry = builder.build()

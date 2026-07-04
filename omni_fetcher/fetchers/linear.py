@@ -56,7 +56,7 @@ def _parse_date(value: Any) -> Optional[date]:
 
 def _get_nested(data: dict[str, Any], *keys: str, default: Any = None) -> Any:
     """Safely get nested dictionary value."""
-    current = data
+    current: Any = data
     for key in keys:
         if isinstance(current, dict):
             current = current.get(key)
@@ -102,7 +102,7 @@ def parse_linear_uri(uri: str) -> LinearRoute:
             if UUID_PATTERN.match(maybe_uuid):
                 return LinearRoute(type="issue", identifier=maybe_uuid)
             if ISSUE_IDENTIFIER_PATTERN.match(maybe_uuid.upper()):
-                team_key = maybe_uuid.rsplit("-", 1)[0]
+                team_key: Optional[str] = maybe_uuid.rsplit("-", 1)[0]
                 return LinearRoute(type="issue", identifier=maybe_uuid, team_key=team_key)
             # Assume it's a team key
             return LinearRoute(type="team", key=maybe_uuid)
@@ -527,6 +527,10 @@ class LinearFetcher(BaseFetcher):
             if len(all_issues) >= max_issues:
                 break
 
+        # The loop above raises if the team payload is missing, so
+        # team_data is a dict here; narrow for the type checker.
+        assert team_data is not None
+
         description_doc = None
         if team_data.get("description"):
             description_doc = TextDocument(
@@ -643,6 +647,10 @@ class LinearFetcher(BaseFetcher):
 
             if len(all_issues) >= max_issues:
                 break
+
+        # The loop above raises if the project payload is missing, so
+        # project_data is a dict here; narrow for the type checker.
+        assert project_data is not None
 
         description_doc = None
         if project_data.get("description"):
@@ -761,6 +769,10 @@ class LinearFetcher(BaseFetcher):
 
             if len(all_issues) >= max_issues:
                 break
+
+        # The loop above raises if the cycle payload is missing, so
+        # cycle_data is a dict here; narrow for the type checker.
+        assert cycle_data is not None
 
         return LinearCycle(
             cycle_id=cycle_data.get("id", ""),
