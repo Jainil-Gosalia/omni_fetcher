@@ -249,15 +249,9 @@ class HTTPURLConnector(BaseFetcher):
             title = _extract_title(soup)
             if title:
                 atoms.append(Text(content=title, format=TextFormat.PLAIN))
-            atoms.append(
-                Text(content=_extract_text(soup), format=TextFormat.PLAIN)
-            )
+            atoms.append(Text(content=_extract_text(soup), format=TextFormat.PLAIN))
         else:
-            text_format = (
-                TextFormat.MARKDOWN
-                if mime == "text/markdown"
-                else TextFormat.PLAIN
-            )
+            text_format = TextFormat.MARKDOWN if mime == "text/markdown" else TextFormat.PLAIN
             atoms.append(Text(content=body, format=text_format))
 
         source_fields: dict[str, Any] = {

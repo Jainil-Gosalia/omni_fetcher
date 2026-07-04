@@ -192,11 +192,7 @@ class GraphQLConnector(BaseFetcher):
         params = parse_qs(parts.query, keep_blank_values=True)
 
         recognised = {_PARAM_QUERY, _PARAM_VARIABLES, _PARAM_OPERATION}
-        passthrough = {
-            key: values
-            for key, values in params.items()
-            if key not in recognised
-        }
+        passthrough = {key: values for key, values in params.items() if key not in recognised}
         endpoint = urlunsplit(
             (
                 parts.scheme,
@@ -227,9 +223,7 @@ class GraphQLConnector(BaseFetcher):
         return values[0]
 
     @classmethod
-    def _parse_variables(
-        cls, params: dict[str, list[str]]
-    ) -> Optional[dict[str, Any]]:
+    def _parse_variables(cls, params: dict[str, list[str]]) -> Optional[dict[str, Any]]:
         """Decode the ``variables`` JSON object from the query string."""
         raw = cls._single(params, _PARAM_VARIABLES)
         if raw is None:
@@ -237,9 +231,7 @@ class GraphQLConnector(BaseFetcher):
         try:
             decoded = json.loads(raw)
         except json.JSONDecodeError as exc:
-            raise ValueError(
-                f"'variables' is not valid JSON: {exc}"
-            ) from exc
+            raise ValueError(f"'variables' is not valid JSON: {exc}") from exc
         if not isinstance(decoded, dict):
             raise ValueError("'variables' must be a JSON object")
         return decoded
@@ -251,17 +243,11 @@ class GraphQLConnector(BaseFetcher):
         headers: dict[str, str],
     ) -> httpx.Response:
         """Execute the single GraphQL POST and return the raw response."""
-        async with httpx.AsyncClient(
-            timeout=30.0, follow_redirects=True
-        ) as client:
-            return await client.post(
-                endpoint, json=payload, headers=headers
-            )
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            return await client.post(endpoint, json=payload, headers=headers)
 
     @staticmethod
-    def _status_error(
-        response: httpx.Response, endpoint: str
-    ) -> Optional[Error]:
+    def _status_error(response: httpx.Response, endpoint: str) -> Optional[Error]:
         """Map a non-2xx HTTP status onto a typed error, else ``None``.
 
         GraphQL conventionally returns 200 even for query-level errors, so a
@@ -397,9 +383,7 @@ class GraphQLConnector(BaseFetcher):
     @staticmethod
     def _dump_json(data: Any) -> str:
         """Render GraphQL data as deterministic, readable JSON text."""
-        return json.dumps(
-            data, indent=2, sort_keys=True, ensure_ascii=False
-        )
+        return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False)
 
     @classmethod
     def _table_for(cls, data: Any) -> Optional[Table]:

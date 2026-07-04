@@ -171,9 +171,7 @@ async def test_site_yields_site_container_of_library_children() -> None:
     captured: list[httpx.Request] = []
     connector = _connector(graph_transport(captured))
 
-    result = await _one(
-        connector, "sharepoint://team", auth=_OAUTH
-    )
+    result = await _one(connector, "sharepoint://team", auth=_OAUTH)
 
     assert isinstance(result, Success)
     root = result.tree
@@ -208,9 +206,7 @@ async def test_library_yields_library_container_of_file_children() -> None:
     captured: list[httpx.Request] = []
     connector = _connector(graph_transport(captured))
 
-    result = await _one(
-        connector, "sharepoint://team/Documents", auth=_OAUTH
-    )
+    result = await _one(connector, "sharepoint://team/Documents", auth=_OAUTH)
 
     assert isinstance(result, Success)
     root = result.tree
@@ -230,9 +226,7 @@ async def test_file_yields_file_node_with_text_atom() -> None:
     captured: list[httpx.Request] = []
     connector = _connector(graph_transport(captured, file_body=b"file data"))
 
-    result = await _one(
-        connector, "sharepoint://team/Documents/readme.txt", auth=_OAUTH
-    )
+    result = await _one(connector, "sharepoint://team/Documents/readme.txt", auth=_OAUTH)
 
     assert isinstance(result, Success)
     node = result.tree
@@ -249,9 +243,7 @@ async def test_file_descriptive_fields_in_source_extra_not_on_atom() -> None:
     captured: list[httpx.Request] = []
     connector = _connector(graph_transport(captured))
 
-    result = await _one(
-        connector, "sharepoint://team/Documents/readme.txt", auth=_OAUTH
-    )
+    result = await _one(connector, "sharepoint://team/Documents/readme.txt", auth=_OAUTH)
 
     assert isinstance(result, Success)
     node = result.tree
@@ -276,9 +268,7 @@ async def test_binary_file_is_partial_with_unsupported_gap() -> None:
     captured: list[httpx.Request] = []
     connector = _connector(graph_transport(captured, item=_BINARY_ITEM))
 
-    result = await _one(
-        connector, "sharepoint://team/Documents/logo.png", auth=_OAUTH
-    )
+    result = await _one(connector, "sharepoint://team/Documents/logo.png", auth=_OAUTH)
 
     assert isinstance(result, Partial)
     assert result.tree.metadata.kind == FILE_KIND
@@ -320,9 +310,7 @@ async def test_bearer_token_also_accepted() -> None:
     captured: list[httpx.Request] = []
     connector = _connector(graph_transport(captured))
 
-    result = await _one(
-        connector, "sharepoint://team", auth=BearerAuth(token="bt")
-    )
+    result = await _one(connector, "sharepoint://team", auth=BearerAuth(token="bt"))
 
     assert isinstance(result, Success)
     assert captured[0].headers["Authorization"] == "Bearer bt"
@@ -336,11 +324,7 @@ async def test_different_calls_use_different_credentials() -> None:
     await _one(connector, "sharepoint://team", auth=OAuth2Auth(access_token="one"))
     await _one(connector, "sharepoint://team", auth=OAuth2Auth(access_token="two"))
 
-    auth_headers = [
-        r.headers["Authorization"]
-        for r in captured
-        if "Authorization" in r.headers
-    ]
+    auth_headers = [r.headers["Authorization"] for r in captured if "Authorization" in r.headers]
     assert "Bearer one" in auth_headers
     assert "Bearer two" in auth_headers
 
@@ -362,9 +346,7 @@ async def test_wrong_credential_type_is_auth_failed() -> None:
     captured: list[httpx.Request] = []
     connector = _connector(graph_transport(captured))
 
-    result = await _one(
-        connector, "sharepoint://team", auth=ApiKeyAuth(api_key="k")
-    )
+    result = await _one(connector, "sharepoint://team", auth=ApiKeyAuth(api_key="k"))
 
     assert isinstance(result, Error)
     assert result.kind is ErrorKind.AUTH_FAILED
@@ -392,9 +374,7 @@ async def test_graph_status_maps_to_error_kind(
 ) -> None:
     """Each Graph HTTP error status maps to its canonical ErrorKind."""
     captured: list[httpx.Request] = []
-    connector = _connector(
-        graph_transport(captured, sites_status=status_code)
-    )
+    connector = _connector(graph_transport(captured, sites_status=status_code))
 
     result = await _one(connector, "sharepoint://team", auth=_OAUTH)
 
@@ -407,9 +387,7 @@ async def test_missing_file_item_is_not_found() -> None:
     captured: list[httpx.Request] = []
     connector = _connector(graph_transport(captured, item_status=404))
 
-    result = await _one(
-        connector, "sharepoint://team/Documents/missing.txt", auth=_OAUTH
-    )
+    result = await _one(connector, "sharepoint://team/Documents/missing.txt", auth=_OAUTH)
 
     assert isinstance(result, Error)
     assert result.kind is ErrorKind.NOT_FOUND
@@ -420,9 +398,7 @@ async def test_unknown_library_is_not_found() -> None:
     captured: list[httpx.Request] = []
     connector = _connector(graph_transport(captured))
 
-    result = await _one(
-        connector, "sharepoint://team/Nonexistent", auth=_OAUTH
-    )
+    result = await _one(connector, "sharepoint://team/Nonexistent", auth=_OAUTH)
 
     assert isinstance(result, Error)
     assert result.kind is ErrorKind.NOT_FOUND
@@ -476,12 +452,8 @@ async def test_fetch_inherited_collects_single_result() -> None:
 def test_can_handle() -> None:
     """can_handle accepts sharepoint URIs but not personal -my sites."""
     assert SharePointConnector.can_handle("sharepoint://team")
-    assert SharePointConnector.can_handle(
-        "https://contoso.sharepoint.com/sites/team"
-    )
-    assert not SharePointConnector.can_handle(
-        "https://contoso-my.sharepoint.com/personal/x"
-    )
+    assert SharePointConnector.can_handle("https://contoso.sharepoint.com/sites/team")
+    assert not SharePointConnector.can_handle("https://contoso-my.sharepoint.com/personal/x")
     assert not SharePointConnector.can_handle("https://example.com")
 
 

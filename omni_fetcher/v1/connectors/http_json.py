@@ -90,9 +90,7 @@ def _as_table(data: Any) -> Optional[Table]:
                 seen.add(key)
                 headers.append(key)
 
-    rows: list[list[Any]] = [
-        [record.get(header) for header in headers] for record in data
-    ]
+    rows: list[list[Any]] = [[record.get(header) for header in headers] for record in data]
     return Table(headers=headers, rows=rows)
 
 
@@ -246,9 +244,7 @@ class HTTPJSONConnector(BaseFetcher):
                 locator=resolved_url,
             )
 
-        content_type = response.headers.get(
-            "content-type", "application/json"
-        )
+        content_type = response.headers.get("content-type", "application/json")
         atoms: list[Any] = [
             Text(
                 content=json.dumps(data, ensure_ascii=False, indent=2),

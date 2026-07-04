@@ -282,9 +282,7 @@ class HTTPAuthConnector(BaseFetcher):
         response: httpx.Response,
     ) -> Result:
         """Build the success result for a 2xx response."""
-        content_type = response.headers.get(
-            "content-type", "application/octet-stream"
-        )
+        content_type = response.headers.get("content-type", "application/octet-stream")
         mime_type = content_type.split(";")[0].strip()
 
         atoms = self._content_atoms(response, mime_type)

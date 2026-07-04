@@ -364,9 +364,7 @@ class ConfluenceConnector(BaseFetcher):
         """
         yield await self._fetch_one(uri, auth)
 
-    async def _fetch_one(
-        self, uri: str, auth: Optional[AuthCredential]
-    ) -> Result:
+    async def _fetch_one(self, uri: str, auth: Optional[AuthCredential]) -> Result:
         """Route, fetch, and map one Confluence resource to a ``Result``."""
         if not ATLASSIAN_AVAILABLE:
             return error(
@@ -396,9 +394,7 @@ class ConfluenceConnector(BaseFetcher):
         try:
             client = self._build_client(uri, auth)
         except Exception as exc:  # pragma: no cover - defensive client build
-            return from_exception(
-                exc, kind=ErrorKind.AUTH_FAILED, locator=uri
-            )
+            return from_exception(exc, kind=ErrorKind.AUTH_FAILED, locator=uri)
 
         root_url = _root_url_for(uri)
         try:
@@ -408,9 +404,7 @@ class ConfluenceConnector(BaseFetcher):
                 return await self._fetch_space(client, route["space_key"], uri, root_url)
             return await self._fetch_root(client, uri, root_url)
         except Exception as exc:
-            return from_exception(
-                exc, kind=_classify_exception(exc), locator=uri
-            )
+            return from_exception(exc, kind=_classify_exception(exc), locator=uri)
 
     def _build_client(self, uri: str, auth: AuthCredential) -> Any:
         """Construct a fresh Confluence client from the per-call credential.
@@ -434,9 +428,7 @@ class ConfluenceConnector(BaseFetcher):
             timeout=self.timeout,
         )
 
-    async def _fetch_page(
-        self, client: Any, page_id: str, uri: str, root_url: str
-    ) -> Result:
+    async def _fetch_page(self, client: Any, page_id: str, uri: str, root_url: str) -> Result:
         """Fetch one page and map it onto a canonical ``"page"`` node."""
         page_data = await asyncio.to_thread(
             client.get_page_by_id,
@@ -477,9 +469,7 @@ class ConfluenceConnector(BaseFetcher):
             source_fields=_page_source_fields(page_data),
         )
 
-    async def _fetch_space(
-        self, client: Any, space_key: str, uri: str, root_url: str
-    ) -> Result:
+    async def _fetch_space(self, client: Any, space_key: str, uri: str, root_url: str) -> Result:
         """Fetch a space and map it onto a ``"space"`` container node."""
         space_data = await asyncio.to_thread(
             client.get_space, space_key, expand="description.plain,homepage"
@@ -542,9 +532,7 @@ class ConfluenceConnector(BaseFetcher):
             return None
         return self._build_page_node(result, uri, root_url)
 
-    async def _fetch_root(
-        self, client: Any, uri: str, root_url: str
-    ) -> Result:
+    async def _fetch_root(self, client: Any, uri: str, root_url: str) -> Result:
         """Fetch the wiki root as the first accessible space.
 
         Preserves the v0.11 fetcher's root behaviour: resolve the caller's
@@ -558,20 +546,14 @@ class ConfluenceConnector(BaseFetcher):
 
         if account_id:
             try:
-                return await self._fetch_space(
-                    client, f"~{account_id}", uri, root_url
-                )
+                return await self._fetch_space(client, f"~{account_id}", uri, root_url)
             except Exception:
                 pass
 
-        spaces = await asyncio.to_thread(
-            client.get, "rest/api/space", params={"limit": 10}
-        )
+        spaces = await asyncio.to_thread(client.get, "rest/api/space", params={"limit": 10})
         results = (spaces or {}).get("results", []) or []
         if results and results[0].get("key"):
-            return await self._fetch_space(
-                client, results[0]["key"], uri, root_url
-            )
+            return await self._fetch_space(client, results[0]["key"], uri, root_url)
 
         return error(
             kind=ErrorKind.NOT_FOUND,

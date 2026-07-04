@@ -156,14 +156,10 @@ class CSVConnector(BaseFetcher):
         """Resolve a local path or ``file://`` URI to a ``Path``."""
         path = uri
         if path.startswith("file://"):
-            path = path[len("file://"):]
+            path = path[len("file://") :]
             # A ``file:///abs`` URI leaves a leading slash before a Windows
             # drive letter; drop it so ``C:/...`` resolves correctly.
-            if (
-                len(path) > 2
-                and path.startswith("/")
-                and path[2] == ":"
-            ):
+            if len(path) > 2 and path.startswith("/") and path[2] == ":":
                 path = path[1:]
         return Path(path)
 
@@ -176,9 +172,7 @@ class CSVConnector(BaseFetcher):
         """Parse CSV content into a canonical ``Result``."""
         delimiter = self._detect_delimiter(content)
         try:
-            all_rows = list(
-                csv.reader(io.StringIO(content), delimiter=delimiter)
-            )
+            all_rows = list(csv.reader(io.StringIO(content), delimiter=delimiter))
         except csv.Error as exc:
             return error(
                 ErrorKind.PARSE_ERROR,
@@ -208,10 +202,7 @@ class CSVConnector(BaseFetcher):
                     gap(
                         ErrorKind.PARSE_ERROR,
                         locator=f"{uri}#row={index}",
-                        detail=(
-                            f"row has {len(row)} cells; "
-                            f"expected {width} to match headers"
-                        ),
+                        detail=(f"row has {len(row)} cells; expected {width} to match headers"),
                     )
                 )
 
@@ -263,10 +254,7 @@ class CSVConnector(BaseFetcher):
     def _detect_delimiter(content: str) -> str:
         """Detect the delimiter from the first line (v0.11 heuristic)."""
         first_line = content.split("\n", 1)[0]
-        counts = {
-            delim: first_line.count(delim)
-            for delim in _CANDIDATE_DELIMITERS
-        }
+        counts = {delim: first_line.count(delim) for delim in _CANDIDATE_DELIMITERS}
         return max(counts, key=lambda d: counts[d])
 
     @staticmethod

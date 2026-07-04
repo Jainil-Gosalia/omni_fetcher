@@ -195,20 +195,12 @@ class TestCausePreservation:
 
     def test_from_exception_infers_kind_from_exception(self):
         assert from_exception(FileNotFoundError()).kind is ErrorKind.NOT_FOUND
-        assert (
-            from_exception(PermissionError()).kind
-            is ErrorKind.PERMISSION_DENIED
-        )
-        assert (
-            from_exception(NotImplementedError()).kind
-            is ErrorKind.UNSUPPORTED
-        )
+        assert from_exception(PermissionError()).kind is ErrorKind.PERMISSION_DENIED
+        assert from_exception(NotImplementedError()).kind is ErrorKind.UNSUPPORTED
         assert from_exception(ValueError()).kind is ErrorKind.INVALID_INPUT
 
     def test_from_exception_explicit_kind_overrides_inference(self):
-        result = from_exception(
-            ValueError("x"), kind=ErrorKind.PARSE_ERROR
-        )
+        result = from_exception(ValueError("x"), kind=ErrorKind.PARSE_ERROR)
         assert result.kind is ErrorKind.PARSE_ERROR
 
     def test_from_exception_preserves_chained_cause(self):
@@ -228,9 +220,7 @@ class TestCausePreservation:
         assert "caused by" in result.message
 
     def test_from_exception_prefix_message_is_prepended(self):
-        result = from_exception(
-            ValueError("boom"), message="while parsing page 3"
-        )
+        result = from_exception(ValueError("boom"), message="while parsing page 3")
         assert result.message.startswith("while parsing page 3")
         assert "ValueError" in result.message
         assert "boom" in result.message
@@ -256,10 +246,7 @@ class TestCausePreservation:
         class Weird(Exception):
             pass
 
-        assert (
-            classify_exception(Weird(), default=ErrorKind.PARSE_ERROR)
-            is ErrorKind.PARSE_ERROR
-        )
+        assert classify_exception(Weird(), default=ErrorKind.PARSE_ERROR) is ErrorKind.PARSE_ERROR
 
     def test_gap_from_exception_preserves_cause_in_detail(self):
         try:

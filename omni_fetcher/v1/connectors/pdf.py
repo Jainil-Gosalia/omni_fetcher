@@ -210,9 +210,7 @@ class PDFConnector(BaseFetcher):
         gaps = []
         for index, text in enumerate(pages):
             if text.strip():
-                atoms.append(
-                    Text(content=text, format=TextFormat.PLAIN)
-                )
+                atoms.append(Text(content=text, format=TextFormat.PLAIN))
             else:
                 # No text layer on this page: report it, never OCR.
                 gaps.append(
@@ -235,9 +233,7 @@ class PDFConnector(BaseFetcher):
         meta: dict[str, Any],
     ) -> CompositionNode:
         """Build the ``document`` node with PDF metadata namespaced."""
-        source_fields = {
-            key: value for key, value in meta.items() if value is not None
-        }
+        source_fields = {key: value for key, value in meta.items() if value is not None}
         return build_node(
             kind=DOCUMENT_KIND,
             atoms=atoms,

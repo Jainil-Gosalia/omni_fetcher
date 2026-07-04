@@ -343,9 +343,7 @@ class GitHubConnector(BaseFetcher):
 
         yield result
 
-    def _request_headers(
-        self, auth: Optional[AuthCredential]
-    ) -> dict[str, str]:
+    def _request_headers(self, auth: Optional[AuthCredential]) -> dict[str, str]:
         """Build request headers, resolving the per-call credential."""
         headers = {
             "Accept": "application/vnd.github.v3+json",
@@ -412,9 +410,7 @@ class GitHubConnector(BaseFetcher):
         if section == "issues":
             return self._parse_numbered(parts, owner, repo, "issue", "issues")
         if section == "pull":
-            return self._parse_numbered(
-                parts, owner, repo, "pull_request", "pulls"
-            )
+            return self._parse_numbered(parts, owner, repo, "pull_request", "pulls")
         if section in ("pulls",):
             return _Route(type="pulls", owner=owner, repo=repo)
         if section == "releases":
@@ -437,14 +433,10 @@ class GitHubConnector(BaseFetcher):
             number = int(parts[3])
         except ValueError:
             return _Route(type=list_type, owner=owner, repo=repo)
-        return _Route(
-            type=single_type, owner=owner, repo=repo, number=number
-        )
+        return _Route(type=single_type, owner=owner, repo=repo, number=number)
 
     @staticmethod
-    def _parse_release_section(
-        parts: list[str], owner: str, repo: str
-    ) -> _Route:
+    def _parse_release_section(parts: list[str], owner: str, repo: str) -> _Route:
         """Resolve a ``.../releases[/tag/<tag>]`` URI to a route."""
         # A specific release is addressed as ``releases/tag/<tag>``; the tag
         # itself is not a number, so single-release fetch needs the tag.
@@ -529,9 +521,7 @@ class GitHubConnector(BaseFetcher):
     ) -> Optional[Text]:
         """Best-effort fetch of a repo README as a markdown ``Text`` atom."""
         try:
-            response = await client.get(
-                self._repo_api(route, "/readme"), headers=headers
-            )
+            response = await client.get(self._repo_api(route, "/readme"), headers=headers)
         except httpx.HTTPError:
             return None
         if response.status_code != 200:
@@ -630,7 +620,8 @@ class GitHubConnector(BaseFetcher):
             )
 
         comments = await self._fetch_comments(
-            client, self._repo_api(route, f"/issues/{route.number}/comments"),
+            client,
+            self._repo_api(route, f"/issues/{route.number}/comments"),
             headers,
         )
         node = self._build_issue_node(data, uri, comments)
@@ -664,11 +655,7 @@ class GitHubConnector(BaseFetcher):
                 "author": _login(data.get("user")),
                 "labels": _label_names(data.get("labels")),
                 "assignees": [
-                    login
-                    for login in (
-                        _login(a) for a in data.get("assignees", []) or []
-                    )
-                    if login
+                    login for login in (_login(a) for a in data.get("assignees", []) or []) if login
                 ],
                 "comment_count": data.get("comments", 0),
                 "created_at": data.get("created_at"),
@@ -701,7 +688,8 @@ class GitHubConnector(BaseFetcher):
             )
 
         comments = await self._fetch_comments(
-            client, self._repo_api(route, f"/pulls/{route.number}/comments"),
+            client,
+            self._repo_api(route, f"/pulls/{route.number}/comments"),
             headers,
         )
         node = self._build_pr_node(data, uri, comments)
@@ -755,9 +743,7 @@ class GitHubConnector(BaseFetcher):
     ) -> Result:
         """Fetch a single release (by tag) as a ``release`` node."""
         suffix = f"/releases/tags/{route.path}"
-        response = await client.get(
-            self._repo_api(route, suffix), headers=headers
-        )
+        response = await client.get(self._repo_api(route, suffix), headers=headers)
         if response.status_code >= 400:
             return self._http_error(response, uri)
         try:
@@ -770,9 +756,7 @@ class GitHubConnector(BaseFetcher):
             )
         return success(self._build_release_node(data, uri))
 
-    def _build_release_node(
-        self, data: dict[str, Any], uri: str
-    ) -> CompositionNode:
+    def _build_release_node(self, data: dict[str, Any], uri: str) -> CompositionNode:
         """Assemble a ``release`` node from release JSON."""
         atoms: list[Text] = []
         body = data.get("body")
@@ -821,9 +805,7 @@ class GitHubConnector(BaseFetcher):
                     continue
                 body = comment.get("body")
                 if body:
-                    atoms.append(
-                        Text(content=body, format=TextFormat.MARKDOWN)
-                    )
+                    atoms.append(Text(content=body, format=TextFormat.MARKDOWN))
         return atoms
 
     async def _fetch_issues(
@@ -859,9 +841,7 @@ class GitHubConnector(BaseFetcher):
                 if "pull_request" in item:
                     continue
                 children.append(self._build_issue_node(item, uri, []))
-        return success(
-            self._build_container("issues", route, uri, children)
-        )
+        return success(self._build_container("issues", route, uri, children))
 
     async def _fetch_prs(
         self,
@@ -892,9 +872,7 @@ class GitHubConnector(BaseFetcher):
             for item in payload[:MAX_LIST_ITEMS]:
                 if isinstance(item, dict):
                     children.append(self._build_pr_node(item, uri, []))
-        return success(
-            self._build_container("pull_requests", route, uri, children)
-        )
+        return success(self._build_container("pull_requests", route, uri, children))
 
     async def _fetch_releases(
         self,
@@ -904,9 +882,7 @@ class GitHubConnector(BaseFetcher):
         headers: dict[str, str],
     ) -> Result:
         """Fetch a repo's releases as a ``releases`` container node."""
-        response = await client.get(
-            self._repo_api(route, "/releases"), headers=headers
-        )
+        response = await client.get(self._repo_api(route, "/releases"), headers=headers)
         if response.status_code >= 400:
             return self._http_error(response, uri)
         try:
@@ -923,9 +899,7 @@ class GitHubConnector(BaseFetcher):
             for item in payload[:MAX_RELEASES]:
                 if isinstance(item, dict):
                     children.append(self._build_release_node(item, uri))
-        return success(
-            self._build_container("releases", route, uri, children)
-        )
+        return success(self._build_container("releases", route, uri, children))
 
     @staticmethod
     def _build_container(

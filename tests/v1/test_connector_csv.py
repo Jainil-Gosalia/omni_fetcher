@@ -90,9 +90,7 @@ async def test_semicolon_delimiter_detected(tmp_path: Path) -> None:
     result = await CSVConnector().fetch(str(path))
 
     assert isinstance(result, Success)
-    assert result.tree.metadata.source_extra[SOURCE_NAMESPACE][
-        "delimiter"
-    ] == ";"
+    assert result.tree.metadata.source_extra[SOURCE_NAMESPACE]["delimiter"] == ";"
     table = next(result.tree.iter_atoms())
     assert table.headers == ["name", "city"]
     assert table.rows == [["Alice", "Paris"]]

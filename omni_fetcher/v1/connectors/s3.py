@@ -127,7 +127,7 @@ def _parse_s3_uri(uri: str) -> tuple[str, str]:
     to an ``INVALID_INPUT`` error.
     """
     if uri.startswith("s3://"):
-        remainder = uri[len("s3://"):]
+        remainder = uri[len("s3://") :]
         parts = remainder.split("/", 1)
         bucket = parts[0]
         key = parts[1] if len(parts) > 1 else ""
@@ -207,9 +207,7 @@ def _is_tabular(content_type: Optional[str], key: str) -> bool:
     return key.lower().endswith((".csv", ".tsv"))
 
 
-def _binary_atom_for(
-    content_type: Optional[str], data: bytes
-) -> Optional[Image | Audio | Video]:
+def _binary_atom_for(content_type: Optional[str], data: bytes) -> Optional[Image | Audio | Video]:
     """Build an image/audio/video atom for a recognised binary content type.
 
     Returns ``None`` for any content type that is not a known image, audio, or
@@ -358,14 +356,10 @@ class S3Fetcher(BaseFetcher):
         counter = SequenceCounter()
         result = await self._fetch_one(uri, auth)
         if not isinstance(result, Error):
-            stamp_temporal(
-                result.tree, sequence=counter.next(), timestamp=now_utc()
-            )
+            stamp_temporal(result.tree, sequence=counter.next(), timestamp=now_utc())
         yield result
 
-    async def _fetch_one(
-        self, uri: str, auth: Optional[AuthCredential]
-    ) -> Result:
+    async def _fetch_one(self, uri: str, auth: Optional[AuthCredential]) -> Result:
         """Resolve, fetch, and map one S3 object to a single ``Result``."""
         if not isinstance(auth, AwsAuth):
             return error(
@@ -377,31 +371,19 @@ class S3Fetcher(BaseFetcher):
         try:
             bucket, key = _parse_s3_uri(uri)
         except ValueError as exc:
-            return from_exception(
-                exc, kind=ErrorKind.INVALID_INPUT, locator=uri
-            )
+            return from_exception(exc, kind=ErrorKind.INVALID_INPUT, locator=uri)
 
         parts = NormalizedAuthResolver().resolve_aws(auth)
         try:
-            response = await asyncio.to_thread(
-                self._get_object, bucket, key, parts
-            )
+            response = await asyncio.to_thread(self._get_object, bucket, key, parts)
         except ClientError as exc:
-            return from_exception(
-                exc, kind=_classify_client_error(exc), locator=uri
-            )
+            return from_exception(exc, kind=_classify_client_error(exc), locator=uri)
         except (NoCredentialsError,) as exc:
-            return from_exception(
-                exc, kind=ErrorKind.AUTH_FAILED, locator=uri
-            )
+            return from_exception(exc, kind=ErrorKind.AUTH_FAILED, locator=uri)
         except EndpointConnectionError as exc:
-            return from_exception(
-                exc, kind=ErrorKind.TRANSIENT, locator=uri
-            )
+            return from_exception(exc, kind=ErrorKind.TRANSIENT, locator=uri)
         except BotoCoreError as exc:
-            return from_exception(
-                exc, kind=ErrorKind.TRANSIENT, locator=uri
-            )
+            return from_exception(exc, kind=ErrorKind.TRANSIENT, locator=uri)
 
         return self._build_object_node(uri, bucket, key, response)
 
@@ -450,9 +432,7 @@ class S3Fetcher(BaseFetcher):
             updated = None
 
         if _is_tabular(content_type, key) or _is_text(content_type):
-            return self._build_textual_node(
-                uri, content_type, key, data, source_fields, updated
-            )
+            return self._build_textual_node(uri, content_type, key, data, source_fields, updated)
 
         atom = _binary_atom_for(content_type, data)
         if atom is not None:
@@ -505,17 +485,13 @@ class S3Fetcher(BaseFetcher):
                 text = data.decode("latin-1")
                 encoding = "latin-1"
             except UnicodeError as exc:
-                return from_exception(
-                    exc, kind=ErrorKind.PARSE_ERROR, locator=uri
-                )
+                return from_exception(exc, kind=ErrorKind.PARSE_ERROR, locator=uri)
 
         if _is_tabular(content_type, key):
             try:
                 atom: Text | Table = _parse_table(text, content_type, key)
             except (csv.Error, ValueError) as exc:
-                return from_exception(
-                    exc, kind=ErrorKind.PARSE_ERROR, locator=uri
-                )
+                return from_exception(exc, kind=ErrorKind.PARSE_ERROR, locator=uri)
         else:
             atom = Text(
                 content=text,
