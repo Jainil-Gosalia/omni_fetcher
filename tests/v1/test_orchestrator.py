@@ -271,11 +271,14 @@ async def test_no_state_retained_across_two_calls() -> None:
 
 async def test_fresh_fetcher_instance_per_call() -> None:
     """The orchestrator instantiates a fresh fetcher for every call."""
-    instances: list[int] = []
+    # Hold the instances themselves, not id()s: CPython reuses addresses
+    # once an object is garbage-collected, so ids of dead objects can
+    # collide and flake this assertion.
+    instances: list[BaseFetcher] = []
 
     class CountingFetcher(BaseFetcher):
         def __init__(self) -> None:
-            instances.append(id(self))
+            instances.append(self)
 
         async def stream(
             self,
@@ -293,7 +296,7 @@ async def test_fresh_fetcher_instance_per_call() -> None:
 
     # Two calls -> two distinct fetcher instances (no shared instance held).
     assert len(instances) == 2
-    assert instances[0] != instances[1]
+    assert instances[0] is not instances[1]
 
 
 # ---------------------------------------------------------------------------

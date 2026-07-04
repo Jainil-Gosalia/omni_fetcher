@@ -69,10 +69,16 @@ def _install_feed(monkeypatch, document):
     The connector may pass a URL and request headers; we ignore both and
     parse the in-test ``document`` so no network is touched while still
     exercising the real feedparser data shape.
+
+    ``feedparser.parse`` must be captured before the patch: the stub and the
+    connector share the one feedparser module object, so calling
+    ``feedparser.parse`` inside the stub would invoke the stub itself and
+    recurse until the interpreter's recursion limit.
     """
+    real_parse = feedparser.parse
 
     def fake_parse(uri, *args, **kwargs):
-        return feedparser.parse(document)
+        return real_parse(document)
 
     monkeypatch.setattr(rss_module.feedparser, "parse", fake_parse)
 
@@ -239,10 +245,11 @@ async def test_auth_headers_passed_to_parser(monkeypatch):
     from omni_fetcher.v1.auth import BearerAuth
 
     captured = {}
+    real_parse = feedparser.parse  # capture before the patch; see _install_feed
 
     def fake_parse(uri, *args, **kwargs):
         captured["headers"] = kwargs.get("request_headers")
-        return feedparser.parse(RSS_DOC)
+        return real_parse(RSS_DOC)
 
     monkeypatch.setattr(rss_module.feedparser, "parse", fake_parse)
 
