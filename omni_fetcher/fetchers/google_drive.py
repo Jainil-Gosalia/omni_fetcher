@@ -11,7 +11,6 @@ from typing import Any, Optional
 from urllib.parse import urlparse, parse_qs
 
 import httpx
-import jwt
 
 from omni_fetcher.core.exceptions import FetchError, SourceNotFoundError
 from omni_fetcher.core.registry import source
@@ -176,6 +175,17 @@ class GoogleDriveFetcher(BaseFetcher):
 
         if "private_key" not in creds or "client_email" not in creds:
             raise FetchError("", "Service account JSON missing required fields")
+
+        # PyJWT ships in the optional ``[gdrive]`` extra; import lazily so the
+        # package (and this fetcher) can be imported without it installed.
+        try:
+            import jwt
+        except ImportError as exc:
+            raise FetchError(
+                "",
+                "Google service-account auth requires PyJWT. "
+                "Install the gdrive extra: pip install 'omni_fetcher[gdrive]'.",
+            ) from exc
 
         now = int(time.time())
         assertion = jwt.encode(
