@@ -50,7 +50,7 @@ class S3Fetcher(BaseFetcher):
             creds = auth_config.get_aws_credentials()
             self.aws_access_key_id = creds.get("aws_access_key_id")
             self.aws_secret_access_key = creds.get("aws_secret_access_key")
-            self.region_name = creds.get("region_name", "us-east-1")
+            self.region_name = creds.get("region_name") or "us-east-1"
 
     @classmethod
     def can_handle(cls, uri: str) -> bool:

@@ -178,6 +178,10 @@ class FrozenRegistry:
 
     __slots__ = ("_definitions",)
 
+    # Declared for type checkers: the value is installed in __init__ via
+    # object.__setattr__ to bypass this class's immutability guard.
+    _definitions: tuple[SourceDefinition, ...]
+
     def __init__(
         self,
         definitions: tuple[SourceDefinition, ...] = (),

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Union
 
 import httpx
 
@@ -44,14 +44,15 @@ class HTTPJSONFetcher(BaseFetcher):
             or "graphql" in uri.lower()
         )
 
-    async def fetch(self, uri: str, **kwargs: Any) -> JSONData:
+    async def fetch(self, uri: str, **kwargs: Any) -> Union[JSONData, GraphQLResponse]:
         """Fetch JSON from HTTP URL.
 
         Args:
             uri: HTTP/HTTPS URL returning JSON
 
         Returns:
-            JSONData with parsed JSON
+            JSONData with parsed JSON, or GraphQLResponse for GraphQL
+            endpoints
         """
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             response = await client.get(uri)

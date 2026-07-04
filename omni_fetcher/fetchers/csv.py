@@ -130,7 +130,7 @@ class CSVFetcher(BaseFetcher):
             counts[delim] = first_line.count(delim)
 
         # Return most common delimiter
-        return max(counts, key=counts.get)
+        return max(counts, key=lambda delim: counts[delim])
 
     def _has_header(self, first_row: List[str]) -> bool:
         """Detect if first row is a header."""

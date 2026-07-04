@@ -321,7 +321,9 @@ class JiraFetcher(BaseFetcher):
 
     def _parse_comments(self, issue_key: str, client: AtlassianJira) -> list[TextDocument]:
         try:
-            comments = client.get_comments(issue_key)
+            # atlassian's type stubs do not declare this method; the call
+            # is guarded by the enclosing try.
+            comments = client.get_comments(issue_key)  # type: ignore[attr-defined]
             result = []
             for comment in comments.get("comments", []):
                 body = comment.get("body", {})
@@ -529,7 +531,7 @@ class JiraFetcher(BaseFetcher):
                 filters.append(f"labels IN ({label_list})")
             search_jql = " AND ".join(filters) + " ORDER BY created DESC"
 
-        issues = []
+        issues: list[JiraIssue] = []
         start_at = 0
         while len(issues) < max_issues:
             chunk = client.jql(
@@ -553,6 +555,9 @@ class JiraFetcher(BaseFetcher):
                     "comment",
                 ],
             )
+
+            if not chunk:
+                break
 
             for issue in chunk.get("issues", []):
                 issues.append(self._build_issue(issue, base_url, include_comments=False))
@@ -588,7 +593,9 @@ class JiraFetcher(BaseFetcher):
     ) -> JiraSprint:
         client = self._get_client(base_url)
 
-        sprint_data = client.sprint(sprint_id)
+        # atlassian's type stubs do not declare this method; a missing
+        # sprint surfaces via the falsy check below.
+        sprint_data = client.sprint(sprint_id)  # type: ignore[attr-defined]
         if not sprint_data:
             raise SourceNotFoundError(f"Sprint not found: {sprint_id}")
 
@@ -682,7 +689,7 @@ class JiraFetcher(BaseFetcher):
         description = self._parse_description(issue_data)
 
         jql = f'"Epic Link" = {epic_key} ORDER BY created DESC'
-        issues = []
+        issues: list[JiraIssue] = []
         start_at = 0
         while len(issues) < max_issues:
             chunk = client.jql(
@@ -706,6 +713,9 @@ class JiraFetcher(BaseFetcher):
                     "comment",
                 ],
             )
+
+            if not chunk:
+                break
 
             for issue in chunk.get("issues", []):
                 issues.append(self._build_issue(issue, base_url, include_comments=False))

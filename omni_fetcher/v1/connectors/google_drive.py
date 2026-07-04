@@ -424,7 +424,7 @@ class GoogleDriveFetcher(BaseFetcher):
             "file_id": meta.get("id"),
             "name": meta.get("name"),
             "mime_type": meta.get("mimeType"),
-            "size": int(size) if size not in (None, "") else None,
+            "size": int(size) if size is not None and size != "" else None,
             "parents": meta.get("parents", []),
             "web_view_link": meta.get("webViewLink"),
             "web_content_link": meta.get("webContentLink"),
