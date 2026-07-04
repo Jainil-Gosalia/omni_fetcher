@@ -1,733 +1,325 @@
 # OmniFetcher
 
-[![PyPI Version](https://img.shields.io/pypi/v/omni_fetcher.svg)](https://pypi.org/project/omni_fetcher/)
-[![Python Versions](https://img.shields.io/pypi/pyversions/omni_fetcher.svg)](https://pypi.org/project/omni_fetcher/)
+[![PyPI Version](https://img.shields.io/pypi/v/omni-fetcher.svg)](https://pypi.org/project/omni-fetcher/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/omni-fetcher.svg)](https://pypi.org/project/omni-fetcher/)
+[![CI](https://github.com/Jainil-Gosalia/omni_fetcher/actions/workflows/ci.yml/badge.svg)](https://github.com/Jainil-Gosalia/omni_fetcher/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![pytest](https://github.com/yourusername/omni_fetcher/actions/workflows/test.yml/badge.svg)](https://github.com/yourusername/omni_fetcher/actions/workflows/test.yml)
 
-Universal data fetcher that can fetch data from any source and return it as predefined Pydantic objects.
+Fetch anything — a Jira issue, a PDF, an S3 object, a Slack thread, a web page —
+and get back **the same typed shape every time**.
 
-## Version
+As of v1.0, every connector emits one canonical contract: a `Result` envelope
+(`Success` / `Partial` / `Error`) wrapping a `CompositionNode` tree of typed
+content atoms (`Text`, `Image`, `Audio`, `Video`, `Table`), a uniform metadata
+core, and source-specific fields tucked into a namespaced `source_extra`. Code
+that walks a GitHub issue walks a Confluence page unchanged.
 
-**Current: v1.0.0**
-
-> **v1.0 canonical contract.** As of v1.0, connectors emit a single canonical
-> contract — a `CompositionNode` tree of typed atoms plus a uniform
-> `FetchMetadata` core and namespaced `source_extra` — instead of the ~50
-> source-specific schema classes (`GitHubIssue`, `NotionPage`, `JiraIssue`, …),
-> which are no longer part of the public API. See
-> [docs/migration-v1.md](docs/migration-v1.md) for the field-by-field mapping.
-
-## Project Overview
-
-OmniFetcher is a powerful, flexible data fetching library that provides a unified interface for retrieving data from various sources. Whether you need to fetch data from local files, HTTP APIs, cloud storage, or media platforms, OmniFetcher handles them all with a consistent, type-safe API backed by Pydantic v2 for robust data validation.
-
-### Key Benefits
-
-- **Unified Interface**: Fetch from any source using the same API
-- **Type Safety**: All fetched data is validated against Pydantic models
-- **Extensible**: Create custom fetchers using the `@source` decorator
-- **Built-in Features**: Caching, retry with exponential backoff, and rate limiting
-- **Authentication**: Support for bearer tokens, API keys, basic auth, AWS, and OAuth2
-
-## Features
-
-- **Multiple Data Sources**: Built-in support for local files, HTTP URLs, JSON APIs, YouTube, RSS feeds, S3, PDFs, and CSV files
-- **Plugin Architecture**: Register custom fetchers via the `@source` decorator
-- **Authentication**: Multiple auth methods (bearer, API key, basic, AWS, OAuth2)
-- **Caching**: In-memory and file-based caching backends with TTL support
-- **Retry Logic**: Exponential backoff with configurable retry attempts
-- **Rate Limiting**: Built-in rate limiter for API compliance
-- **Pydantic Validation**: All data is validated and returned as typed Pydantic models
-
-## Tag System
-
-Every schema includes a `tags: list[str]` field that is automatically populated by fetchers. Tags can also be merged from user-supplied tags.
-
-### Automatic Tags
-
-Fetchers automatically apply tags based on the source type:
-
-| Fetcher | Tags |
-|---------|------|
-| local_file | `local`, `file`, format-specific (`text`, `json`, `pdf`, `video`, `audio`, `image`), `large_file` (>50MB) |
-| pdf | `pdf`, `document`, `scanned` |
-| docx | `docx`, `document`, `office`, `has_images`, `has_tables` |
-| pptx | `pptx`, `presentation`, `office` |
-| youtube | `video`, `youtube`, `has_transcript` |
-| rss | `rss`, `feed` |
-| s3 | `s3`, `cloud_storage`, `large_file` |
-| http_url | `web`, content-specific |
-| http_json | `json`, `api` |
-| graphql | `graphql`, `api` |
-| csv | `csv`, `spreadsheet` |
-
-### Tag Merging
-
-Composite schemas (PDFDocument, DOCXDocument, PPTXDocument, WebPageDocument, YouTubeVideo, etc.) automatically merge tags from their child fields.
-
-### User-Supplied Tags
-
-Pass custom tags via the `tags` kwarg:
-
-```python
-result = await fetcher.fetch("https://api.example.com/data", tags=["important", "reviewed"])
 ```
-
-User tags are merged with fetcher-generated tags and deduplicated.
+Result
+├── Success ── tree: CompositionNode
+├── Partial ── tree + gaps: list[Gap]        # partial data, typed holes
+└── Error ──── kind: ErrorKind + message     # returned, never raised
+                     │
+CompositionNode ─────┘
+├── metadata: Metadata      # id, kind, tags, created, updated, author,
+│                           # source_url, ... + source_extra["<source>"]
+├── atoms: [Text | Image | Audio | Video | Table]   # content only
+└── children: [CompositionNode, ...]                 # recursive
+```
 
 ## Installation
 
 ```bash
-pip install omni_fetcher
+pip install omni-fetcher
 ```
 
-### Install with development dependencies
+Some connectors need an extra:
 
-```bash
-pip install omni_fetcher[dev]
-```
+| Extra | Enables | Install |
+|-------|---------|---------|
+| `office` | DOCX / PPTX parsing | `pip install "omni-fetcher[office]"` |
+| `jira`, `confluence` | Atlassian API client | `pip install "omni-fetcher[jira,confluence]"` |
+| `gdrive` | Google service-account auth (legacy fetcher) | `pip install "omni-fetcher[gdrive]"` |
+| `web` | Better article extraction (legacy fetcher) | `pip install "omni-fetcher[web]"` |
+| `dev` | Tests, lint, type checking | `pip install "omni-fetcher[dev]"` |
 
-### Dependencies
+Everything else (HTTP, JSON, GraphQL, RSS, S3, PDF, CSV, YouTube, Slack,
+Notion, SharePoint, Linear, GitHub, Google Drive REST, local files) works with
+the core install.
 
-- `pydantic>=2.0` - Data validation
-- `httpx>=0.24.0` - HTTP client
-- `python-magic>=0.4.27` - File type detection
-- `beautifulsoup4>=4.12.0` - HTML/XML parsing
-- `pillow>=10.0.0` - Image processing
-- `python-dateutil>=2.8.0` - Date utilities
-- `yt-dlp>=2023.0.0` - YouTube downloading
-- `feedparser>=6.0.0` - RSS/Atom feed parsing
-- `boto3>=1.28.0` - AWS S3 access
-- `pypdf>=3.0.0` - PDF parsing
+## 60 seconds
 
-## Quick Start
+Fetch a local file — no credentials, no network:
 
 ```python
 import asyncio
-from omni_fetcher import OmniFetcher
 
-async def main():
-    fetcher = OmniFetcher()
-    
-    # Fetch JSON from an API
-    result = await fetcher.fetch("https://jsonplaceholder.typicode.com/users/1")
-    print(result.data)
-    
-    # Fetch from a local file
-    result = await fetcher.fetch("/path/to/data.json")
-    print(result.data)
+from omni_fetcher.v1 import AtomKind, Success
+from omni_fetcher.v1.connectors.local_file import LocalFileFetcher
+
+
+async def main() -> None:
+    result = await LocalFileFetcher().fetch("README.md")
+
+    if isinstance(result, Success):
+        node = result.tree                          # CompositionNode
+        print(node.metadata.kind)                   # advisory label, e.g. "file"
+        for atom in node.find_atoms(AtomKind.TEXT):
+            print(atom.content[:100])
+
 
 asyncio.run(main())
 ```
 
-### Using Authentication
-
-```python
-import asyncio
-from omni_fetcher import OmniFetcher
-
-async def main():
-    fetcher = OmniFetcher(auth={
-        "github": {"type": "bearer", "token_env": "GITHUB_TOKEN"}
-    })
-    
-    # Fetch authenticated data
-    result = await fetcher.fetch("https://api.github.com/user")
-    print(result.data)
-
-asyncio.run(main())
-```
-
-## Architecture
-
-OmniFetcher is built on a plugin/registry pattern that allows seamless addition of new data sources:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      OmniFetcher                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   Registry  │  │ Auth Config │  │   Cache Backends    │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        ▼                     ▼                     ▼
-┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-│ BaseFetcher   │   │   AuthConfig  │   │ RetryConfig  │
-│   (abstract)  │   │               │   │  RateLimiter │
-└───────────────┘   └───────────────┘   └───────────────┘
-        │
-        ▼
-┌───────────────┬───────────────┬───────────────┬──────────────┐
-│LocalFileFetcher│HTTPURLFetcher│YouTubeFetcher │ ... more     │
-└───────────────┴───────────────┴───────────────┴──────────────┘
-```
-
-### Core Components
-
-- **OmniFetcher**: Main entry point for fetching data
-- **SourceRegistry**: Singleton registry that manages all registered fetchers
-- **BaseFetcher**: Abstract base class for all fetchers
-- **AuthConfig**: Authentication configuration for secured sources
-- **Cache Backends**: In-memory or file-based caching with TTL
-
-## Built-in Fetchers
-
-| Fetcher | URI Patterns | Description |
-|---------|--------------|-------------|
-| `local_file` | File paths (`/path/to/file`, `file://...`) | Read local files (JSON, CSV, PDF, text) |
-| `http_url` | `http://*`, `https://*` | Generic HTTP/HTTPS fetcher |
-| `http_json` | URLs ending in `.json` | Specialized JSON API fetcher |
-| `http_auth` | Auth-enabled HTTP URLs | HTTP with authentication |
-| `youtube` | `youtube.com`, `youtu.be` | YouTube video metadata |
-| `rss` | RSS/Atom feed URLs | RSS and Atom feed parsing |
-| `s3` | `s3://bucket/key` | AWS S3 object retrieval |
-| `pdf` | PDF file URLs or paths | PDF document parsing |
-| `csv` | CSV file URLs or paths | CSV data extraction |
-| `docx` | `.docx` files | Microsoft Word document parsing |
-| `pptx` | `.pptx` files | Microsoft PowerPoint parsing |
-| `graphql` | GraphQL endpoints | GraphQL query execution |
-| `github` | `github.com`, `api.github.com` | GitHub API integration |
-| `google_drive` | `drive.google.com` | Google Drive file fetching |
-| `notion` | `notion.so`, `api.notion.com` | Notion workspace data |
-| `jira` | Atlassian Jira instances | Jira issues and projects |
-| `confluence` | Confluence instances | Confluence pages and spaces |
-| `slack` | Slack workspaces | Slack messages and channels |
-| `audio` | Audio file URLs/paths | Audio file metadata extraction |
-
-### URI Pattern Examples
-
-```python
-# Local files
-result = await fetcher.fetch("/path/to/data.json")
-result = await fetcher.fetch("file:///path/to/document.pdf")
-
-# HTTP resources
-result = await fetcher.fetch("https://api.example.com/data")
-result = await fetcher.fetch("https://api.example.com/data.json")
-
-# YouTube
-result = await fetcher.fetch("https://youtube.com/watch?v=xyz123")
-result = await fetcher.fetch("https://youtu.be/xyz123")
-
-# RSS Feeds
-result = await fetcher.fetch("https://blog.example.com/feed.xml")
-
-# AWS S3
-result = await fetcher.fetch("s3://my-bucket/data.json")
-
-# Documents
-result = await fetcher.fetch("/path/to/document.pdf")
-result = await fetcher.fetch("/path/to/data.csv")
-```
-
-## Authentication
-
-OmniFetcher supports multiple authentication methods:
-
-### Bearer Token
-
-```python
-from omni_fetcher import OmniFetcher, AuthConfig
-
-fetcher = OmniFetcher(auth={
-    "myapi": {"type": "bearer", "token": "your-token"}
-})
-
-# Or load from environment variable
-fetcher = OmniFetcher(auth={
-    "myapi": {"type": "bearer", "token_env": "API_TOKEN"}
-})
-```
-
-### API Key
-
-```python
-fetcher = OmniFetcher(auth={
-    "myapi": {
-        "type": "api_key",
-        "api_key": "your-api-key",
-        "api_key_header": "X-API-Key"  # default
-    }
-})
-
-# From environment
-fetcher = OmniFetcher(auth={
-    "myapi": {
-        "type": "api_key",
-        "api_key_env": "API_KEY"
-    }
-})
-```
-
-### Basic Authentication
-
-```python
-fetcher = OmniFetcher(auth={
-    "myapi": {
-        "type": "basic",
-        "username": "user",
-        "password": "pass"
-    }
-})
-
-# From environment
-fetcher = OmniFetcher(auth={
-    "myapi": {
-        "type": "basic",
-        "username_env": "BASIC_USER",
-        "password_env": "BASIC_PASS"
-    }
-})
-```
-
-### AWS Authentication
-
-```python
-fetcher = OmniFetcher(auth={
-    "s3": {
-        "type": "aws",
-        "aws_access_key_id": "your-key",
-        "aws_secret_access_key": "your-secret",
-        "aws_region": "us-east-1"
-    }
-})
-
-# From environment (AWS credentials)
-fetcher = OmniFetcher(auth={
-    "s3": {"type": "aws"}  # Uses AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY env vars
-})
-```
-
-### OAuth2
-
-```python
-fetcher = OmniFetcher(auth={
-    "myapi": {
-        "type": "oauth2",
-        "oauth2_client_id": "client-id",
-        "oauth2_client_secret": "client-secret",
-        "oauth2_token_url": "https://api.example.com/oauth/token",
-        "oauth2_scope": "read write",
-        "oauth2_grant_type": "client_credentials"  # or "refresh_token"
-    }
-})
-```
-
-### Environment Variable Loading
-
-Load auth configs from environment variables with the `OMNI_` prefix:
-
-```bash
-export OMNI_GITHUB_TYPE=bearer
-export OMNI_GITHUB_TOKEN_ENV=GITHUB_TOKEN
-
-export OMNI_S3_TYPE=aws
-export OMNI_S3_AWS_ACCESS_KEY_ID_ENV=AWS_ACCESS_KEY_ID
-
-export OMNI_API_TYPE=oauth2
-export OMNI_API_OAUTH2_CLIENT_ID_ENV=CLIENT_ID
-export OMNI_API_OAUTH2_CLIENT_SECRET_ENV=CLIENT_SECRET
-export OMNI_API_OAUTH2_TOKEN_URL=https://api.example.com/token
-```
-
-```python
-fetcher = OmniFetcher(load_env_auth=True)  # Enabled by default
-```
-
-## Caching & Retry
-
-### Caching
-
-OmniFetcher provides two cache backends:
-
-```python
-from omni_fetcher.cache import FileCacheBackend, MemoryCacheBackend
-
-# File-based cache (persists across runs)
-file_cache = FileCacheBackend(cache_dir=".cache", default_ttl=3600)
-
-# In-memory cache (fast, ephemeral)
-memory_cache = MemoryCacheBackend(default_ttl=1800)
-
-# Use with fetcher (implement in your custom fetcher)
-result = await memory_cache.get(cache_key)
-if result is None:
-    result = await fetch_data(uri)
-    await memory_cache.set(cache_key, result, ttl=600)
-```
-
-### Retry with Exponential Backoff
-
-```python
-from omni_fetcher.utils.retry import RetryConfig, with_retry
-
-# Configure retry behavior
-config = RetryConfig(
-    max_attempts=3,        # Maximum 3 attempts
-    initial_delay=1.0,     # Start with 1 second delay
-    max_delay=30.0,        # Cap at 30 seconds
-    exponential_base=2.0,  # Delay doubles each attempt
-    retry_on=(httpx.HTTPError,),
-)
-
-# Use as decorator
-@with_retry(config)
-async def fetch_with_retry(uri: str):
-    async with httpx.AsyncClient() as client:
-        return await client.get(uri)
-```
-
-### Rate Limiting
-
-```python
-from omni_fetcher.utils.retry import RateLimiter
-
-# 10 calls per second
-limiter = RateLimiter(calls_per_second=10)
-
-async def limited_fetch(uri: str):
-    async with limiter:
-        return await fetcher.fetch(uri)
-```
-
-## Custom Fetchers
-
-Create custom fetchers using the `@source` decorator:
-
-```python
-import asyncio
-from datetime import datetime
-from typing import Optional
-
-import httpx
-
-from omni_fetcher import source, BaseFetcher
-from omni_fetcher.schemas.base import FetchMetadata
-from omni_fetcher.schemas.structured import JSONData
-
-
-@source(
-    name="github",
-    uri_patterns=["github.com", "api.github.com"],
-    mime_types=["application/json"],
-    priority=15,
-    description="Fetch data from GitHub API"
-)
-class GitHubFetcher(BaseFetcher):
-    """Fetcher for GitHub API endpoints."""
-    
-    name = "github"
-    priority = 15
-    
-    def __init__(self, token: Optional[str] = None):
-        super().__init__()
-        self.token = token
-    
-    @classmethod
-    def can_handle(cls, uri: str) -> bool:
-        return "github.com" in uri.lower()
-    
-    async def fetch(self, uri: str, **kwargs):
-        api_url = self._convert_to_api_url(uri)
-        
-        headers = {
-            "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "OmniFetcher-GitHub"
-        }
-        
-        if self.token:
-            headers["Authorization"] = f"token {self.token}"
-        
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(api_url, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-        
-        metadata = FetchMetadata(
-            source_uri=uri,
-            fetched_at=datetime.now(),
-            source_name=self.name,
-            mime_type="application/json",
-            status_code=response.status_code,
-        )
-        
-        return JSONData(
-            metadata=metadata,
-            data=data,
-            root_keys=list(data.keys()) if isinstance(data, dict) else None,
-        )
-```
-
-### Decorator Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `name` | `str` | Unique name for the source |
-| `uri_patterns` | `list[str]` | URI patterns this fetcher handles (glob or regex) |
-| `mime_types` | `list[str]` | MIME types this fetcher handles |
-| `priority` | `int` | Lower = higher priority (default: 100) |
-| `description` | `str` | Human-readable description |
-| `auth` | `dict` | Default auth configuration |
-
-### BaseFetcher Methods
-
-Override these methods in your custom fetcher:
-
-```python
-class BaseFetcher:
-    name: str = "base"
-    priority: int = 100
-    
-    def __init__(self):
-        self._auth: Optional[AuthConfig] = None
-    
-    @classmethod
-    def can_handle(cls, uri: str) -> bool:
-        """Check if this fetcher can handle the URI."""
-        raise NotImplementedError
-    
-    async def fetch(self, uri: str, **kwargs) -> BaseFetchedData:
-        """Fetch data from the URI."""
-        raise NotImplementedError
-    
-    async def fetch_metadata(self, uri: str) -> dict:
-        """Fetch only metadata (optional)."""
-        return {}
-    
-    def set_auth(self, auth: AuthConfig) -> None:
-        """Set authentication config."""
-        self._auth = auth
-```
-
-## API Reference
-
-### OmniFetcher
-
-Main class for fetching data from any source.
-
-```python
-from omni_fetcher import OmniFetcher
-
-fetcher = OmniFetcher(
-    auto_register_builtins: bool = True,  # Register built-in fetchers
-    auth: Optional[Dict[str, Dict]] = None,  # Auth configs per source
-    load_env_auth: bool = True,  # Load from environment
-)
-```
-
-#### Methods
-
-| Method | Description |
-|--------|-------------|
-| `fetch(uri, **kwargs)` | Fetch data from URI, returns Pydantic model |
-| `fetch_metadata(uri)` | Fetch only metadata |
-| `list_sources()` | List all registered source names |
-| `get_source_info(name)` | Get `SourceInfo` for a source |
-| `register_source(...)` | Register a custom source |
-| `set_auth(source, auth)` | Set auth for a source |
-| `get_auth(source)` | Get auth config for a source |
-| `unregister_source(name)` | Unregister a source |
-
-### Source Registry
-
-Singleton registry for managing fetchers.
-
-```python
-from omni_fetcher import SourceRegistry, source
-
-registry = SourceRegistry()
-registry.register(
-    name="my_source",
-    fetcher_class=MyFetcher,
-    uri_patterns=["pattern1", "pattern2"],
-    mime_types=["application/json"],
-    priority=50,
-)
-```
-
-### Decorator
-
-```python
-from omni_fetcher import source
-
-@source(
-    name="my_source",
-    uri_patterns=["example.com"],
-    priority=50
-)
-class MyFetcher(BaseFetcher):
-    pass
-```
-
-### Schemas
-
-OmniFetcher uses a clean atomic/composite hierarchy:
-
-#### Atomics (5 primitives - leaf nodes)
-
-```python
-from omni_fetcher import (
-    TextDocument,         # Text content with format (plain, markdown, html, etc.)
-    AudioDocument,       # Audio with duration, format, optional metadata
-    ImageDocument,      # Image with dimensions, optional EXIF/web metadata
-    VideoDocument,      # Video with duration, format, audio, thumbnail
-    SpreadsheetDocument, # Tabular data with multiple sheets
-)
-
-# TextFormat enum for text content types
-from omni_fetcher import TextFormat
-# Values: PLAIN, MARKDOWN, HTML, RST, CODE, TRANSCRIPT
-```
-
-#### Composites (4 - contain atomics + metadata)
-
-```python
-from omni_fetcher import (
-    YouTubeVideo,   # YouTube video with multiple atomics + platform metadata
-    LocalVideo,    # Local video file with atomics + file metadata
-    PDFDocument,   # PDF with text + images + PDF metadata
-    HTMLDocument,   # HTML with text + images + HTML metadata
-)
-```
-
-#### Base Classes
-
-```python
-from omni_fetcher import (
-    BaseFetchedData,   # Base for all fetched data
-    FetchMetadata,    # Metadata about the fetch
-    MediaType,        # Enum for MIME types
-    DataCategory,     # Enum for data categories
-)
-```
-
-> **Note**: Some schemas from v0.3.0 have been deprecated in v0.3.1. The following are still available for backward compatibility but will be removed in a future version: `BaseMedia`, `Video`, `Audio`, `Image`, `BaseDocument`, `TextDocument` (old), `MarkdownDocument`, `CSVData`, `StreamAudio`, `LocalAudio`, `LocalImage`, `WebImage`. Use the atomic and composite schemas instead.
-
-### Exceptions
-
-```python
-from omni_fetcher import (
-    OmniFetcherError,      # Base exception
-    SourceNotFoundError,   # No handler found for URI
-    FetchError,            # Fetching failed
-    ValidationError,       # Pydantic validation failed
-    SourceRegistrationError,  # Registration failed
-    SchemaError,           # Schema-related error
-)
-```
+Every other connector returns the same shape, so everything below this point
+is the same three moves: **check the result state, walk the tree, read the
+atoms**.
 
 ## Examples
 
-The `examples/` directory contains comprehensive examples:
+### Handle all three result states
 
-| Example | Description |
-|---------|-------------|
-| `01_basic_usage.py` | Basic fetching from APIs and files |
-| `02_custom_fetcher.py` | Creating a custom fetcher |
-| `03_custom_schema.py` | Using custom Pydantic schemas |
-| `04_cli_example.py` | Building a CLI with OmniFetcher |
-| `05_media_example.py` | Fetching media (YouTube, images) |
-| `06_auth_example.py` | Various authentication methods |
-| `07_oauth2_example.py` | OAuth2 authentication flow |
-| `08_s3_auth_example.py` | AWS S3 authentication |
-| `09_atomic_schemas_example.py` | Atomic schema primitives |
-| `10_office_webpage_example.py` | Office documents and web pages |
-| `11_audio_containers_example.py` | Container schemas for feeds and playlists |
-| `12_github_example.py` | GitHub API integration |
-| `13_google_drive_example.py` | Google Drive file fetching |
-| `14_notion_example.py` | Notion workspace integration |
-| `15_confluence_example.py` | Confluence pages and spaces |
-| `16_slack_example.py` | Slack messaging integration |
-| `17_jira_example.py` | Jira issues and projects |
+Expected failures are returned as values, never raised. A feed that parsed
+with warnings comes back `Partial` — the data it *did* get, plus typed gaps:
 
-Run examples:
+```python
+from omni_fetcher.v1 import Error, Partial, Success
+from omni_fetcher.v1.connectors.rss import RSSConnector
+
+result = await RSSConnector().fetch("https://blog.python.org/feeds/posts/default?alt=rss")
+
+if isinstance(result, Success):
+    items = result.tree.find_by_kind("feed_item")
+    print(f"{len(items)} items")
+elif isinstance(result, Partial):
+    print(f"partial: {len(result.tree.find_by_kind('feed_item'))} items, "
+          f"{len(result.gaps)} gaps ({result.gaps[0].kind})")
+elif isinstance(result, Error):
+    print(f"{result.kind}: {result.message}")       # e.g. NOT_FOUND, AUTH_FAILED
+```
+
+### Authenticate per call — credentials are never stored
+
+Connectors hold no state; you pass the credential with each call. This is what
+makes one process safe for many tenants:
+
+```python
+from omni_fetcher.v1 import BasicAuth, BearerAuth, Success
+from omni_fetcher.v1.connectors.jira import JiraConnector
+from omni_fetcher.v1.connectors.slack import SlackConnector
+
+# Jira Cloud: email + API token
+result = await JiraConnector().fetch(
+    "jira://issue/PROJ-1",
+    auth=BasicAuth(username="dev@acme.io", password="api-token"),
+)
+
+# Slack: bot token
+result = await SlackConnector().fetch(
+    "slack://channel/C0123456789",
+    auth=BearerAuth(token="xoxb-your-bot-token"),
+)
+```
+
+Credential shapes: `BearerAuth(token=...)`, `ApiKeyAuth(api_key=..., header=...)`,
+`BasicAuth(username=..., password=...)`, `OAuth2Auth(access_token=...)`,
+`AwsAuth(access_key_id=..., secret_access_key=...)`.
+
+### Source specifics live in `source_extra` — the core stays uniform
+
+Descriptive fields every source shares (id, author, created, updated, tags,
+source_url) are typed on `Metadata`. Fields only one source has live under its
+namespace in `source_extra`, so they can't collide and can't leak into your
+generic code:
+
+```python
+result = await JiraConnector().fetch("jira://issue/PROJ-1", auth=auth)
+assert isinstance(result, Success)
+node = result.tree
+
+# Uniform core — identical for every source
+print(node.metadata.id)            # "PROJ-1"
+print(node.metadata.author)        # reporter's display name
+print(node.metadata.created)       # datetime
+
+# Jira-only fields, namespaced
+extra = node.metadata.source_extra["jira"]
+print(extra["status"], extra["priority"], extra["story_points"])
+```
+
+### Tabular sources produce `Table` atoms
+
+```python
+from omni_fetcher.v1 import AtomKind, Success
+from omni_fetcher.v1.connectors.csv import CSVConnector
+
+result = await CSVConnector().fetch("data/sales.csv")
+
+assert isinstance(result, Success)
+table = result.tree.find_atoms(AtomKind.TABLE)[0]
+print(table.headers)               # ["region", "units", ...] or None
+print(table.rows[:3])
+```
+
+### Wire the orchestrator once, serve every tenant
+
+For hosts routing arbitrary URIs, build an immutable registry once and share a
+single stateless orchestrator across threads and event loops. Each call gets a
+fresh connector instance and its own credentials — nothing is cached or shared
+between calls (proven by the concurrency suite in `tests/v1/test_isolation.py`):
+
+```python
+from omni_fetcher.v1 import BearerAuth
+from omni_fetcher.v1.connectors.github import GitHubConnector
+from omni_fetcher.v1.connectors.rss import RSSConnector
+from omni_fetcher.v1.orchestrator import OmniFetcher
+from omni_fetcher.v1.registry import RegistryBuilder, SourceDefinition
+
+registry = (
+    RegistryBuilder()
+    .add(SourceDefinition(name="github", fetcher_class=GitHubConnector,
+                          uri_patterns=("*github.com/*",), priority=10))
+    .add(SourceDefinition(name="rss", fetcher_class=RSSConnector,
+                          uri_patterns=("*/feed*", "*.xml"), priority=50))
+    .build()                                   # immutable from here on
+)
+omni = OmniFetcher(registry)
+
+# Per request — tenant A and tenant B can run concurrently on this instance
+result = await omni.fetch(
+    "https://github.com/psf/requests/issues/42",
+    auth=BearerAuth(token=tenant_a_token),
+    tags=["tenant-a"],
+)
+```
+
+An unrouted URI returns `error(ErrorKind.NOT_FOUND)` — as a value.
+
+### Write your own connector
+
+Subclass `BaseFetcher`, override `stream()`, build canonical nodes with the
+mapping helper. `fetch()` comes for free (it collects the stream):
+
+```python
+from typing import AsyncIterator, Optional
+
+from omni_fetcher.v1 import BaseFetcher, Text
+from omni_fetcher.v1.auth import AuthCredential
+from omni_fetcher.v1.mapping import build_node
+from omni_fetcher.v1.result import Result, success
+from omni_fetcher.v1.zoom import ZoomSpec
+
+
+class HelloConnector(BaseFetcher):
+    async def stream(
+        self,
+        uri: str,
+        *,
+        auth: Optional[AuthCredential] = None,
+        zoom: Optional[ZoomSpec] = None,
+    ) -> AsyncIterator[Result]:
+        node = build_node(
+            kind="greeting",                       # advisory label
+            atoms=[Text(content=f"hello, {uri}")],
+            source_namespace="hello",              # source_extra["hello"]
+            source_fields={"lang": "en"},
+        )
+        yield success(node)
+
+
+result = await HelloConnector().fetch("hello://world")
+```
+
+Register it with a `SourceDefinition` (see the orchestrator example) and it
+routes like any built-in.
+
+### Opt-in content fingerprints
+
+Merkle content hashes are computed only when you ask:
+
+```python
+node.populate_hashes()             # bottom-up over the whole subtree
+print(node.metadata.content_hash)  # stable fingerprint of content + children
+```
+
+## Connectors
+
+| Connector (`omni_fetcher.v1.connectors.*`) | URI shapes | Auth | Extra |
+|---|---|---|---|
+| `local_file.LocalFileFetcher` | `/path/to/file`, `file://...` | — | — |
+| `http_url.HTTPURLConnector` | `https://...` pages | — | — |
+| `http_json.HTTPJSONConnector` | JSON APIs | optional `BearerAuth` | — |
+| `http_auth.HTTPAuthConnector` | authenticated HTTP | `Bearer`/`ApiKey`/`Basic` | — |
+| `graphql.GraphQLConnector` | GraphQL endpoints | optional | — |
+| `rss.RSSConnector` | feed URLs | optional `BearerAuth` | — |
+| `csv.CSVConnector` | `.csv` paths/URLs | — | — |
+| `pdf.PDFConnector` | `.pdf` paths/URLs | — | — |
+| `docx.DocxConnector` | `.docx` paths/URLs | — | `office` |
+| `pptx.PptxConnector` | `.pptx` paths/URLs | — | `office` |
+| `audio.AudioConnector` | audio paths/URLs | — | — |
+| `youtube.YouTubeConnector` | `youtube.com`, `youtu.be` | — | — |
+| `s3.S3Fetcher` | `s3://bucket/key` | `AwsAuth` | — |
+| `github.GitHubConnector` | `github.com/owner/repo[/issues/N, /pull/N, ...]` | optional `BearerAuth` | — |
+| `google_drive.GoogleDriveFetcher` | `drive.google.com`, `docs.google.com` | `OAuth2Auth` | — |
+| `notion.NotionConnector` | Notion pages/databases | `BearerAuth` (integration token) | — |
+| `jira.JiraConnector` | `jira://issue/KEY`, `jira://project/KEY`, `jira://sprint/N`, `jira://epic/KEY` | `BasicAuth` (Cloud) / `BearerAuth` (Server) | `jira` |
+| `confluence.ConfluenceConnector` | Confluence pages/spaces | `BasicAuth` / `BearerAuth` | `confluence` |
+| `slack.SlackConnector` | `slack://channel/ID`, threads, DMs | `BearerAuth` (bot token) | — |
+| `sharepoint.SharePointConnector` | `sharepoint://site[/Library[/file]]` | `OAuth2Auth` (Graph token) | — |
+| `linear.LinearConnector` | Linear issues/teams/projects | `BearerAuth` / `ApiKeyAuth` | — |
+
+## Design guarantees
+
+- **Stateless everywhere.** Connectors, registry, and orchestrator hold no
+  credentials and no fetched data between calls. Fresh connector instance per
+  call; immutable registry; per-call auth injection.
+- **Multi-tenant proven.** `tests/v1/test_isolation.py` drives one shared
+  orchestrator from 16 threads and 64 interleaved coroutines with distinct
+  tenant credentials and asserts zero cross-tenant leakage.
+- **Expected failures are values.** Missing resources, bad credentials, and
+  parse failures come back as typed `Error` / `Partial` results with an
+  `ErrorKind`; exceptions are reserved for bugs.
+- **Advisory, not rigid.** `metadata.kind` labels ("issue", "feed_item",
+  "page") are hints for humans and heuristics — the tree shape is the
+  contract.
+
+## Legacy API (v0.x)
+
+The pre-1.0 fetcher layer still ships and works unchanged:
+
+```python
+from omni_fetcher import OmniFetcher
+
+fetcher = OmniFetcher()
+result = await fetcher.fetch("https://api.example.com/data.json")
+```
+
+What changed in 1.0: the ~50 source-specific public schema classes
+(`GitHubIssue`, `NotionPage`, `JiraIssue`, ...) are no longer exported from
+`omni_fetcher` — consumers move to the canonical contract above.
+[docs/migration-v1.md](docs/migration-v1.md) maps every removed schema family
+onto atoms + metadata + `source_extra`, field by field.
+
+The `examples/` directory covers the legacy API end to end (auth methods,
+custom fetchers, per-source walkthroughs).
+
+## Development
 
 ```bash
-python examples/01_basic_usage.py
-python examples/02_custom_fetcher.py
+git clone https://github.com/Jainil-Gosalia/omni_fetcher
+cd omni_fetcher
+pip install -e ".[dev,office,web,gdrive,confluence,slack,jira]"
+
+pytest --ignore=tests/integration   # unit + contract suites (~1400 tests)
+ruff check . && ruff format --check .
+mypy omni_fetcher/
 ```
 
-## Testing
-
-Run tests with pytest:
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=omni_fetcher
-
-# Run specific test file
-pytest tests/test_fetchers.py
-
-# Run with verbose output
-pytest -v
-```
-
-### Test Structure
-
-```
-tests/
-├── conftest.py                    # Pytest fixtures
-├── test_auth.py                   # Authentication tests
-├── test_auth_integration.py       # Auth integration tests
-├── test_cli.py                   # CLI tests
-├── core/
-│   └── test_registry.py          # Registry tests
-├── fetchers/
-│   ├── test_audio.py             # Audio fetcher tests
-│   ├── test_confluence.py        # Confluence fetcher tests
-│   ├── test_csv.py               # CSV fetcher tests
-│   ├── test_docx.py              # DOCX fetcher tests
-│   ├── test_fetchers.py          # Base fetcher tests
-│   ├── test_github.py            # GitHub fetcher tests
-│   ├── test_google_drive.py      # Google Drive fetcher tests
-│   ├── test_graphql.py           # GraphQL fetcher tests
-│   ├── test_jira.py              # Jira fetcher tests
-│   ├── test_local_file.py        # Local file fetcher tests
-│   ├── test_notion.py            # Notion fetcher tests
-│   ├── test_pdf.py               # PDF fetcher tests
-│   ├── test_pptx.py              # PPTX fetcher tests
-│   ├── test_rss.py               # RSS fetcher tests
-│   ├── test_s3.py                # S3 fetcher tests
-│   ├── test_slack.py             # Slack fetcher tests
-│   ├── test_webpage.py           # HTTP/webpage fetcher tests
-│   └── test_youtube.py           # YouTube fetcher tests
-└── schemas/
-    ├── test_atomics.py           # Atomic schema tests
-    ├── test_base.py              # Base schema tests
-    ├── test_jira.py              # Jira schema tests
-    ├── test_media.py             # Media schema tests
-    ├── test_slack.py             # Slack schema tests
-    └── test_structured.py        # Structured data schema tests
-```
-    ├── test_media.py       # Media schema tests
-    └── test_structured.py  # Structured data tests
-```
+CI runs the same four gates on Python 3.10–3.12. `tests/integration` hits live
+services and needs real credentials; it is opt-in and excluded from CI.
+Releases are tag-driven: publishing a GitHub Release `vX.Y.Z` builds, gates,
+and publishes to PyPI via trusted publishing.
 
 ## License
 
-MIT License
-
-Copyright (c) 2024 OmniFetcher Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+[MIT](LICENSE) © 2024–2026 OmniFetcher Contributors
