@@ -39,57 +39,12 @@ from omni_fetcher.schemas.compat import (
     CSVData,
 )
 
-from omni_fetcher.schemas.github import (
-    GitHubFile,
-    GitHubIssue,
-    GitHubPR,
-    GitHubRelease,
-    GitHubRepo,
-    GitHubIssueContainer,
-    GitHubReleaseContainer,
-    GitHubPRContainer,
-)
-
-from omni_fetcher.schemas.google import (
-    GoogleDriveFile,
-    GoogleDriveFolder,
-    GoogleDriveContainer,
-    GoogleSheetsSpreadsheet,
-    GoogleDocsDocument,
-    GoogleSlidesPresentation,
-)
-
-from omni_fetcher.schemas.notion import (
-    NotionPage,
-    NotionDatabase,
-    NotionBlock,
-    NotionRichText,
-    NotionUser,
-    NotionProperty,
-    NotionSearchResult,
-)
-
-from omni_fetcher.schemas.confluence import (
-    ConfluencePage,
-    ConfluenceSpace,
-    ConfluenceAttachment,
-    ConfluenceUser,
-    ConfluenceComment,
-)
-
-from omni_fetcher.schemas.slack import (
-    SlackMessage,
-    SlackThread,
-    SlackChannel,
-    SlackDM,
-)
-
-from omni_fetcher.schemas.jira import (
-    JiraIssue,
-    JiraEpic,
-    JiraSprint,
-    JiraProject,
-)
+# NOTE: Source-specific public schema classes (GitHub*, GoogleDrive*, Notion*,
+# Confluence*, Slack*, Jira*, ...) are no longer part of the public API as of
+# v1.0. The public contract is the canonical atoms + metadata (see the v1
+# canonical contract and docs/migration-v1.md). The source-specific modules
+# still exist under omni_fetcher.schemas for the legacy fetchers' internal use,
+# but they are intentionally not re-exported here.
 
 from importlib.metadata import PackageNotFoundError, version as _pkg_version
 
@@ -133,44 +88,4 @@ __all__ = [
     "WebImage",
     "LocalImage",
     "CSVData",
-    # GitHub
-    "GitHubFile",
-    "GitHubIssue",
-    "GitHubPR",
-    "GitHubRelease",
-    "GitHubRepo",
-    "GitHubIssueContainer",
-    "GitHubReleaseContainer",
-    "GitHubPRContainer",
-    # Google Drive/Sheets/Docs/Slides
-    "GoogleDriveFile",
-    "GoogleDriveFolder",
-    "GoogleDriveContainer",
-    "GoogleSheetsSpreadsheet",
-    "GoogleDocsDocument",
-    "GoogleSlidesPresentation",
-    # Notion
-    "NotionPage",
-    "NotionDatabase",
-    "NotionBlock",
-    "NotionRichText",
-    "NotionUser",
-    "NotionProperty",
-    "NotionSearchResult",
-    # Confluence
-    "ConfluencePage",
-    "ConfluenceSpace",
-    "ConfluenceAttachment",
-    "ConfluenceUser",
-    "ConfluenceComment",
-    # Slack
-    "SlackMessage",
-    "SlackThread",
-    "SlackChannel",
-    "SlackDM",
-    # Jira
-    "JiraIssue",
-    "JiraEpic",
-    "JiraSprint",
-    "JiraProject",
 ]
