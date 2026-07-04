@@ -81,10 +81,13 @@ class Metadata(BaseModel):
     descriptive fields.
     ===============================================
     NOTE:
-        1. ``content_hash`` and ``prev_hash`` are RESERVED for future
-           content-addressed hash-linking (Merkle integrity). They are
-           unpopulated at v1; no verification logic ships. See
-           ``PHILOSOPHY.md`` section 6.
+        1. ``content_hash`` is an opt-in Merkle content fingerprint: it is
+           left ``None`` on construction and populated on demand via
+           ``CompositionNode.populate_hashes`` / ``compute_content_hash``.
+           ``prev_hash`` remains RESERVED for future hash-linking and is
+           never populated automatically. No verification logic ships at
+           v1 -- these fields carry integrity data, they do not enforce it.
+           See ``PHILOSOPHY.md`` section 6.
         2. ``kind`` is an ADVISORY semantic label (e.g. ``"issue"``,
            ``"page"``, ``"message"``, ``"file"``), never a distinct type.
         3. ``source_extra`` is keyed by source namespace; values are
@@ -117,11 +120,11 @@ class Metadata(BaseModel):
         temporal:
             Temporal ordering position (timestamp + monotonic sequence).
         content_hash:
-            RESERVED. Merkle hash over the node's children; unpopulated at
-            v1.
+            Opt-in Merkle content fingerprint over the node's children.
+            ``None`` until populated via ``populate_hashes``.
         prev_hash:
-            RESERVED. Hash link to the previous event node; unpopulated at
-            v1.
+            RESERVED. Hash link to the previous event node; never populated
+            automatically.
         source_extra:
             Namespaced mapping of source-specific descriptive data, keyed by
             source namespace.
@@ -139,8 +142,9 @@ class Metadata(BaseModel):
     permissions: Optional[Permissions] = None
     temporal: TemporalPosition = Field(default_factory=TemporalPosition)
 
-    # Reserved for future content-addressed integrity (Merkle). Unpopulated
-    # at v1; no verification ships.
+    # content_hash: opt-in Merkle content fingerprint, populated on demand
+    # via CompositionNode.populate_hashes. prev_hash: reserved, never
+    # auto-populated. No verification logic ships.
     content_hash: Optional[str] = None
     prev_hash: Optional[str] = None
 
