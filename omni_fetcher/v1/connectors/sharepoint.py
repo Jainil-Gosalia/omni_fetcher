@@ -690,9 +690,14 @@ class SharePointConnector(BaseFetcher):
         for drive in drives.get("value", []):
             if drive.get("name", "").lower() == target:
                 return drive
-        for drive in drives.get("value", []):
-            if drive.get("name", "").lower() in {target, "documents"}:
-                return drive
+        # The default library's site-relative URL segment is "Shared
+        # Documents" while Graph names its drive "Documents"; honour that
+        # alias only. Any other unmatched name means the library does not
+        # exist and must surface as NOT_FOUND, never as the default drive.
+        if target in {"documents", "shared documents"}:
+            for drive in drives.get("value", []):
+                if drive.get("name", "").lower() == "documents":
+                    return drive
         return None
 
     # ------------------------------------------------------------------
