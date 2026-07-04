@@ -298,7 +298,13 @@ def _parse_dt(value: Optional[str]) -> Optional[datetime]:
     if not value:
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        text = value.replace("Z", "+00:00")
+        # Jira emits RFC-822 style offsets (2026-01-15T09:00:00.000+0000);
+        # fromisoformat only accepts the colon-less form from Python 3.11,
+        # so insert the colon.
+        if len(text) >= 5 and text[-5] in "+-" and text[-4:].isdigit():
+            text = f"{text[:-2]}:{text[-2:]}"
+        return datetime.fromisoformat(text)
     except (ValueError, AttributeError):
         return None
 
