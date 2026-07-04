@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, Optional
 
 import boto3
@@ -10,7 +9,6 @@ from botocore.exceptions import ClientError
 
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
-from omni_fetcher.schemas.base import FetchMetadata
 from omni_fetcher.schemas.atomics import TextDocument, TextFormat
 from omni_fetcher.auth import AuthConfig
 
@@ -65,14 +63,6 @@ class S3Fetcher(BaseFetcher):
 
         # Get object
         obj_data = await self._get_object(bucket, key)
-
-        metadata = FetchMetadata(
-            source_uri=uri,
-            fetched_at=datetime.now(),
-            source_name=self.name,
-            mime_type=obj_data.get("content_type", "application/octet-stream"),
-            file_size=obj_data.get("content_length"),
-        )
 
         content = obj_data["content"]
 

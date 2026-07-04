@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import io
 from datetime import datetime
 from pathlib import Path
@@ -9,9 +10,7 @@ from typing import Any
 
 import httpx
 
-try:
-    import docx
-except ImportError:
+if importlib.util.find_spec("docx") is None:
     raise ImportError(
         "python-docx is required for DOCX fetching. Install with: pip install omni_fetcher[office]"
     )

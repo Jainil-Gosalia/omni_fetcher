@@ -212,7 +212,7 @@ async def s3_iam_role_example():
     # Create S3 fetcher without credentials
     # When running on EC2, Lambda, or ECS with IAM role,
     # boto3 will automatically use the IAM role credentials
-    fetcher = S3Fetcher()
+    S3Fetcher()
 
     print("S3 Fetcher without explicit credentials:")
     print("  When running on AWS (EC2, Lambda, ECS):")

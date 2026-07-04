@@ -6,7 +6,6 @@ from omni_fetcher.core.exceptions import SourceNotFoundError
 from omni_fetcher.fetchers.sharepoint import (
     SharePointFetcher,
     parse_sharepoint_uri,
-    SharePointRoute,
 )
 
 

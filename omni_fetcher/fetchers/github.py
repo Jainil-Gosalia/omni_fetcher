@@ -153,8 +153,6 @@ class GitHubFetcher(BaseFetcher):
     async def _fetch_repo(self, route: GitHubRoute, uri: str, **kwargs: Any) -> GitHubRepo:
         """Fetch repository metadata and optionally files/issues/PRs."""
         include_files = kwargs.get("include_files", False)
-        include_issues = kwargs.get("include_issues", False)
-        include_prs = kwargs.get("include_prs", False)
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             repo_response = await client.get(

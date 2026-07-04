@@ -1,12 +1,11 @@
 """Tests for PPTX fetcher."""
 
 import pytest
-from unittest.mock import patch, MagicMock, PropertyMock
-from datetime import datetime
+from unittest.mock import patch, MagicMock
 from pathlib import Path
 
 from omni_fetcher.fetchers.pptx import PPTXFetcher
-from omni_fetcher.schemas.documents import PPTXDocument, SlideDocument
+from omni_fetcher.schemas.documents import PPTXDocument
 
 
 class TestPPTXFetcher:

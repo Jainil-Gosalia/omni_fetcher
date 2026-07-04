@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
@@ -141,7 +140,9 @@ def get_cache_key(uri: str, **kwargs: str) -> str:
     return hashlib.sha256("|".join(key_parts).encode()).hexdigest()
 
 
-from omni_fetcher.cache.redis import RedisCacheBackend
+# Imported at the bottom because cache.redis imports CacheBackend from
+# this module; a top-level import would be circular.
+from omni_fetcher.cache.redis import RedisCacheBackend  # noqa: E402
 
 __all__ = [
     "CacheBackend",

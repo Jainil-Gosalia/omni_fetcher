@@ -57,9 +57,6 @@ class HTTPJSONFetcher(BaseFetcher):
             response = await client.get(uri)
             response.raise_for_status()
 
-            # Check if it's GraphQL
-            content_type = response.headers.get("content-type", "")
-
             # Try to detect GraphQL
             if "graphql" in uri.lower() or self._is_graphql_response(response.text):
                 return await self._handle_graphql(response, uri)
