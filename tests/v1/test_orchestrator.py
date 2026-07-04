@@ -46,6 +46,7 @@ def _sentence_zoom() -> ZoomSpec:
     """A concrete per-atom-type zoom spec for pass-through assertions."""
     return ZoomSpec(per_type={AtomKind.TEXT: DepthLevel.SENTENCE})
 
+
 # A call log shared by a test and the fetcher it instantiates. The fetcher
 # records what auth/zoom it was invoked with so the test can assert
 # pass-through. Each test uses its own list; nothing is process-global.

@@ -311,10 +311,7 @@ class TestContentHash:
     """``content_hash`` is a deterministic content-only fingerprint."""
 
     def test_same_content_same_hash(self):
-        assert (
-            _sample_tree().compute_content_hash()
-            == _sample_tree().compute_content_hash()
-        )
+        assert _sample_tree().compute_content_hash() == _sample_tree().compute_content_hash()
 
     def test_different_content_different_hash(self):
         a = _sample_tree()
@@ -333,22 +330,12 @@ class TestContentHash:
         assert a.compute_content_hash() == b.compute_content_hash()
 
     def test_child_order_affects_hash(self):
-        ordered = CompositionNode(
-            children=[Text(content="a"), Text(content="b")]
-        )
-        swapped = CompositionNode(
-            children=[Text(content="b"), Text(content="a")]
-        )
-        assert (
-            ordered.compute_content_hash()
-            != swapped.compute_content_hash()
-        )
+        ordered = CompositionNode(children=[Text(content="a"), Text(content="b")])
+        swapped = CompositionNode(children=[Text(content="b"), Text(content="a")])
+        assert ordered.compute_content_hash() != swapped.compute_content_hash()
 
     def test_empty_trees_hash_equal(self):
-        assert (
-            CompositionNode().compute_content_hash()
-            == CompositionNode().compute_content_hash()
-        )
+        assert CompositionNode().compute_content_hash() == CompositionNode().compute_content_hash()
 
     def test_not_populated_on_construction(self):
         # Hashing is opt-in; constructing a node does not populate it.
@@ -370,9 +357,7 @@ class TestContentHash:
     def test_parent_hash_differs_from_child_hash(self):
         tree = _sample_tree()
         tree.populate_hashes()
-        child_hashes = {
-            n.metadata.content_hash for n in tree.iter_descendants()
-        }
+        child_hashes = {n.metadata.content_hash for n in tree.iter_descendants()}
         assert tree.metadata.content_hash not in child_hashes
 
     def test_prev_hash_left_reserved(self):

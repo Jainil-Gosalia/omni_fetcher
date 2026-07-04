@@ -46,18 +46,14 @@ def _connector_with(handler) -> GraphQLConnector:
 
     async def _post(endpoint, payload, headers):
         async with httpx.AsyncClient(transport=transport) as client:
-            return await client.post(
-                endpoint, json=payload, headers=headers
-            )
+            return await client.post(endpoint, json=payload, headers=headers)
 
     connector._post = _post  # type: ignore[method-assign]
     del original_post
     return connector
 
 
-def _json_response(
-    body: dict[str, Any], *, status: int = 200
-) -> httpx.Response:
+def _json_response(body: dict[str, Any], *, status: int = 200) -> httpx.Response:
     """A fake JSON httpx response."""
     return httpx.Response(status, json=body)
 
@@ -110,9 +106,7 @@ async def test_descriptive_fields_in_source_extra() -> None:
     connector = _connector_with(handler)
     variables = json.dumps({"id": 7})
 
-    result = await connector.fetch(
-        _uri("query Q($id: Int) { node(id: $id) }", variables=variables)
-    )
+    result = await connector.fetch(_uri("query Q($id: Int) { node(id: $id) }", variables=variables))
 
     assert isinstance(result, Success)
     extra = result.tree.metadata.source_extra[GRAPHQL_NAMESPACE]
@@ -121,9 +115,7 @@ async def test_descriptive_fields_in_source_extra() -> None:
     assert extra["variables"] == {"id": 7}
 
     # Descriptive data is NOT inlined onto the content atom.
-    atom = next(
-        a for a in result.tree.iter_atoms() if a.kind is AtomKind.TEXT
-    )
+    atom = next(a for a in result.tree.iter_atoms() if a.kind is AtomKind.TEXT)
     assert set(atom.model_dump().keys()) == {
         "kind",
         "content",
@@ -197,9 +189,7 @@ async def test_data_with_errors_is_partial() -> None:
 
     assert isinstance(result, Partial)
     # The partial data is preserved in the tree.
-    text = next(
-        a for a in result.tree.iter_atoms() if a.kind is AtomKind.TEXT
-    )
+    text = next(a for a in result.tree.iter_atoms() if a.kind is AtomKind.TEXT)
     assert json.loads(text.content) == {"viewer": {"name": "ada"}}
     # Every GraphQL error is surfaced as a gap.
     assert len(result.gaps) == 2
@@ -223,9 +213,7 @@ async def test_data_with_errors_is_partial() -> None:
         (503, ErrorKind.TRANSIENT),
     ],
 )
-async def test_http_status_maps_to_error(
-    status: int, expected: ErrorKind
-) -> None:
+async def test_http_status_maps_to_error(status: int, expected: ErrorKind) -> None:
     """Non-2xx HTTP statuses map onto the typed error taxonomy."""
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -255,9 +243,7 @@ async def test_non_json_body_is_parse_error() -> None:
 
 async def test_invalid_variables_is_invalid_input() -> None:
     """Malformed 'variables' JSON on the URI is an INVALID_INPUT error."""
-    connector = _connector_with(
-        lambda request: _json_response({"data": {}})
-    )
+    connector = _connector_with(lambda request: _json_response({"data": {}}))
 
     uri = f"{ENDPOINT}?query={{ping}}&variables=not-json"
     result = await connector.fetch(uri)
@@ -280,9 +266,7 @@ async def test_auth_header_is_sent() -> None:
 
     connector = _connector_with(handler)
 
-    result = await connector.fetch(
-        _uri(), auth=BearerAuth(token="secret-token")
-    )
+    result = await connector.fetch(_uri(), auth=BearerAuth(token="secret-token"))
 
     assert isinstance(result, Success)
     assert seen["authorization"] == "Bearer secret-token"

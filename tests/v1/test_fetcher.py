@@ -120,9 +120,7 @@ async def test_empty_stream_is_not_found() -> None:
 
 async def test_error_only_stream_surfaces_error() -> None:
     """A stream of only errors surfaces an Error (never dropped)."""
-    fetcher = _ScriptedFetcher(
-        [error(ErrorKind.AUTH_FAILED, message="bad token")]
-    )
+    fetcher = _ScriptedFetcher([error(ErrorKind.AUTH_FAILED, message="bad token")])
 
     result = await fetcher.fetch("mem://x")
 

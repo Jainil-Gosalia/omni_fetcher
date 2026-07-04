@@ -108,9 +108,7 @@ async def test_descriptive_fields_live_in_source_extra(
     }
 
 
-async def test_source_url_set_on_metadata(
-    fetcher: LocalFileFetcher, tmp_path: Path
-) -> None:
+async def test_source_url_set_on_metadata(fetcher: LocalFileFetcher, tmp_path: Path) -> None:
     """The requested URI is recorded as the node's source_url."""
     target = tmp_path / "x.txt"
     target.write_text("x", encoding="utf-8")
@@ -121,9 +119,7 @@ async def test_source_url_set_on_metadata(
     assert result.tree.metadata.source_url == str(target)
 
 
-async def test_stream_stamps_temporal_position(
-    fetcher: LocalFileFetcher, tmp_path: Path
-) -> None:
+async def test_stream_stamps_temporal_position(fetcher: LocalFileFetcher, tmp_path: Path) -> None:
     """A streamed node carries a monotonic sequence + wall-clock timestamp."""
     target = tmp_path / "x.txt"
     target.write_text("x", encoding="utf-8")
@@ -142,9 +138,7 @@ async def test_stream_stamps_temporal_position(
 # CSV/TSV files -> Table atom
 
 
-async def test_csv_file_yields_table_atom(
-    fetcher: LocalFileFetcher, tmp_path: Path
-) -> None:
+async def test_csv_file_yields_table_atom(fetcher: LocalFileFetcher, tmp_path: Path) -> None:
     """A CSV file becomes a kind='file' node carrying one Table atom."""
     target = tmp_path / "rows.csv"
     target.write_text("a,b\n1,2\n3,4\n", encoding="utf-8")
@@ -161,9 +155,7 @@ async def test_csv_file_yields_table_atom(
     assert table.rows == [["1", "2"], ["3", "4"]]
 
 
-async def test_tsv_file_yields_table_atom(
-    fetcher: LocalFileFetcher, tmp_path: Path
-) -> None:
+async def test_tsv_file_yields_table_atom(fetcher: LocalFileFetcher, tmp_path: Path) -> None:
     """A TSV file is parsed with a tab delimiter into a Table atom."""
     target = tmp_path / "rows.tsv"
     target.write_text("x\ty\n1\t2\n", encoding="utf-8")
@@ -181,9 +173,7 @@ async def test_tsv_file_yields_table_atom(
 # Error handling -- returned, never raised
 
 
-async def test_missing_file_returns_typed_error(
-    fetcher: LocalFileFetcher, tmp_path: Path
-) -> None:
+async def test_missing_file_returns_typed_error(fetcher: LocalFileFetcher, tmp_path: Path) -> None:
     """A missing file returns a NOT_FOUND error (no exception raised)."""
     missing = tmp_path / "does_not_exist.txt"
 
@@ -207,9 +197,7 @@ async def test_missing_file_stream_does_not_raise(
     assert items[0].kind is ErrorKind.NOT_FOUND
 
 
-async def test_directory_returns_invalid_input(
-    fetcher: LocalFileFetcher, tmp_path: Path
-) -> None:
+async def test_directory_returns_invalid_input(fetcher: LocalFileFetcher, tmp_path: Path) -> None:
     """Pointing at a directory returns INVALID_INPUT, not a success."""
     result = await fetcher.fetch(str(tmp_path))
 
@@ -239,9 +227,7 @@ async def test_binary_file_returns_partial_with_gap(
 # URI handling + can_handle
 
 
-async def test_file_uri_is_accepted(
-    fetcher: LocalFileFetcher, tmp_path: Path
-) -> None:
+async def test_file_uri_is_accepted(fetcher: LocalFileFetcher, tmp_path: Path) -> None:
     """A file:// URI resolves to the same content as a bare path."""
     target = tmp_path / "u.txt"
     target.write_text("content", encoding="utf-8")

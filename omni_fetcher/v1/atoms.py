@@ -149,9 +149,7 @@ class BinaryAtom(Atom):
         has_data = self.data is not None
         has_uri = self.uri is not None and self.uri != ""
         if has_data == has_uri:
-            raise ValueError(
-                "binary atom must carry exactly one of 'data' or 'uri'"
-            )
+            raise ValueError("binary atom must carry exactly one of 'data' or 'uri'")
         return self
 
 
@@ -331,8 +329,7 @@ class Table(Atom):
         for index, row in enumerate(self.rows):
             if len(row) != width:
                 raise ValueError(
-                    f"row {index} has {len(row)} cells; "
-                    f"expected {width} to match headers"
+                    f"row {index} has {len(row)} cells; expected {width} to match headers"
                 )
         return self
 

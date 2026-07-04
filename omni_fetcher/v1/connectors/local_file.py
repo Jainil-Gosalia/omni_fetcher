@@ -143,8 +143,9 @@ def _parse_table(text: str, path: Path, mime_type: Optional[str]) -> Table:
     return Table(headers=None, rows=grid)
 
 
-def _source_fields(path: Path, stat: os.stat_result, mime_type: Optional[str],
-                   encoding: Optional[str]) -> dict[str, object]:
+def _source_fields(
+    path: Path, stat: os.stat_result, mime_type: Optional[str], encoding: Optional[str]
+) -> dict[str, object]:
     """Assemble the namespaced descriptive fields for a file node."""
     fields: dict[str, object] = {
         "path": str(path),
@@ -240,9 +241,7 @@ class LocalFileFetcher(BaseFetcher):
         if not isinstance(result, Error):
             # Success / Partial both carry a ``tree`` to stamp; an Error has
             # no node to order.
-            stamp_temporal(
-                result.tree, sequence=counter.next(), timestamp=now_utc()
-            )
+            stamp_temporal(result.tree, sequence=counter.next(), timestamp=now_utc())
         yield result
 
     def _read_one(self, uri: str) -> Result:

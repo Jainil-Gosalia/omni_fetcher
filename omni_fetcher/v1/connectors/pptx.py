@@ -56,9 +56,7 @@ _DECK_KIND = "presentation"
 _SLIDE_KIND = "slide"
 
 # MIME type of an Open-XML PowerPoint presentation.
-_PPTX_MIME = (
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-)
+_PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 
 
 class PptxConnector(BaseFetcher):
@@ -199,7 +197,7 @@ class PptxConnector(BaseFetcher):
     @staticmethod
     def _read_local(uri: str) -> bytes:
         """Read a ``file://`` deck off the local filesystem."""
-        path = uri[len("file://"):]
+        path = uri[len("file://") :]
         if path.startswith("/") and len(path) > 2 and path[2] == ":":
             # Strip the leading slash from a Windows ``file:///C:/...`` path.
             path = path[1:]
@@ -318,9 +316,7 @@ def _slide_text(slide: Any, title: Optional[str]) -> str:
     for shape in slide.shapes:
         if shape is title_shape:
             continue
-        if getattr(shape, "has_text_frame", False) is False and not hasattr(
-            shape, "text"
-        ):
+        if getattr(shape, "has_text_frame", False) is False and not hasattr(shape, "text"):
             continue
         text = getattr(shape, "text", "")
         if text and text.strip():
@@ -368,9 +364,6 @@ def _slide_tables(slide: Any) -> list[Table]:
         if getattr(shape, "has_table", False) is not True:
             continue
         grid = shape.table
-        rows = [
-            [cell.text for cell in row.cells]
-            for row in grid.rows
-        ]
+        rows = [[cell.text for cell in row.cells] for row in grid.rows]
         tables.append(Table(rows=rows))
     return tables

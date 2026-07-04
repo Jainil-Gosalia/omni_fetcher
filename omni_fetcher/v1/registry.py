@@ -195,9 +195,7 @@ class FrozenRegistry:
         names: set[str] = set()
         for definition in definitions:
             if definition.name in names:
-                raise ValueError(
-                    f"duplicate source definition name: {definition.name!r}"
-                )
+                raise ValueError(f"duplicate source definition name: {definition.name!r}")
             names.add(definition.name)
 
         # Stable sort by priority (lower = higher priority); ties keep the
@@ -207,15 +205,11 @@ class FrozenRegistry:
 
     def __setattr__(self, name: str, value: object) -> None:
         """Reject all attribute mutation -- the registry is read-only."""
-        raise AttributeError(
-            "FrozenRegistry is immutable; build a new one instead"
-        )
+        raise AttributeError("FrozenRegistry is immutable; build a new one instead")
 
     def __delattr__(self, name: str) -> None:
         """Reject all attribute deletion -- the registry is read-only."""
-        raise AttributeError(
-            "FrozenRegistry is immutable; build a new one instead"
-        )
+        raise AttributeError("FrozenRegistry is immutable; build a new one instead")
 
     def definition_for(self, uri: str) -> Optional[SourceDefinition]:
         """

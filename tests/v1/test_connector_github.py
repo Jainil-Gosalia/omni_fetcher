@@ -125,9 +125,7 @@ async def test_single_issue_yields_canonical_issue_node(monkeypatch):
         ),
     )
 
-    result = await GitHubConnector().fetch(
-        "https://github.com/o/r/issues/42"
-    )
+    result = await GitHubConnector().fetch("https://github.com/o/r/issues/42")
 
     assert isinstance(result, Success)
     node = result.tree
@@ -192,13 +190,9 @@ async def test_file_yields_file_node(monkeypatch):
         "content": _b64("print('hi')"),
         "html_url": "https://github.com/o/r/blob/main/app.py",
     }
-    _install_transport(
-        monkeypatch, _route_handler({"/contents/app.py": file_payload})
-    )
+    _install_transport(monkeypatch, _route_handler({"/contents/app.py": file_payload}))
 
-    result = await GitHubConnector().fetch(
-        "https://github.com/o/r/blob/main/app.py"
-    )
+    result = await GitHubConnector().fetch("https://github.com/o/r/blob/main/app.py")
 
     assert isinstance(result, Success)
     node = result.tree
@@ -242,9 +236,7 @@ async def test_pull_request_yields_pr_node(monkeypatch):
     assert extra["state"] == "merged"
     assert extra["base_branch"] == "main"
     assert extra["head_branch"] == "feature"
-    assert "PR body text" in [
-        a.content for a in node.find_atoms(AtomKind.TEXT)
-    ]
+    assert "PR body text" in [a.content for a in node.find_atoms(AtomKind.TEXT)]
 
 
 async def test_repo_yields_repo_node_with_readme(monkeypatch):
@@ -313,9 +305,7 @@ async def test_issues_list_yields_container_with_child_nodes(monkeypatch):
             "html_url": "https://github.com/o/r/pull/3",
         },
     ]
-    _install_transport(
-        monkeypatch, _route_handler({"/issues": issues})
-    )
+    _install_transport(monkeypatch, _route_handler({"/issues": issues}))
 
     result = await GitHubConnector().fetch("https://github.com/o/r/issues")
 
@@ -324,9 +314,7 @@ async def test_issues_list_yields_container_with_child_nodes(monkeypatch):
     assert container.metadata.kind == "issues"
     _assert_no_github_types(container)
 
-    child_nodes = [
-        c for c in container.children if isinstance(c, CompositionNode)
-    ]
+    child_nodes = [c for c in container.children if isinstance(c, CompositionNode)]
     assert len(child_nodes) == 2
     assert all(c.metadata.kind == "issue" for c in child_nodes)
     assert container.metadata.source_extra["github"]["item_count"] == 2
@@ -346,20 +334,14 @@ async def test_releases_list_yields_container(monkeypatch):
             "html_url": "https://github.com/o/r/releases/tag/v1.0",
         }
     ]
-    _install_transport(
-        monkeypatch, _route_handler({"/releases": releases})
-    )
+    _install_transport(monkeypatch, _route_handler({"/releases": releases}))
 
-    result = await GitHubConnector().fetch(
-        "https://github.com/o/r/releases"
-    )
+    result = await GitHubConnector().fetch("https://github.com/o/r/releases")
 
     assert isinstance(result, Success)
     container = result.tree
     assert container.metadata.kind == "releases"
-    children = [
-        c for c in container.children if isinstance(c, CompositionNode)
-    ]
+    children = [c for c in container.children if isinstance(c, CompositionNode)]
     assert len(children) == 1
     assert children[0].metadata.kind == "release"
     assert children[0].metadata.source_extra["github"]["tag_name"] == "v1.0"
@@ -373,9 +355,7 @@ async def test_404_yields_not_found(monkeypatch):
 
     _install_transport(monkeypatch, handler)
 
-    result = await GitHubConnector().fetch(
-        "https://github.com/o/r/issues/999"
-    )
+    result = await GitHubConnector().fetch("https://github.com/o/r/issues/999")
 
     assert isinstance(result, Error)
     assert result.kind == ErrorKind.NOT_FOUND

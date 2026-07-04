@@ -123,12 +123,8 @@ async def test_different_calls_use_different_credentials() -> None:
     captured: list[httpx.Request] = []
     connector = HTTPAuthConnector(transport=_record_transport(captured))
 
-    await _one(
-        connector, "https://a.example.com", auth=BearerAuth(token="one")
-    )
-    await _one(
-        connector, "https://b.example.com", auth=BearerAuth(token="two")
-    )
+    await _one(connector, "https://a.example.com", auth=BearerAuth(token="one"))
+    await _one(connector, "https://b.example.com", auth=BearerAuth(token="two"))
 
     assert captured[0].headers["Authorization"] == "Bearer one"
     assert captured[1].headers["Authorization"] == "Bearer two"

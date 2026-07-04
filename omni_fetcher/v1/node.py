@@ -248,9 +248,7 @@ def _json_default(value: Any) -> str:
         return base64.b64encode(bytes(value)).decode("ascii")
     if isinstance(value, Enum):
         return str(value.value)
-    raise TypeError(
-        f"cannot serialise {type(value).__name__} for content hashing"
-    )
+    raise TypeError(f"cannot serialise {type(value).__name__} for content hashing")
 
 
 def _atom_digest(atom: Atom) -> str:

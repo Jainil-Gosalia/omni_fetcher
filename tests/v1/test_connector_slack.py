@@ -122,9 +122,7 @@ async def test_channel_yields_container_of_message_nodes(monkeypatch):
     }
     _install_transport(monkeypatch, _make_handler(routes))
 
-    result = await SlackConnector().fetch(
-        "slack://channel/C123", auth=BearerAuth(token="xoxb-tok")
-    )
+    result = await SlackConnector().fetch("slack://channel/C123", auth=BearerAuth(token="xoxb-tok"))
 
     assert isinstance(result, Success)
     node = result.tree
@@ -194,10 +192,19 @@ async def test_thread_yields_container_of_message_nodes(monkeypatch):
         "conversations.replies": _ok(
             {
                 "messages": [
-                    {"ts": "1700000000.0001", "user": "U1", "text": "parent",
-                     "thread_ts": "1700000000.0001", "reply_count": 1},
-                    {"ts": "1700000002.0003", "user": "U2", "text": "reply",
-                     "thread_ts": "1700000000.0001"},
+                    {
+                        "ts": "1700000000.0001",
+                        "user": "U1",
+                        "text": "parent",
+                        "thread_ts": "1700000000.0001",
+                        "reply_count": 1,
+                    },
+                    {
+                        "ts": "1700000002.0003",
+                        "user": "U2",
+                        "text": "reply",
+                        "thread_ts": "1700000000.0001",
+                    },
                 ]
             }
         ),
@@ -326,8 +333,6 @@ async def test_bot_messages_are_skipped(monkeypatch):
     result = await SlackConnector().fetch("slack://channel/C1")
 
     assert isinstance(result, Success)
-    message_nodes = [
-        c for c in result.tree.children if c.metadata.kind == "message"
-    ]
+    message_nodes = [c for c in result.tree.children if c.metadata.kind == "message"]
     assert len(message_nodes) == 1
     assert message_nodes[0].find_atoms(AtomKind.TEXT)[0].content == "human"

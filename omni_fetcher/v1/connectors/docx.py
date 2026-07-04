@@ -263,9 +263,7 @@ def _parse_docx(data: bytes) -> _ParsedDocx:
             continue
         try:
             image_part = rel.target_part
-            atoms.append(
-                Image(format=image_part.content_type, data=image_part.blob)
-            )
+            atoms.append(Image(format=image_part.content_type, data=image_part.blob))
             image_count += 1
         except Exception as exc:  # noqa: BLE001 -- record gap, keep parsing.
             gaps.append(

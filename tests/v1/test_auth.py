@@ -215,6 +215,4 @@ class TestGoogleServiceAccountReconciliation:
         host_exchanged_token = "ya29.sa-exchanged-token"
         cred = OAuth2Auth(access_token=host_exchanged_token)
         headers = resolver.resolve_headers(cred)
-        assert headers == {
-            "Authorization": f"Bearer {host_exchanged_token}"
-        }
+        assert headers == {"Authorization": f"Bearer {host_exchanged_token}"}
