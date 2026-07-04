@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import redis.asyncio as redis
 
@@ -56,7 +56,9 @@ class RedisCacheBackend(CacheBackend):
     def _serialize(self, value: Any) -> str:
         return json.dumps(value, default=str)
 
-    def _deserialize(self, value: Optional[str]) -> Optional[Any]:
+    def _deserialize(self, value: Union[bytes, str, None]) -> Optional[Any]:
+        # redis returns bytes unless decode_responses is set; json.loads
+        # accepts both, so handle either shape.
         if value is None:
             return None
         try:
