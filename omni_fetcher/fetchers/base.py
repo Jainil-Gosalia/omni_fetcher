@@ -54,11 +54,12 @@ class BaseFetcher(ABC):
             return self._auth_config.get_headers()
         return {}
 
-    def get_auth_aws_credentials(self) -> dict[str, str]:
+    def get_auth_aws_credentials(self) -> dict[str, Optional[str]]:
         """Get AWS credentials from auth config.
 
         Returns:
             Dict with aws_access_key_id, aws_secret_access_key, region_name
+            (values may be None when unset)
         """
         if self._auth_config and self._auth_config.type == "aws":
             return self._auth_config.get_aws_credentials()

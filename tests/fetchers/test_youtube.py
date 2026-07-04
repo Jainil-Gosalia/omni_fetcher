@@ -97,8 +97,6 @@ class TestYouTubeFetcher:
     @pytest.mark.asyncio
     async def test_fetch_playlist(self):
         """Can fetch playlist information."""
-        fetcher = YouTubeFetcher()
-
         # Should detect playlist and handle differently
         assert YouTubeFetcher.can_handle("https://youtube.com/playlist?list=PL123456")
 

@@ -73,8 +73,7 @@ _MESSAGE_KINDS: tuple[tuple[str, ErrorKind], ...] = (
     ("does not exist", ErrorKind.NOT_FOUND),
     ("has been removed", ErrorKind.NOT_FOUND),
     ("removed by the uploader", ErrorKind.NOT_FOUND),
-    ("account associated with this video has been terminated",
-     ErrorKind.NOT_FOUND),
+    ("account associated with this video has been terminated", ErrorKind.NOT_FOUND),
     ("not available", ErrorKind.NOT_FOUND),
     ("unable to download", ErrorKind.TRANSIENT),
     ("timed out", ErrorKind.TRANSIENT),
@@ -275,9 +274,7 @@ class YouTubeConnector(BaseFetcher):
 
         description = info.get("description")
         if description and description.strip():
-            atoms.append(
-                Text(content=description, format=TextFormat.PLAIN)
-            )
+            atoms.append(Text(content=description, format=TextFormat.PLAIN))
 
         caption = _existing_caption_text(info)
         if caption is not None:
@@ -398,8 +395,7 @@ def _playlist_fields(info: dict[str, Any]) -> dict[str, Any]:
         "uploader": info.get("uploader"),
         "channel": info.get("channel"),
         "channel_id": info.get("channel_id"),
-        "playlist_count": info.get("playlist_count")
-        or (len(entries) if entries else None),
+        "playlist_count": info.get("playlist_count") or (len(entries) if entries else None),
         "webpage_url": info.get("webpage_url"),
     }
     return {key: value for key, value in fields.items() if value is not None}

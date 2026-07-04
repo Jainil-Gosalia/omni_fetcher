@@ -5,7 +5,6 @@ import pytest
 from omni_fetcher.fetchers.linear import (
     LinearFetcher,
     parse_linear_uri,
-    LinearRoute,
 )
 
 

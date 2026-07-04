@@ -67,9 +67,7 @@ SOURCE_NAMESPACE = "audio"
 AUDIO_KIND = "audio_file"
 
 # Recognised audio file extensions (lower-case, with leading dot).
-_AUDIO_EXTENSIONS = frozenset(
-    {".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".wma", ".opus"}
-)
+_AUDIO_EXTENSIONS = frozenset({".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".wma", ".opus"})
 
 # ID3-style descriptive tag keys (in ``source_extra["audio"]``). These are
 # descriptive, not content, so they never touch the ``Audio`` atom.
@@ -295,9 +293,7 @@ class AudioConnector(BaseFetcher):
         if not isinstance(result, Error):
             # Success / Partial both carry a ``tree`` to stamp; an Error has no
             # node to order.
-            stamp_temporal(
-                result.tree, sequence=counter.next(), timestamp=now_utc()
-            )
+            stamp_temporal(result.tree, sequence=counter.next(), timestamp=now_utc())
         yield result
 
     def _read_one(self, uri: str) -> Result:

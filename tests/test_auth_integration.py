@@ -74,7 +74,6 @@ class TestHTTPAuthFetcherBearerToken:
                 headers={"content-type": "text/plain"},
             )
 
-        transport = httpx.MockTransport(mock_handler)
         fetcher = HTTPAuthFetcher(bearer_token="full-test-token", timeout=10.0)
 
         with patch("httpx.AsyncClient") as mock_client_class:
@@ -95,7 +94,7 @@ class TestHTTPAuthFetcherBearerToken:
             mock_client.get.return_value = mock_response
             mock_client_class.return_value = mock_client
 
-            result = await fetcher.fetch("https://api.example.com/hello")
+            await fetcher.fetch("https://api.example.com/hello")
 
         mock_client.get.assert_called_once()
         call_kwargs = mock_client.get.call_args
@@ -277,15 +276,6 @@ class TestOAuth2TokenRefresh:
 
         token_transport = httpx.MockTransport(mock_token_handler)
 
-        config = AuthConfig(
-            type="oauth2",
-            oauth2_client_id="client-id-123",
-            oauth2_client_secret="client-secret-456",
-            oauth2_token_url="https://auth.example.com/oauth/token",
-            oauth2_grant_type="refresh_token",
-            oauth2_refresh_token="my-refresh-token-value",
-        )
-
         async with httpx.AsyncClient(transport=token_transport) as client:
             response = await client.post(
                 "https://auth.example.com/oauth/token",
@@ -312,8 +302,6 @@ class TestOAuth2TokenRefresh:
                 content=b'{"access_token": "new-access-token-cc", "expires_in": 3600}',
                 headers={"content-type": "application/json"},
             )
-
-        token_transport = httpx.MockTransport(mock_token_handler)
 
         config = AuthConfig(
             type="oauth2",
@@ -407,8 +395,6 @@ class TestOmniFetcherWithAuth:
                 headers={"content-type": "application/json"},
             )
 
-        transport = httpx.MockTransport(mock_handler)
-
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -449,8 +435,6 @@ class TestOmniFetcherWithAuth:
                 headers={"content-type": "text/plain"},
             )
 
-        transport = httpx.MockTransport(mock_handler)
-
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -470,9 +454,7 @@ class TestOmniFetcherWithAuth:
 
             fetcher = HTTPAuthFetcher(bearer_token="default-token")
 
-            result = await fetcher.fetch(
-                "https://api.example.com/data", bearer_token="override-token"
-            )
+            await fetcher.fetch("https://api.example.com/data", bearer_token="override-token")
 
         call_kwargs = mock_client.get.call_args
         assert call_kwargs.kwargs["headers"]["Authorization"] == "Bearer override-token"
@@ -504,8 +486,6 @@ class TestOmniFetcherWithAuth:
                 content=b'{"key": "value"}',
                 headers={"content-type": "application/json"},
             )
-
-        transport = httpx.MockTransport(mock_handler)
 
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()

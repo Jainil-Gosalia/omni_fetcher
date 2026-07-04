@@ -168,15 +168,11 @@ class Metadata(BaseModel):
 
     @field_validator("source_extra")
     @classmethod
-    def _validate_namespaced(
-        cls, value: dict[str, dict[str, Any]]
-    ) -> dict[str, dict[str, Any]]:
+    def _validate_namespaced(cls, value: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         """Require non-empty source names mapping to field dicts."""
         for namespace, fields in value.items():
             if not isinstance(namespace, str) or not namespace.strip():
-                raise ValueError(
-                    "source_extra keys must be non-empty source names"
-                )
+                raise ValueError("source_extra keys must be non-empty source names")
             if not isinstance(fields, dict):
                 raise ValueError(
                     f"source_extra['{namespace}'] must be a dict of fields, "

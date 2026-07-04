@@ -146,7 +146,7 @@ def parse_jira_uri(uri: str) -> JiraRoute:
             The decoded :class:`JiraRoute`.
     """
     if uri.startswith("jira://"):
-        path = uri[len("jira://"):].strip("/")
+        path = uri[len("jira://") :].strip("/")
         parts = path.split("/")
         if len(parts) >= 2 and parts[0] == "issue":
             return JiraRoute(type="issue", issue_key=parts[1])
@@ -446,9 +446,7 @@ class JiraConnector(BaseFetcher):
                 cloud=True,
                 timeout=self.timeout,
             )
-        raise ValueError(
-            "Jira requires per-call auth (BasicAuth email:api_token or BearerAuth)."
-        )
+        raise ValueError("Jira requires per-call auth (BasicAuth email:api_token or BearerAuth).")
 
     async def stream(
         self,
@@ -501,14 +499,10 @@ class JiraConnector(BaseFetcher):
         try:
             client = self._get_client(auth, base_url)
         except NotImplementedError as exc:
-            yield from_exception(
-                exc, kind=ErrorKind.UNSUPPORTED, locator=uri
-            )
+            yield from_exception(exc, kind=ErrorKind.UNSUPPORTED, locator=uri)
             return
         except ValueError as exc:
-            yield from_exception(
-                exc, kind=ErrorKind.AUTH_FAILED, locator=uri
-            )
+            yield from_exception(exc, kind=ErrorKind.AUTH_FAILED, locator=uri)
             return
 
         try:
@@ -536,9 +530,7 @@ class JiraConnector(BaseFetcher):
         """Map a caught client exception onto a typed error value."""
         status = _status_of(exc)
         if status is not None:
-            return from_exception(
-                exc, kind=_kind_for_status(status), locator=locator
-            )
+            return from_exception(exc, kind=_kind_for_status(status), locator=locator)
         return from_exception(exc, kind=ErrorKind.TRANSIENT, locator=locator)
 
     # ------------------------------------------------------------------
@@ -612,9 +604,7 @@ class JiraConnector(BaseFetcher):
         gaps = []
         for issue in sprint_data.get("issues", [])[:_DEFAULT_MAX_ISSUES]:
             try:
-                children.append(
-                    self._build_issue_node(issue, client, include_comments=False)
-                )
+                children.append(self._build_issue_node(issue, client, include_comments=False))
             except Exception as exc:  # noqa: BLE001 - per-item gap
                 gaps.append(
                     gap(
@@ -664,10 +654,7 @@ class JiraConnector(BaseFetcher):
                 locator=uri,
             )
 
-        jql = (
-            f"project = {project_key} AND issuetype NOT IN (Subtask) "
-            "ORDER BY created DESC"
-        )
+        jql = f"project = {project_key} AND issuetype NOT IN (Subtask) ORDER BY created DESC"
         children, gaps = self._search_children(client, jql)
 
         atoms = []
@@ -699,9 +686,7 @@ class JiraConnector(BaseFetcher):
             return partial(node, gaps)
         return success(node)
 
-    def _search_children(
-        self, client: Any, jql: str
-    ) -> tuple[list[CompositionNode], list]:
+    def _search_children(self, client: Any, jql: str) -> tuple[list[CompositionNode], list]:
         """Page a JQL search into child issue nodes, collecting any gaps."""
         children: list[CompositionNode] = []
         gaps: list = []
@@ -730,20 +715,12 @@ class JiraConnector(BaseFetcher):
             issues = chunk.get("issues", []) if chunk else []
             for issue in issues:
                 try:
-                    children.append(
-                        self._build_issue_node(
-                            issue, client, include_comments=False
-                        )
-                    )
+                    children.append(self._build_issue_node(issue, client, include_comments=False))
                 except Exception as exc:  # noqa: BLE001 - per-item gap
                     gaps.append(
                         gap(
                             kind=ErrorKind.PARSE_ERROR,
-                            locator=(
-                                issue.get("key")
-                                if isinstance(issue, dict)
-                                else None
-                            ),
+                            locator=(issue.get("key") if isinstance(issue, dict) else None),
                             detail=str(exc),
                         )
                     )
@@ -771,9 +748,7 @@ class JiraConnector(BaseFetcher):
 
         return build_node(
             kind=ISSUE_KIND,
-            atoms=self._content_atoms(
-                issue_data, client, include_comments=include_comments
-            ),
+            atoms=self._content_atoms(issue_data, client, include_comments=include_comments),
             id=key,
             created=_parse_dt(fields.get("created")),
             updated=_parse_dt(fields.get("updated")),
@@ -842,28 +817,16 @@ class JiraConnector(BaseFetcher):
         fields = issue_data.get("fields", {})
 
         status = fields.get("status", {})
-        status_name = (
-            status.get("name", "Unknown")
-            if isinstance(status, dict)
-            else str(status)
-        )
+        status_name = status.get("name", "Unknown") if isinstance(status, dict) else str(status)
 
         issue_type = fields.get("issuetype", {})
-        type_name = (
-            issue_type.get("name", "Task")
-            if isinstance(issue_type, dict)
-            else "Task"
-        )
+        type_name = issue_type.get("name", "Task") if isinstance(issue_type, dict) else "Task"
 
         components = [
-            comp.get("name", "")
-            for comp in fields.get("components", [])
-            if isinstance(comp, dict)
+            comp.get("name", "") for comp in fields.get("components", []) if isinstance(comp, dict)
         ]
         fix_versions = [
-            fv.get("name", "")
-            for fv in fields.get("fixVersions", [])
-            if isinstance(fv, dict)
+            fv.get("name", "") for fv in fields.get("fixVersions", []) if isinstance(fv, dict)
         ]
 
         sprint = None

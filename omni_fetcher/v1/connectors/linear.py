@@ -182,7 +182,7 @@ def parse_linear_uri(uri: str) -> LinearRoute:
 
 def _parse_scheme_uri(uri: str) -> LinearRoute:
     """Parse a ``linear://`` custom-scheme URI."""
-    path = uri[len("linear://"):].strip("/")
+    path = uri[len("linear://") :].strip("/")
     parts = path.split("/")
 
     if len(parts) >= 2:
@@ -202,9 +202,7 @@ def _parse_scheme_uri(uri: str) -> LinearRoute:
             return LinearRoute(type=KIND_ISSUE, identifier=token)
         if ISSUE_IDENTIFIER_PATTERN.match(token.upper()):
             team_key = token.rsplit("-", 1)[0]
-            return LinearRoute(
-                type=KIND_ISSUE, identifier=token, team_key=team_key
-            )
+            return LinearRoute(type=KIND_ISSUE, identifier=token, team_key=team_key)
         return LinearRoute(type=KIND_TEAM, key=token)
 
     raise ValueError(f"Invalid linear:// URI: {uri}")
@@ -219,9 +217,7 @@ def _parse_web_uri(uri: str) -> LinearRoute:
         if "/team/" in uri:
             team_part = uri.split("/team/", 1)[1]
             team_key = team_part.split("/")[0]
-        return LinearRoute(
-            type=KIND_ISSUE, identifier=identifier, team_key=team_key
-        )
+        return LinearRoute(type=KIND_ISSUE, identifier=identifier, team_key=team_key)
 
     parts = urlparse(uri).path.strip("/").split("/")
     if len(parts) >= 2 and parts[0] == "team":
@@ -467,9 +463,7 @@ class LinearConnector(BaseFetcher):
         headers: dict[str, str],
     ) -> httpx.Response:
         """Execute the single GraphQL POST and return the raw response."""
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             return await client.post(
                 LINEAR_API_URL,
                 json={"query": query, "variables": variables},
@@ -477,9 +471,7 @@ class LinearConnector(BaseFetcher):
             )
 
     @staticmethod
-    def _status_error(
-        response: httpx.Response, locator: str
-    ) -> Optional[Error]:
+    def _status_error(response: httpx.Response, locator: str) -> Optional[Error]:
         """Map a non-2xx HTTP status onto a typed error, else ``None``."""
         status = response.status_code
         if 200 <= status < 300:
@@ -600,13 +592,9 @@ class LinearConnector(BaseFetcher):
         url = issue.get("url", "")
         atoms: list[Text] = []
         if include_content and issue.get("description"):
-            atoms.append(
-                Text(content=issue["description"], format=TextFormat.MARKDOWN)
-            )
+            atoms.append(Text(content=issue["description"], format=TextFormat.MARKDOWN))
         if include_content:
-            for comment in _get_nested(
-                issue, "comments", "nodes", default=[]
-            ):
+            for comment in _get_nested(issue, "comments", "nodes", default=[]):
                 if comment and comment.get("body"):
                     atoms.append(
                         Text(
@@ -626,9 +614,7 @@ class LinearConnector(BaseFetcher):
             "identifier": issue.get("identifier"),
             "title": issue.get("title"),
             "state": _get_nested(issue, "state", "name", default="Unknown"),
-            "state_type": _get_nested(
-                issue, "state", "type", default="unknown"
-            ).lower(),
+            "state_type": _get_nested(issue, "state", "type", default="unknown").lower(),
             "priority": priority,
             "priority_label": _PRIORITY_LABELS.get(priority, "Unknown"),
             "assignee": _get_nested(issue, "assignee", "name"),
@@ -639,9 +625,7 @@ class LinearConnector(BaseFetcher):
             "labels": labels,
             "estimate": issue.get("estimate"),
             "due_date": cls._iso(_parse_date(issue.get("dueDate"))),
-            "completed_at": cls._iso(
-                _parse_datetime(issue.get("completedAt"))
-            ),
+            "completed_at": cls._iso(_parse_datetime(issue.get("completedAt"))),
             "parent_id": _get_nested(issue, "parent", "id"),
             "url": url,
         }
@@ -663,9 +647,7 @@ class LinearConnector(BaseFetcher):
         """Build a container node for a team and its issues."""
         atoms: list[Text] = []
         if team.get("description"):
-            atoms.append(
-                Text(content=team["description"], format=TextFormat.PLAIN)
-            )
+            atoms.append(Text(content=team["description"], format=TextFormat.PLAIN))
         issue_rows = _get_nested(team, "issues", "nodes", default=[])
         children = cls._issue_children(issue_rows, uri)
 
@@ -686,23 +668,17 @@ class LinearConnector(BaseFetcher):
         )
 
     @classmethod
-    def _project_node(
-        cls, project: dict[str, Any], uri: str
-    ) -> CompositionNode:
+    def _project_node(cls, project: dict[str, Any], uri: str) -> CompositionNode:
         """Build a container node for a project and its issues."""
         atoms: list[Text] = []
         if project.get("description"):
-            atoms.append(
-                Text(content=project["description"], format=TextFormat.PLAIN)
-            )
+            atoms.append(Text(content=project["description"], format=TextFormat.PLAIN))
         issue_rows = _get_nested(project, "issues", "nodes", default=[])
         children = cls._issue_children(issue_rows, uri)
         completed = sum(
             1
             for row in issue_rows
-            if row
-            and _get_nested(row, "state", "type", default="").lower()
-            == "completed"
+            if row and _get_nested(row, "state", "type", default="").lower() == "completed"
         )
 
         source_fields = {
@@ -740,9 +716,7 @@ class LinearConnector(BaseFetcher):
             "progress": cycle.get("progress", 0.0),
             "starts_at": cls._iso(_parse_datetime(cycle.get("startsAt"))),
             "ends_at": cls._iso(_parse_datetime(cycle.get("endsAt"))),
-            "completed_at": cls._iso(
-                _parse_datetime(cycle.get("completedAt"))
-            ),
+            "completed_at": cls._iso(_parse_datetime(cycle.get("completedAt"))),
             "item_count": len(children),
         }
         return build_node(
@@ -755,16 +729,12 @@ class LinearConnector(BaseFetcher):
         )
 
     @classmethod
-    def _issue_children(
-        cls, rows: list[Any], uri: str
-    ) -> list[CompositionNode]:
+    def _issue_children(cls, rows: list[Any], uri: str) -> list[CompositionNode]:
         """Build child issue nodes for a list resource, capped at the max."""
         children: list[CompositionNode] = []
         for row in rows[:_MAX_ISSUES]:
             if row:
-                children.append(
-                    cls._issue_node(row, uri, include_content=False)
-                )
+                children.append(cls._issue_node(row, uri, include_content=False))
         return children
 
     @staticmethod

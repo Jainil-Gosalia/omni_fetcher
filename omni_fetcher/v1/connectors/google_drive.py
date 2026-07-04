@@ -187,9 +187,7 @@ def _extract_document_text(doc_data: dict[str, Any]) -> str:
                         if "paragraph" in cell_elem:
                             for text_elem in cell_elem["paragraph"].get("elements", []):
                                 if "textRun" in text_elem:
-                                    cell_text.append(
-                                        text_elem["textRun"].get("content", "")
-                                    )
+                                    cell_text.append(text_elem["textRun"].get("content", ""))
                     row_text.append("".join(cell_text).strip())
                 if any(row_text):
                     text_parts.append(" | ".join(row_text))
@@ -327,9 +325,7 @@ class GoogleDriveFetcher(BaseFetcher):
             stamp_temporal(result.tree, sequence=counter.next(), timestamp=now_utc())
         yield result
 
-    async def _fetch_one(
-        self, uri: str, auth: Optional[AuthCredential]
-    ) -> Result:
+    async def _fetch_one(self, uri: str, auth: Optional[AuthCredential]) -> Result:
         """Resolve, fetch, and map one Drive resource to a single ``Result``."""
         headers = NormalizedAuthResolver().resolve_headers(auth)
         if "Authorization" not in headers:
@@ -408,9 +404,7 @@ class GoogleDriveFetcher(BaseFetcher):
             return await self._build_presentation_node(file_id, uri, headers)
         return await self._build_opaque_file_node(file_id, uri, mime_type, headers)
 
-    async def _file_metadata(
-        self, file_id: str, headers: dict[str, str]
-    ) -> dict[str, Any]:
+    async def _file_metadata(self, file_id: str, headers: dict[str, str]) -> dict[str, Any]:
         """Fetch the common Drive metadata fields for a file or folder."""
         fields = (
             "id,name,mimeType,size,createdTime,modifiedTime,parents,"
@@ -430,7 +424,7 @@ class GoogleDriveFetcher(BaseFetcher):
             "file_id": meta.get("id"),
             "name": meta.get("name"),
             "mime_type": meta.get("mimeType"),
-            "size": int(size) if size not in (None, "") else None,
+            "size": int(size) if size is not None and size != "" else None,
             "parents": meta.get("parents", []),
             "web_view_link": meta.get("webViewLink"),
             "web_content_link": meta.get("webContentLink"),
@@ -473,18 +467,14 @@ class GoogleDriveFetcher(BaseFetcher):
             ],
         )
 
-    async def _build_document_node(
-        self, file_id: str, uri: str, headers: dict[str, str]
-    ) -> Result:
+    async def _build_document_node(self, file_id: str, uri: str, headers: dict[str, str]) -> Result:
         """Build a ``"file"`` node carrying a Google Doc's extracted text."""
         meta = await self._file_metadata(file_id, headers)
         doc = await self._api_get(f"{DOCS_API_BASE}/documents/{file_id}", headers)
         text = _extract_document_text(doc)
         source_fields = self._file_source_fields(meta)
         source_fields["title"] = doc.get("title", meta.get("name"))
-        source_fields["document_url"] = (
-            f"https://docs.google.com/document/d/{file_id}"
-        )
+        source_fields["document_url"] = f"https://docs.google.com/document/d/{file_id}"
         node = build_node(
             kind=FILE_KIND,
             atoms=[Text(content=text, format=TextFormat.MARKDOWN)],
@@ -502,17 +492,13 @@ class GoogleDriveFetcher(BaseFetcher):
     ) -> Result:
         """Build a ``"file"`` node carrying a Slides deck's extracted text."""
         meta = await self._file_metadata(file_id, headers)
-        pres = await self._api_get(
-            f"{SLIDES_API_BASE}/presentations/{file_id}", headers
-        )
+        pres = await self._api_get(f"{SLIDES_API_BASE}/presentations/{file_id}", headers)
         slides = _extract_slides_text(pres)
         text = "\n\n".join(slide for slide in slides if slide)
         source_fields = self._file_source_fields(meta)
         source_fields["title"] = pres.get("title", meta.get("name"))
         source_fields["slide_count"] = len(slides)
-        source_fields["presentation_url"] = (
-            f"https://docs.google.com/presentation/d/{file_id}"
-        )
+        source_fields["presentation_url"] = f"https://docs.google.com/presentation/d/{file_id}"
         node = build_node(
             kind=FILE_KIND,
             atoms=[Text(content=text, format=TextFormat.PLAIN)],
@@ -548,15 +534,11 @@ class GoogleDriveFetcher(BaseFetcher):
         table = self._grid_to_table(grid)
 
         source_fields = self._file_source_fields(meta)
-        source_fields["title"] = info.get("properties", {}).get(
-            "title", meta.get("name")
-        )
+        source_fields["title"] = info.get("properties", {}).get("title", meta.get("name"))
         source_fields["sheet_names"] = sheet_titles
         source_fields["sheet_count"] = len(sheet_titles)
         source_fields["exported_sheet"] = sheet_name
-        source_fields["spreadsheet_url"] = (
-            f"https://docs.google.com/spreadsheets/d/{file_id}"
-        )
+        source_fields["spreadsheet_url"] = f"https://docs.google.com/spreadsheets/d/{file_id}"
         node = build_node(
             kind=FILE_KIND,
             atoms=[table],
@@ -585,9 +567,7 @@ class GoogleDriveFetcher(BaseFetcher):
             return Table(headers=headers, rows=body)
         return Table(headers=None, rows=grid)
 
-    async def _build_folder_node(
-        self, folder_id: str, uri: str, headers: dict[str, str]
-    ) -> Result:
+    async def _build_folder_node(self, folder_id: str, uri: str, headers: dict[str, str]) -> Result:
         """Build a ``kind`` ``"folder"`` container with file-node children."""
         meta = await self._file_metadata(folder_id, headers)
         listing = await self._list_folder(folder_id, headers)
@@ -626,9 +606,7 @@ class GoogleDriveFetcher(BaseFetcher):
         )
         return success(node)
 
-    async def _list_folder(
-        self, folder_id: str, headers: dict[str, str]
-    ) -> list[dict[str, Any]]:
+    async def _list_folder(self, folder_id: str, headers: dict[str, str]) -> list[dict[str, Any]]:
         """List up to ``_MAX_FOLDER_FILES`` non-trashed entries in a folder."""
         entries: list[dict[str, Any]] = []
         page_token: Optional[str] = None

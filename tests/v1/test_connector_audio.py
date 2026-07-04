@@ -68,9 +68,7 @@ async def _collect(fetcher: AudioConnector, uri: str):
 # Canonical Audio atom (content)
 
 
-async def test_wav_yields_canonical_audio_node(
-    fetcher: AudioConnector, tmp_path: Path
-) -> None:
+async def test_wav_yields_canonical_audio_node(fetcher: AudioConnector, tmp_path: Path) -> None:
     """A WAV becomes a kind='audio_file' node with one Audio atom."""
     target = _write_wav(tmp_path / "clip.wav")
 
@@ -92,9 +90,7 @@ async def test_audio_atom_carries_content_signal_fields(
     fetcher: AudioConnector, tmp_path: Path
 ) -> None:
     """Format + intrinsic signal properties are read onto the Audio atom."""
-    target = _write_wav(
-        tmp_path / "tone.wav", channels=2, sample_rate=44100, frames=44100
-    )
+    target = _write_wav(tmp_path / "tone.wav", channels=2, sample_rate=44100, frames=44100)
 
     result = await fetcher.fetch(str(target))
 
@@ -155,9 +151,7 @@ async def test_atom_construction_rejects_descriptive_fields() -> None:
         Audio(format="mp3", uri="file:///x.mp3", artist="Nobody")  # type: ignore[call-arg]
 
 
-async def test_source_url_recorded_on_metadata(
-    fetcher: AudioConnector, tmp_path: Path
-) -> None:
+async def test_source_url_recorded_on_metadata(fetcher: AudioConnector, tmp_path: Path) -> None:
     """The requested URI is recorded as the node's source_url."""
     target = _write_wav(tmp_path / "x.wav")
 
@@ -171,9 +165,7 @@ async def test_source_url_recorded_on_metadata(
 # No transcription performed (metadata-only extraction boundary)
 
 
-async def test_no_transcription_is_performed(
-    fetcher: AudioConnector, tmp_path: Path
-) -> None:
+async def test_no_transcription_is_performed(fetcher: AudioConnector, tmp_path: Path) -> None:
     """Only an Audio atom is emitted -- never a Text/transcript atom."""
     target = _write_wav(tmp_path / "speech.wav")
 
@@ -192,9 +184,7 @@ async def test_no_transcription_is_performed(
 # Streaming temporal stamping
 
 
-async def test_stream_stamps_temporal_position(
-    fetcher: AudioConnector, tmp_path: Path
-) -> None:
+async def test_stream_stamps_temporal_position(fetcher: AudioConnector, tmp_path: Path) -> None:
     """A streamed node carries a monotonic sequence + wall-clock timestamp."""
     target = _write_wav(tmp_path / "x.wav")
 
@@ -212,9 +202,7 @@ async def test_stream_stamps_temporal_position(
 # Error handling -- returned, never raised
 
 
-async def test_missing_file_returns_not_found(
-    fetcher: AudioConnector, tmp_path: Path
-) -> None:
+async def test_missing_file_returns_not_found(fetcher: AudioConnector, tmp_path: Path) -> None:
     """A missing file returns a NOT_FOUND error (no exception raised)."""
     missing = tmp_path / "does_not_exist.mp3"
 
@@ -225,9 +213,7 @@ async def test_missing_file_returns_not_found(
     assert result.locator == str(missing)
 
 
-async def test_missing_file_stream_does_not_raise(
-    fetcher: AudioConnector, tmp_path: Path
-) -> None:
+async def test_missing_file_stream_does_not_raise(fetcher: AudioConnector, tmp_path: Path) -> None:
     """stream() yields a typed Error for a missing file rather than raising."""
     missing = tmp_path / "nope.wav"
 
@@ -238,9 +224,7 @@ async def test_missing_file_stream_does_not_raise(
     assert items[0].kind is ErrorKind.NOT_FOUND
 
 
-async def test_directory_returns_invalid_input(
-    fetcher: AudioConnector, tmp_path: Path
-) -> None:
+async def test_directory_returns_invalid_input(fetcher: AudioConnector, tmp_path: Path) -> None:
     """Pointing at a directory returns INVALID_INPUT, not a success."""
     result = await fetcher.fetch(str(tmp_path))
 
@@ -248,9 +232,7 @@ async def test_directory_returns_invalid_input(
     assert result.kind is ErrorKind.INVALID_INPUT
 
 
-async def test_unreadable_wav_returns_parse_error(
-    fetcher: AudioConnector, tmp_path: Path
-) -> None:
+async def test_unreadable_wav_returns_parse_error(fetcher: AudioConnector, tmp_path: Path) -> None:
     """A corrupt .wav file returns a PARSE_ERROR, never raising."""
     target = tmp_path / "broken.wav"
     target.write_bytes(b"not a real wave file at all")
@@ -265,9 +247,7 @@ async def test_unreadable_wav_returns_parse_error(
 # URI handling + can_handle
 
 
-async def test_file_uri_is_accepted(
-    fetcher: AudioConnector, tmp_path: Path
-) -> None:
+async def test_file_uri_is_accepted(fetcher: AudioConnector, tmp_path: Path) -> None:
     """A file:// URI resolves to the same audio content as a bare path."""
     target = _write_wav(tmp_path / "u.wav")
     uri = target.as_uri()

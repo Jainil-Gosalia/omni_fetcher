@@ -69,11 +69,7 @@ async def test_body_text_surfaces_as_text_atoms(sample_docx: str) -> None:
     result = await DocxConnector().fetch(sample_docx)
 
     assert isinstance(result, Success)
-    texts = [
-        atom.content
-        for atom in result.tree.iter_atoms()
-        if isinstance(atom, Text)
-    ]
+    texts = [atom.content for atom in result.tree.iter_atoms() if isinstance(atom, Text)]
     assert "First paragraph." in texts
     assert "Second paragraph." in texts
     # Document order is preserved across the interleaved table.
@@ -107,9 +103,7 @@ async def test_descriptive_fields_in_source_extra(sample_docx: str) -> None:
     assert extra["has_tables"] is True
     assert extra["has_images"] is False
     # No descriptive field leaked onto a content atom (atoms are content-only).
-    text_atom = next(
-        atom for atom in result.tree.iter_atoms() if isinstance(atom, Text)
-    )
+    text_atom = next(atom for atom in result.tree.iter_atoms() if isinstance(atom, Text))
     assert set(text_atom.model_dump().keys()) == {
         "kind",
         "content",

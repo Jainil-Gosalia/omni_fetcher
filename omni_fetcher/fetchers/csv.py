@@ -110,9 +110,6 @@ class CSVFetcher(BaseFetcher):
             headers = [f"column_{i}" for i in range(len(rows[0]))]
             data_rows = rows
 
-        # Get sample rows (first 5)
-        sample_rows = data_rows[:5]
-
         return {
             "headers": headers,
             "row_count": len(data_rows),
@@ -133,7 +130,7 @@ class CSVFetcher(BaseFetcher):
             counts[delim] = first_line.count(delim)
 
         # Return most common delimiter
-        return max(counts, key=counts.get)
+        return max(counts, key=lambda delim: counts[delim])
 
     def _has_header(self, first_row: List[str]) -> bool:
         """Detect if first row is a header."""

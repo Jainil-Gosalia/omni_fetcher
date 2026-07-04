@@ -169,7 +169,7 @@ class ConfluenceFetcher(BaseFetcher):
         for pre in soup.find_all("pre"):
             code = pre.find("code")
             if code:
-                class_attr = code.get("class") or []
+                class_attr: Any = code.get("class") or []
                 lang = ""
                 if isinstance(class_attr, list):
                     for c in class_attr:
@@ -388,7 +388,12 @@ class ConfluenceFetcher(BaseFetcher):
         attachment_count = 0
         if get_attachments:
             try:
-                attachments_data = await asyncio.to_thread(client.get_attachments, space_key)
+                # atlassian's type stubs do not declare this method; the
+                # call is guarded by the enclosing try.
+                attachments_data = await asyncio.to_thread(
+                    client.get_attachments,  # type: ignore[attr-defined]
+                    space_key,
+                )
                 if attachments_data:
                     for att in attachments_data.get("results", [])[:10]:
                         attachment = ConfluenceAttachment(
@@ -430,7 +435,9 @@ class ConfluenceFetcher(BaseFetcher):
         get_pages = kwargs.get("get_pages", True)
 
         try:
-            user = await asyncio.to_thread(client.get_myself)
+            # atlassian's type stubs do not declare this method; the call
+            # is guarded by the enclosing try.
+            user = await asyncio.to_thread(client.get_myself)  # type: ignore[attr-defined]
             account_id = user.get("accountId", "")
         except Exception:
             account_id = ""

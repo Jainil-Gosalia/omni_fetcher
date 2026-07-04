@@ -71,9 +71,7 @@ def _router(
 
     def handler(request: httpx.Request) -> httpx.Response:
         if recorder is not None:
-            recorder.setdefault("auth_headers", []).append(
-                request.headers.get("authorization")
-            )
+            recorder.setdefault("auth_headers", []).append(request.headers.get("authorization"))
             recorder.setdefault("urls", []).append(str(request.url))
         path = request.url.path
         for needle, body in routes.items():
@@ -117,13 +115,7 @@ async def test_document_is_canonical_success(monkeypatch) -> None:
             "title": "My Doc",
             "body": {
                 "content": [
-                    {
-                        "paragraph": {
-                            "elements": [
-                                {"textRun": {"content": "Hello world.\n"}}
-                            ]
-                        }
-                    }
+                    {"paragraph": {"elements": [{"textRun": {"content": "Hello world.\n"}}]}}
                 ]
             },
         },
@@ -235,9 +227,7 @@ async def test_permission_denied_maps_to_error(monkeypatch) -> None:
     """A ``403`` from the Drive API maps onto ``error(PERMISSION_DENIED)``."""
     _install_transport(monkeypatch, _status_handler(403))
 
-    result = await GoogleDriveFetcher().fetch(
-        "https://drive.google.com/file/d/SECRET", auth=_AUTH
-    )
+    result = await GoogleDriveFetcher().fetch("https://drive.google.com/file/d/SECRET", auth=_AUTH)
 
     assert isinstance(result, Error)
     assert result.kind == ErrorKind.PERMISSION_DENIED
@@ -248,9 +238,7 @@ async def test_not_found_maps_to_error(monkeypatch) -> None:
     """A ``404`` from the Drive API maps onto ``error(NOT_FOUND)``."""
     _install_transport(monkeypatch, _status_handler(404))
 
-    result = await GoogleDriveFetcher().fetch(
-        "https://drive.google.com/file/d/GONE", auth=_AUTH
-    )
+    result = await GoogleDriveFetcher().fetch("https://drive.google.com/file/d/GONE", auth=_AUTH)
 
     assert isinstance(result, Error)
     assert result.kind == ErrorKind.NOT_FOUND
@@ -270,9 +258,7 @@ async def test_per_call_oauth_token_is_used_not_ambient(monkeypatch) -> None:
     _install_transport(monkeypatch, _router(routes, recorder=recorder))
 
     auth = OAuth2Auth(access_token="per-call-secret-123")
-    result = await GoogleDriveFetcher().fetch(
-        "https://docs.google.com/document/d/DOC1", auth=auth
-    )
+    result = await GoogleDriveFetcher().fetch("https://docs.google.com/document/d/DOC1", auth=auth)
 
     assert isinstance(result, Success)
     headers = recorder["auth_headers"]
@@ -288,9 +274,7 @@ async def test_missing_auth_is_auth_failed_without_request(monkeypatch) -> None:
 
     monkeypatch.setattr(httpx, "AsyncClient", _explode)
 
-    result = await GoogleDriveFetcher().fetch(
-        "https://drive.google.com/file/d/ABC", auth=None
-    )
+    result = await GoogleDriveFetcher().fetch("https://drive.google.com/file/d/ABC", auth=None)
 
     assert isinstance(result, Error)
     assert result.kind == ErrorKind.AUTH_FAILED
@@ -300,9 +284,7 @@ async def test_unparseable_uri_is_invalid_input(monkeypatch) -> None:
     """A Drive URL with no extractable id is ``INVALID_INPUT``."""
     _install_transport(monkeypatch, _status_handler(200))
 
-    result = await GoogleDriveFetcher().fetch(
-        "https://drive.google.com/", auth=_AUTH
-    )
+    result = await GoogleDriveFetcher().fetch("https://drive.google.com/", auth=_AUTH)
 
     assert isinstance(result, Error)
     assert result.kind == ErrorKind.INVALID_INPUT
@@ -320,9 +302,7 @@ async def test_opaque_binary_file_is_partial(monkeypatch) -> None:
     }
     _install_transport(monkeypatch, _router(routes))
 
-    result = await GoogleDriveFetcher().fetch(
-        "https://drive.google.com/file/d/BIN1", auth=_AUTH
-    )
+    result = await GoogleDriveFetcher().fetch("https://drive.google.com/file/d/BIN1", auth=_AUTH)
 
     assert isinstance(result, Partial)
     assert result.tree.metadata.kind == FILE_KIND

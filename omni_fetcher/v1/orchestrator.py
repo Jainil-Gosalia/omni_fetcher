@@ -239,13 +239,9 @@ def _merge_tags(
     if not tags:
         return result
     if isinstance(result, Success):
-        return result.model_copy(
-            update={"tree": _with_tags(result.tree, tags)}
-        )
+        return result.model_copy(update={"tree": _with_tags(result.tree, tags)})
     if isinstance(result, Partial):
-        return result.model_copy(
-            update={"tree": _with_tags(result.tree, tags)}
-        )
+        return result.model_copy(update={"tree": _with_tags(result.tree, tags)})
     return result
 
 

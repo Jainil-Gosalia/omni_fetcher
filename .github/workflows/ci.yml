@@ -103,5 +103,9 @@ jobs:
       - name: Install package
         run: pip install -e ".[dev]"
 
+      # Audits the installed environment (the resolved dependency tree of
+      # ".[dev]"). --fail-on is not a pip-audit flag; it already exits
+      # non-zero when vulnerabilities are found. The editable package
+      # itself has a local dev version that is not on PyPI, so skip it.
       - name: Run pip-audit
-        run: pip-audit -r pyproject.toml --fail-on=vulns
+        run: pip-audit --skip-editable

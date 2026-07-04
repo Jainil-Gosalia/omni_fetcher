@@ -183,9 +183,7 @@ def test_node_argument_does_not_change_resolution():
     """Passing a node context never changes the spec-driven decision."""
     spec = ZoomSpec(per_type={AtomKind.TEXT: DepthLevel.SENTENCE})
     node = CompositionNode(children=[Text(content="hello world.")])
-    assert resolve_level(spec, AtomKind.TEXT) is resolve_level(
-        spec, AtomKind.TEXT, node
-    )
+    assert resolve_level(spec, AtomKind.TEXT) is resolve_level(spec, AtomKind.TEXT, node)
 
 
 # ---------------------------------------------------------------------------
@@ -257,9 +255,7 @@ def test_prune_is_deterministic():
 
 def test_prune_keeps_leaf_atoms_intact():
     """Pruning never splits an atom's content (no windowing)."""
-    tree = CompositionNode(
-        children=[Text(content="A whole sentence of text.")]
-    )
+    tree = CompositionNode(children=[Text(content="A whole sentence of text.")])
     spec = ZoomSpec(per_type={AtomKind.TEXT: DepthLevel.WHOLE})
     pruned = prune_to_zoom(tree, spec)
     leaves = [c for c in pruned.children if isinstance(c, Text)]

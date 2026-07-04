@@ -206,9 +206,7 @@ def test_shared_registry_routes_correctly_under_concurrency() -> None:
     corruption.
     """
     # A distinct fetcher subclass per tenant so routing is checkable by class.
-    classes = {
-        i: type(f"Fetcher{i}", (_EchoFetcher,), {}) for i in range(_TENANTS)
-    }
+    classes = {i: type(f"Fetcher{i}", (_EchoFetcher,), {}) for i in range(_TENANTS)}
     registry = FrozenRegistry(
         tuple(
             SourceDefinition(
@@ -390,9 +388,7 @@ def test_orchestrator_retains_no_state_after_concurrent_calls() -> None:
     omni = OmniFetcher(registry, auth_resolver=resolver)
 
     def worker(i: int) -> None:
-        asyncio.run(
-            omni.fetch("echo://x", auth=BearerAuth(token=f"t-{i}"))
-        )
+        asyncio.run(omni.fetch("echo://x", auth=BearerAuth(token=f"t-{i}")))
 
     with ThreadPoolExecutor(max_workers=_WORKERS) as pool:
         list(pool.map(worker, range(_TENANTS)))
@@ -452,6 +448,4 @@ async def test_shared_resolver_in_concurrent_fetch_path_is_isolated() -> None:
 
     for token, result in zip(tokens, results):
         assert isinstance(result, Success)
-        assert [a.content for a in result.tree.iter_atoms()] == [
-            f"Bearer {token}"
-        ]
+        assert [a.content for a in result.tree.iter_atoms()] == [f"Bearer {token}"]

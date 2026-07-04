@@ -2,9 +2,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from datetime import datetime
 from pathlib import Path
-from io import BytesIO
 
 from omni_fetcher.fetchers.pdf import PDFFetcher
 from omni_fetcher.schemas.documents import PDFDocument

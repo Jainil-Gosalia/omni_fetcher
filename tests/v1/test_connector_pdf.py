@@ -69,9 +69,7 @@ def _install_fake_reader(monkeypatch, pages, metadata=None) -> None:
 # Text-layer PDF -> Success with Text atoms + pdf metadata
 
 
-async def test_text_pdf_yields_success_with_text_atom(
-    monkeypatch, pdf_uri
-) -> None:
+async def test_text_pdf_yields_success_with_text_atom(monkeypatch, pdf_uri) -> None:
     """A PDF with a text layer is a Success carrying a Text atom."""
     _install_fake_reader(
         monkeypatch,
@@ -101,9 +99,7 @@ async def test_text_pdf_node_kind_is_document(monkeypatch, pdf_uri) -> None:
     assert result.tree.metadata.kind == "document"
 
 
-async def test_pdf_metadata_lives_in_source_extra(
-    monkeypatch, pdf_uri
-) -> None:
+async def test_pdf_metadata_lives_in_source_extra(monkeypatch, pdf_uri) -> None:
     """Descriptive PDF fields are namespaced under source_extra['pdf']."""
     _install_fake_reader(
         monkeypatch,
@@ -131,9 +127,7 @@ async def test_pdf_metadata_lives_in_source_extra(
     assert md.source_url == pdf_uri
 
 
-async def test_descriptive_fields_not_inlined_on_atom(
-    monkeypatch, pdf_uri
-) -> None:
+async def test_descriptive_fields_not_inlined_on_atom(monkeypatch, pdf_uri) -> None:
     """Descriptive metadata never leaks onto the content atom."""
     _install_fake_reader(
         monkeypatch,
@@ -156,9 +150,7 @@ async def test_descriptive_fields_not_inlined_on_atom(
     }
 
 
-async def test_multi_page_pdf_yields_one_atom_per_page(
-    monkeypatch, pdf_uri
-) -> None:
+async def test_multi_page_pdf_yields_one_atom_per_page(monkeypatch, pdf_uri) -> None:
     """Each text-bearing page contributes its own Text atom, in order."""
     _install_fake_reader(monkeypatch, pages=["one", "two", "three"])
     connector = PDFConnector()
@@ -174,9 +166,7 @@ async def test_multi_page_pdf_yields_one_atom_per_page(
 # No text layer -> Partial / UNSUPPORTED (no OCR, no blank success)
 
 
-async def test_scanned_page_reported_as_unsupported_gap(
-    monkeypatch, pdf_uri
-) -> None:
+async def test_scanned_page_reported_as_unsupported_gap(monkeypatch, pdf_uri) -> None:
     """A page with no text layer is an UNSUPPORTED gap in a Partial."""
     _install_fake_reader(monkeypatch, pages=["readable text", "   "])
     connector = PDFConnector()
@@ -193,9 +183,7 @@ async def test_scanned_page_reported_as_unsupported_gap(
     assert result.gaps[0].locator == f"{pdf_uri}#page=2"
 
 
-async def test_fully_scanned_pdf_is_partial_not_blank_success(
-    monkeypatch, pdf_uri
-) -> None:
+async def test_fully_scanned_pdf_is_partial_not_blank_success(monkeypatch, pdf_uri) -> None:
     """A PDF with zero extractable text is a Partial, never a Success."""
     _install_fake_reader(monkeypatch, pages=["", "   ", ""])
     connector = PDFConnector()

@@ -344,11 +344,11 @@ class GoogleDriveFetcher(BaseFetcher):
         self, folder_id: str, token: str, max_files: int
     ) -> list[GoogleDriveFile]:
         """List files in a folder."""
-        files = []
+        files: list[GoogleDriveFile] = []
         page_token = None
 
         while len(files) < max_files:
-            params = {
+            params: dict[str, Any] = {
                 "q": f"'{folder_id}' in parents and trashed = false",
                 "fields": "nextPageToken,files(id,name,mimeType,size,createdTime,modifiedTime,parents,webViewLink)",
                 "pageSize": min(100, max_files - len(files)),
@@ -401,7 +401,7 @@ class GoogleDriveFetcher(BaseFetcher):
         """List subfolders in a folder."""
         folders = []
 
-        params = {
+        params: dict[str, Any] = {
             "q": f"'{folder_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
             "fields": "nextPageToken,files(id,name,createdTime,modifiedTime,parents,webViewLink)",
             "pageSize": min(100, max_folders),
@@ -474,13 +474,13 @@ class GoogleDriveFetcher(BaseFetcher):
             )
         else:
             values = await self._get_spreadsheet_values(spreadsheet_id, sheet_name, token)
-            rows = len(values)
+            num_rows = len(values)
             cols = len(values[0]) if values else 0
             sheet_data = SheetData(
                 name=sheet_name,
                 headers=values[0] if values else [],
                 rows=values[1:] if values else [],
-                row_count=rows - 1 if rows > 0 else 0,
+                row_count=num_rows - 1 if num_rows > 0 else 0,
                 col_count=cols,
             )
             spreadsheet_doc = SpreadsheetDocument(
