@@ -220,7 +220,11 @@ def _extract_title(data: dict[str, Any]) -> str:
     properties = data.get("properties") or {}
     for prop in properties.values():
         if prop.get("type") == "title":
-            return _rich_text_to_markdown(prop.get("title", [])) or "Untitled"
+            # Database payloads carry a schema stub here ({} instead of a
+            # rich-text list); only a real value list is a usable title.
+            value = prop.get("title")
+            if isinstance(value, list) and value:
+                return _rich_text_to_markdown(value) or "Untitled"
     title = data.get("title")
     if isinstance(title, list) and title:
         return _rich_text_to_markdown(title) or "Untitled"
