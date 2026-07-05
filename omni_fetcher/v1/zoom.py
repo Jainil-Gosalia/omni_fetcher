@@ -28,6 +28,7 @@ from pydantic import BaseModel, Field
 
 from omni_fetcher.v1.atoms import AtomKind
 from omni_fetcher.v1.node import CompositionNode, NodeChild
+from omni_fetcher.v1.result import Partial, Result, Success, partial, success
 
 
 class DepthLevel(str, Enum):
@@ -330,3 +331,32 @@ def prune_to_zoom(
             depths.
     """
     return _prune_node(node, spec, 0)
+
+
+def prune_result(result: Result, spec: ZoomSpec) -> Result:
+    """
+    Apply ``prune_to_zoom`` to a ``Result``'s tree, preserving its state
+
+    A pure transform over the ``Result`` envelope: ``Success`` and
+    ``Partial`` come back with their tree pruned to the spec (gaps carried
+    over unchanged); an ``Error`` is returned as-is. The input is never
+    mutated.
+
+    Parameters
+    ----------
+        result:
+            The result whose tree (if any) should be limited.
+        spec:
+            The consumer-supplied per-atom-type zoom specification.
+
+    Return
+    ------
+        pruned:
+            A new ``Result`` of the same state with a pruned tree, or the
+            original ``Error``.
+    """
+    if isinstance(result, Success):
+        return success(prune_to_zoom(result.tree, spec))
+    if isinstance(result, Partial):
+        return partial(prune_to_zoom(result.tree, spec), list(result.gaps))
+    return result

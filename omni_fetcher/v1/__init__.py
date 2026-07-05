@@ -71,7 +71,8 @@ from omni_fetcher.v1.result import (
     partial,
     success,
 )
-from omni_fetcher.v1.zoom import DepthLevel, ZoomSpec
+from omni_fetcher.v1.retry import RetryPolicy, fetch_with_retry
+from omni_fetcher.v1.zoom import DepthLevel, ZoomSpec, prune_result, prune_to_zoom
 
 __all__ = [
     # Atoms
@@ -110,6 +111,11 @@ __all__ = [
     # Zoom
     "ZoomSpec",
     "DepthLevel",
+    "prune_to_zoom",
+    "prune_result",
+    # Retry
+    "RetryPolicy",
+    "fetch_with_retry",
     # Fetcher
     "BaseFetcher",
     # Auth
