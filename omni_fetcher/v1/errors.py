@@ -3,6 +3,27 @@
 Expected failures are returned as typed values inside a ``Result`` (see
 ``result.py``), never raised. Raised exceptions signal programmer error
 only. ``ErrorKind`` is the closed taxonomy a consumer branches on.
+
+Canonical classification (every connector maps transport failures onto this
+table; ``tests/v1/test_error_classification.py`` pins the agreement):
+
+===================================  =====================
+Condition                            ErrorKind
+===================================  =====================
+HTTP 401                             ``AUTH_FAILED``
+HTTP 403                             ``PERMISSION_DENIED``
+HTTP 404 / missing resource          ``NOT_FOUND``
+HTTP 429 / provider throttle codes   ``RATE_LIMITED``
+HTTP 5xx / timeouts / conn resets    ``TRANSIENT``
+Other 4xx                            ``INVALID_INPUT`` (or ``TRANSIENT``
+                                     where the source treats them as
+                                     retryable)
+Undecodable/unexpected payloads      ``PARSE_ERROR``
+Recognised but unsupported feature   ``UNSUPPORTED``
+===================================  =====================
+
+``RATE_LIMITED`` and ``TRANSIENT`` are the kinds
+``omni_fetcher.v1.retry.RetryPolicy`` retries by default.
 """
 
 from __future__ import annotations
