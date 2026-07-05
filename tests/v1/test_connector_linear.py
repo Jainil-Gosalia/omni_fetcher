@@ -102,9 +102,7 @@ def _issue_payload(**overrides: Any) -> dict[str, Any]:
 
 async def test_issue_yields_issue_node_with_content_atoms(monkeypatch) -> None:
     """Description and comments become Text atoms on an ``"issue"`` node."""
-    _install_transport(
-        monkeypatch, _fixed(_json(200, {"data": {"issue": _issue_payload()}}))
-    )
+    _install_transport(monkeypatch, _fixed(_json(200, {"data": {"issue": _issue_payload()}})))
 
     result = await LinearConnector().fetch(ISSUE_URI, auth=AUTH)
 
@@ -120,9 +118,7 @@ async def test_issue_yields_issue_node_with_content_atoms(monkeypatch) -> None:
 
 async def test_issue_descriptive_fields_in_source_extra_and_core(monkeypatch) -> None:
     """Descriptive fields land in ``source_extra["linear"]`` + the core."""
-    _install_transport(
-        monkeypatch, _fixed(_json(200, {"data": {"issue": _issue_payload()}}))
-    )
+    _install_transport(monkeypatch, _fixed(_json(200, {"data": {"issue": _issue_payload()}})))
 
     result = await LinearConnector().fetch(ISSUE_URI, auth=AUTH)
 
@@ -144,13 +140,9 @@ async def test_issue_descriptive_fields_in_source_extra_and_core(monkeypatch) ->
 
 async def test_web_url_routes_as_issue(monkeypatch) -> None:
     """A linear.app issue URL is recognised and fetched like the scheme URI."""
-    _install_transport(
-        monkeypatch, _fixed(_json(200, {"data": {"issue": _issue_payload()}}))
-    )
+    _install_transport(monkeypatch, _fixed(_json(200, {"data": {"issue": _issue_payload()}})))
 
-    result = await LinearConnector().fetch(
-        "https://linear.app/acme/issue/ABC-1", auth=AUTH
-    )
+    result = await LinearConnector().fetch("https://linear.app/acme/issue/ABC-1", auth=AUTH)
 
     assert isinstance(result, Success)
     assert result.tree.metadata.source_extra["linear"]["identifier"] == "ABC-1"
@@ -203,9 +195,7 @@ async def test_team_yields_container_with_issue_children(monkeypatch) -> None:
             ]
         },
     }
-    _install_transport(
-        monkeypatch, _fixed(_json(200, {"data": {"team": team_payload}}))
-    )
+    _install_transport(monkeypatch, _fixed(_json(200, {"data": {"team": team_payload}})))
 
     result = await LinearConnector().fetch("linear://team/ENG", auth=AUTH)
 
@@ -214,9 +204,7 @@ async def test_team_yields_container_with_issue_children(monkeypatch) -> None:
     assert node.metadata.kind == "team"
     children = node.find_by_kind("issue")
     assert len(children) == 2
-    identifiers = [
-        child.metadata.source_extra["linear"]["identifier"] for child in children
-    ]
+    identifiers = [child.metadata.source_extra["linear"]["identifier"] for child in children]
     assert identifiers == ["ENG-1", "ENG-2"]
 
 
@@ -264,9 +252,7 @@ async def test_graphql_errors_with_data_degrade_to_partial(monkeypatch) -> None:
     ("status", "expected_kind"),
     [(401, ErrorKind.AUTH_FAILED), (429, ErrorKind.RATE_LIMITED)],
 )
-async def test_http_statuses_map_to_error_kinds(
-    monkeypatch, status, expected_kind
-) -> None:
+async def test_http_statuses_map_to_error_kinds(monkeypatch, status, expected_kind) -> None:
     """Auth and rate-limit HTTP statuses map onto the taxonomy."""
     _install_transport(monkeypatch, _fixed(_json(status, {})))
 
