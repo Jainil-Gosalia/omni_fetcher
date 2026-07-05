@@ -40,6 +40,7 @@ from omni_fetcher.v1.auth import (
     BearerAuth,
     OAuth2Auth,
 )
+from omni_fetcher.v1.builtin import builtin_registry
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.metadata import (
@@ -48,7 +49,13 @@ from omni_fetcher.v1.metadata import (
     TemporalPosition,
 )
 from omni_fetcher.v1.node import CompositionNode, NodeChild
-from omni_fetcher.v1.registry import Registry, SourceDefinition
+from omni_fetcher.v1.orchestrator import OmniFetcher
+from omni_fetcher.v1.registry import (
+    FrozenRegistry,
+    Registry,
+    RegistryBuilder,
+    SourceDefinition,
+)
 from omni_fetcher.v1.result import (
     Error,
     Gap,
@@ -114,7 +121,12 @@ __all__ = [
     "BasicAuth",
     "OAuth2Auth",
     "AwsAuth",
-    # Registry
+    # Registry + wiring
     "Registry",
     "SourceDefinition",
+    "FrozenRegistry",
+    "RegistryBuilder",
+    "builtin_registry",
+    # Orchestrator
+    "OmniFetcher",
 ]

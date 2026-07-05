@@ -163,27 +163,16 @@ print(table.rows[:3])
 
 ### Wire the orchestrator once, serve every tenant
 
-For hosts routing arbitrary URIs, build an immutable registry once and share a
-single stateless orchestrator across threads and event loops. Each call gets a
-fresh connector instance and its own credentials — nothing is cached or shared
-between calls (proven by the concurrency suite in `tests/v1/test_isolation.py`):
+For hosts routing arbitrary URIs, wire a single stateless orchestrator with
+all built-in connectors in one line and share it across threads and event
+loops. Each call gets a fresh connector instance and its own credentials —
+nothing is cached or shared between calls (proven by the concurrency suite
+in `tests/v1/test_isolation.py`):
 
 ```python
-from omni_fetcher.v1 import BearerAuth
-from omni_fetcher.v1.connectors.github import GitHubConnector
-from omni_fetcher.v1.connectors.rss import RSSConnector
-from omni_fetcher.v1.orchestrator import OmniFetcher
-from omni_fetcher.v1.registry import RegistryBuilder, SourceDefinition
+from omni_fetcher.v1 import BearerAuth, OmniFetcher, builtin_registry
 
-registry = (
-    RegistryBuilder()
-    .add(SourceDefinition(name="github", fetcher_class=GitHubConnector,
-                          uri_patterns=("*github.com/*",), priority=10))
-    .add(SourceDefinition(name="rss", fetcher_class=RSSConnector,
-                          uri_patterns=("*/feed*", "*.xml"), priority=50))
-    .build()                                   # immutable from here on
-)
-omni = OmniFetcher(registry)
+omni = OmniFetcher(builtin_registry())  # every built-in connector, wired once
 
 # Per request — tenant A and tenant B can run concurrently on this instance
 result = await omni.fetch(
@@ -193,7 +182,11 @@ result = await omni.fetch(
 )
 ```
 
-An unrouted URI returns `error(ErrorKind.NOT_FOUND)` — as a value.
+`builtin_registry()` resolves connector modules lazily, skips sources whose
+optional extra isn't installed, and stays immutable after construction. An
+unrouted URI returns `error(ErrorKind.NOT_FOUND)` — as a value. For a custom
+routing table, build your own with `RegistryBuilder` + `SourceDefinition`
+(both importable from `omni_fetcher.v1`).
 
 ### Write your own connector
 

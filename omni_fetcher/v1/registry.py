@@ -137,7 +137,15 @@ class Registry(Protocol):
 
 
 def _matches_uri(pattern: str, uri: str) -> bool:
-    """Report whether a single pattern claims a URI."""
+    """Report whether a single pattern claims a URI.
+
+    An explicit ``re:`` prefix forces regex matching -- required for
+    regexes containing fnmatch trigger characters (``https?``, lookaheads).
+    Otherwise: fnmatch glob when the pattern contains ``*``/``?``/``[``,
+    else regex search, else plain substring containment.
+    """
+    if pattern.startswith("re:"):
+        return re.search(pattern[3:], uri) is not None
     if "*" in pattern or "?" in pattern or "[" in pattern:
         return fnmatch.fnmatch(uri, pattern)
     if re.search(pattern, uri):
