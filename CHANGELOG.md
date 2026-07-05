@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Deprecated
+- The legacy pre-v1 API (`OmniFetcher`, `omni_fetcher.fetchers.*`, the
+  pre-v1 schemas) now emits a `DeprecationWarning` on first use and will be
+  removed in 2.0. Migrate to `omni_fetcher.v1` (see docs/migration-v1.md).
+
+### Changed
+- Top-level legacy exports resolve lazily: `import omni_fetcher` (and
+  therefore `import omni_fetcher.v1`) no longer imports the legacy fetcher
+  tree. `from omni_fetcher import <name>` behaves as before, plus the
+  deprecation warning.
+
 ## [1.0.0] - 2026-07-04
 
 The v1.0 clean break: every connector now emits a single **canonical contract**
