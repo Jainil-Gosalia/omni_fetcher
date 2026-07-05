@@ -46,6 +46,7 @@ from omni_fetcher.v1.result import (
     partial,
     success,
 )
+from omni_fetcher.v1.decompose import decompose_result
 from omni_fetcher.v1.zoom import ZoomSpec
 
 # Source namespace under which all descriptive ``local_file`` fields are stored
@@ -229,7 +230,9 @@ class LocalFileFetcher(BaseFetcher):
             auth:
                 Ignored.
             zoom:
-                Ignored; a single file is its own natural granularity.
+                Honored for text: finer-than-natural text levels decompose
+                the file's Text atoms into section/paragraph/sentence child
+                nodes. Other atom kinds keep their natural granularity.
 
         Return
         ------
@@ -238,6 +241,10 @@ class LocalFileFetcher(BaseFetcher):
         """
         counter = SequenceCounter()
         result = self._read_one(uri)
+        if zoom is not None and not isinstance(result, Error):
+            # Finer-than-natural text zoom: decompose Text atoms into
+            # section/paragraph/sentence child nodes (pure, lossless).
+            result = decompose_result(result, zoom)
         if not isinstance(result, Error):
             # Success / Partial both carry a ``tree`` to stamp; an Error has
             # no node to order.
