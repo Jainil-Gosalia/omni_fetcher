@@ -167,7 +167,7 @@ class DocxConnector(BaseFetcher):
             source_fields=parsed.source_fields,
         )
 
-        result = partial(node, parsed.gaps) if parsed.gaps else success(node)
+        result: Result = partial(node, parsed.gaps) if parsed.gaps else success(node)
         if zoom is not None:
             # Finer-than-natural text zoom (see v1.decompose); lossless.
             result = decompose_result(result, zoom)

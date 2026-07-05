@@ -179,7 +179,7 @@ class PptxConnector(BaseFetcher):
             )
             return
 
-        result = partial(tree, gaps) if gaps else success(tree)
+        result: Result = partial(tree, gaps) if gaps else success(tree)
         if zoom is not None and zoom.level_for(AtomKind.TEXT) is not DepthLevel.SECTION:
             # Slides already ARE the deck's sections, so SECTION keeps the
             # natural slide structure; finer levels decompose slide text.
