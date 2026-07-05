@@ -30,6 +30,7 @@ from typing import Any, AsyncIterator, Optional
 
 from omni_fetcher.v1.atoms import Image, Table, Text, TextFormat
 from omni_fetcher.v1.auth import AuthCredential
+from omni_fetcher.v1.decompose import decompose_result
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.mapping import build_node
@@ -127,7 +128,7 @@ class DocxConnector(BaseFetcher):
             results:
                 An async iterator yielding the one ``Result`` for the document.
         """
-        del auth, zoom  # Accepted for interface conformance; not needed here.
+        del auth  # Accepted for interface conformance; not needed here.
 
         path = Path(_local_path(uri))
         try:
@@ -166,10 +167,11 @@ class DocxConnector(BaseFetcher):
             source_fields=parsed.source_fields,
         )
 
-        if parsed.gaps:
-            yield partial(node, parsed.gaps)
-        else:
-            yield success(node)
+        result = partial(node, parsed.gaps) if parsed.gaps else success(node)
+        if zoom is not None:
+            # Finer-than-natural text zoom (see v1.decompose); lossless.
+            result = decompose_result(result, zoom)
+        yield result
 
 
 class _ParsedDocx:
