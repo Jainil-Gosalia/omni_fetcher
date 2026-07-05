@@ -120,9 +120,7 @@ async def test_page_yields_page_node_with_text_atoms(monkeypatch) -> None:
     }
     _install_transport(monkeypatch, _routes_handler(routes))
 
-    result = await NotionConnector().fetch(
-        f"https://www.notion.so/My-Page-{PAGE_ID}", auth=AUTH
-    )
+    result = await NotionConnector().fetch(f"https://www.notion.so/My-Page-{PAGE_ID}", auth=AUTH)
 
     assert isinstance(result, Success)
     node = result.tree
@@ -193,9 +191,7 @@ async def test_database_yields_container_with_row_children(monkeypatch) -> None:
     }
     routes = {
         f"/v1/databases/{DB_ID}": _json(200, db_payload),
-        f"/v1/databases/{DB_ID}/query": _json(
-            200, {"results": [_page_payload(ROW_ID, "Row One")]}
-        ),
+        f"/v1/databases/{DB_ID}/query": _json(200, {"results": [_page_payload(ROW_ID, "Row One")]}),
         f"/v1/blocks/{ROW_ID}/children": _json(200, _blocks_payload("row body")),
     }
     _install_transport(monkeypatch, _routes_handler(routes))
@@ -255,9 +251,7 @@ async def test_failed_block_fetch_degrades_to_partial(monkeypatch) -> None:
     """A 500 on block children yields Partial with a typed gap, not silence."""
     routes = {
         f"/v1/pages/{PAGE_ID}": _json(200, _page_payload(PAGE_ID, "My Page")),
-        f"/v1/blocks/{PAGE_ID}/children": _json(
-            500, {"object": "error", "message": "boom"}
-        ),
+        f"/v1/blocks/{PAGE_ID}/children": _json(500, {"object": "error", "message": "boom"}),
     }
     _install_transport(monkeypatch, _routes_handler(routes))
 

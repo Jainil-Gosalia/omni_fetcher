@@ -123,9 +123,7 @@ async def test_page_descriptive_fields_in_source_extra_and_core() -> None:
     assert metadata.id == "12345"
     assert metadata.author == "Ada Lovelace"
     assert metadata.updated is not None and metadata.updated.year == 2026
-    assert metadata.source_url == (
-        "https://acme.atlassian.net/wiki/spaces/ENG/pages/12345"
-    )
+    assert metadata.source_url == ("https://acme.atlassian.net/wiki/spaces/ENG/pages/12345")
 
     extra = metadata.source_extra["confluence"]
     assert extra["page_id"] == "12345"
@@ -182,9 +180,7 @@ async def test_bearer_auth_builds_token_client_shape(recording_client) -> None:
     assert "username" not in kwargs
 
 
-@pytest.mark.parametrize(
-    "credential", [None, ApiKeyAuth(api_key="k", header="X-Key")]
-)
+@pytest.mark.parametrize("credential", [None, ApiKeyAuth(api_key="k", header="X-Key")])
 async def test_unsupported_credentials_are_auth_failed(credential) -> None:
     """No credential -- or a non-Basic/Bearer one -- is a typed AUTH_FAILED."""
     connector = _connector_with(_FakeConfluence(page=_page_payload()))
@@ -211,9 +207,7 @@ async def test_space_yields_container_with_page_children() -> None:
         "homepage": {"id": 12345},
     }
     search = {"results": [_page_payload(), _page_payload(67890, "Second")], "size": 2}
-    connector = _connector_with(
-        _FakeConfluence(space=space_payload, search=search)
-    )
+    connector = _connector_with(_FakeConfluence(space=space_payload, search=search))
 
     result = await connector.fetch(SPACE_URI, auth=BASIC)
 
@@ -262,9 +256,7 @@ async def test_unrecognised_confluence_uri_is_invalid_input() -> None:
     """An Atlassian URI that routes nowhere is a typed INVALID_INPUT."""
     connector = _connector_with(_FakeConfluence(page=_page_payload()))
 
-    result = await connector.fetch(
-        "https://acme.atlassian.net/wiki/x/shortlink", auth=BASIC
-    )
+    result = await connector.fetch("https://acme.atlassian.net/wiki/x/shortlink", auth=BASIC)
 
     assert isinstance(result, Error)
     assert result.kind == ErrorKind.INVALID_INPUT
