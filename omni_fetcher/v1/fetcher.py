@@ -51,7 +51,7 @@ from omni_fetcher.v1.result import (
     partial,
     success,
 )
-from omni_fetcher.v1.zoom import ZoomSpec
+from omni_fetcher.v1.zoom import ZoomSpec, prune_result
 
 # Advisory ``kind`` for the synthetic root that wraps multiple streamed trees
 # when ``fetch()`` collects a multi-item bounded stream.
@@ -149,6 +149,10 @@ class BaseFetcher(ABC):
         gaps: list[Gap] = []
         first_error: Optional[Error] = None
 
+        # Central zoom application: the collected tree is pruned to the
+        # spec below, so connectors that ignore ``zoom`` still honor
+        # coarser-than-natural requests (pruning is idempotent for
+        # connectors that already decomposed to the spec).
         async for item in self.stream(uri, auth=auth, zoom=zoom):
             if isinstance(item, Success):
                 trees.append(item.tree)
@@ -166,7 +170,10 @@ class BaseFetcher(ABC):
                     )
                 )
 
-        return self._collect(trees, gaps, first_error, uri)
+        result = self._collect(trees, gaps, first_error, uri)
+        if zoom is None:
+            return result
+        return prune_result(result, zoom)
 
     @staticmethod
     def _collect(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, Type
 
+from omni_fetcher._deprecation import warn_legacy_use
 from omni_fetcher.core.registry import SourceRegistry, SourceInfo
 from omni_fetcher.core.exceptions import SourceNotFoundError, FetchError
 from omni_fetcher.fetchers.base import BaseFetcher
@@ -31,6 +32,10 @@ from omni_fetcher.fetchers.sharepoint import SharePointFetcher
 from omni_fetcher.fetchers.docx import DOCXFetcher
 from omni_fetcher.fetchers.pptx import PPTXFetcher
 from omni_fetcher.auth import AuthConfig, load_auth_from_env
+
+# The legacy layer is deprecated; fire the (once-per-process) warning on
+# direct import of this module too, not only via the package's lazy exports.
+warn_legacy_use()
 
 
 class OmniFetcher:

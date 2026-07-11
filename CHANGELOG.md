@@ -5,6 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-07-05
+
+Contract completion & developer experience: one-call wiring, working zoom,
+stateless retry, a v1 CLI, and the legacy layer's deprecation clock.
+
+### Added
+- `builtin_registry()` — an immutable registry of all 21 built-in
+  connectors, wired in one line: `OmniFetcher(builtin_registry())`.
+  Connector modules load lazily; sources whose optional extra is missing
+  are skipped. The wiring API (`OmniFetcher`, `RegistryBuilder`,
+  `FrozenRegistry`, `builtin_registry`) is exported from `omni_fetcher.v1`.
+- **Zoom works.** Coarser-than-natural specs are applied centrally in
+  `fetch()`/the orchestrator for every connector; finer-than-natural text
+  levels (`SECTION`/`PARAGRAPH`/`SENTENCE`) decompose `Text` atoms in the
+  text-bearing connectors via the new pure, lossless
+  `omni_fetcher.v1.decompose` module (pptx maps `SECTION` onto its slides).
+  Explicitly requesting a finer level for an undecomposable atom kind
+  records an honest gap.
+- `RetryPolicy` + `fetch_with_retry` — frozen, host-side, value-driven
+  retry for `TRANSIENT`/`RATE_LIMITED` results; never retries delivered
+  data, never raises for expected failures.
+- `omni-fetcher v1 fetch <uri>` — CLI over the canonical contract with
+  rich-tree or `--json` output, `--zoom text=paragraph`, and env-var-name
+  credential flags (no secret ever appears in argv or output).
+- Behavior test suites for the four connectors that shipped untested
+  (notion, linear, confluence, youtube) — all 21 connectors are now
+  covered — plus a cross-connector error-classification audit pinning the
+  canonical status→ErrorKind table now documented in
+  `omni_fetcher.v1.errors`.
+- Registry URI patterns support an explicit `re:` prefix for regexes
+  containing fnmatch trigger characters.
+
+### Fixed
+- Notion databases no longer all render as "Untitled" (the title-typed
+  schema stub shadowed the real top-level title array).
+
+### Deprecated
+- The legacy pre-v1 API (`OmniFetcher`, `omni_fetcher.fetchers.*`, the
+  pre-v1 schemas) now emits a `DeprecationWarning` on first use and will be
+  removed in 2.0. Migrate to `omni_fetcher.v1` (see docs/migration-v1.md).
+
+### Changed
+- Top-level legacy exports resolve lazily: `import omni_fetcher` (and
+  therefore `import omni_fetcher.v1`) no longer imports the legacy fetcher
+  tree. `from omni_fetcher import <name>` behaves as before, plus the
+  deprecation warning.
+- `docs/index.md`, `docs/fetchers.md`, and `docs/auth.md` rewritten for the
+  v1 API.
+
 ## [1.0.0] - 2026-07-04
 
 The v1.0 clean break: every connector now emits a single **canonical contract**

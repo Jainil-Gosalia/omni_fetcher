@@ -1,88 +1,60 @@
 # OmniFetcher Documentation
 
-Welcome to the OmniFetcher documentation. OmniFetcher is a universal data fetcher library that retrieves data from various sources and returns it as validated Pydantic models.
+OmniFetcher fetches anything — a Jira issue, a PDF, an S3 object, a Slack
+thread, a web page — and returns **the same typed shape every time**: a
+`Result` envelope (`Success` / `Partial` / `Error`) wrapping a
+`CompositionNode` tree of typed content atoms, a uniform metadata core, and
+namespaced `source_extra` fields.
 
-## Quick Links
-
-- [Installation](installation.md)
-- [Quick Start](quickstart.md)
-- [Built-in Fetchers](fetchers.md)
-- [Schemas](schemas.md)
-- [Authentication](auth.md)
-- [Caching & Retry](caching.md)
-- [Custom Fetchers](custom.md)
-- [CLI Usage](cli.md)
-- [API Reference](api.md)
-
-## Features
-
-- **20+ Built-in Fetchers**: Local files, HTTP APIs, YouTube, S3, PDF, CSV, Office documents, GitHub, Notion, Jira, Confluence, Slack, and more
-- **Type Safety**: All fetched data is validated against Pydantic v2 models
-- **Extensible**: Create custom fetchers using the `@source` decorator
-- **Authentication**: Bearer tokens, API keys, Basic Auth, AWS credentials, OAuth2
-- **Caching**: In-memory and file-based caching with TTL support
-- **Retry Logic**: Exponential backoff with configurable retry attempts
-- **Rate Limiting**: Built-in rate limiter for API compliance
-
-## Version
-
-Current version: **v0.11.2**
-
-## Installation
+## Install
 
 ```bash
-pip install omni_fetcher
-
-# With all dependencies
-pip install omni_fetcher[dev]
-
-# Optional: Office document support
-pip install omni_fetcher[office]
-
-# Optional: Web scraping support
-pip install omni_fetcher[web]
+pip install omni-fetcher
 ```
 
-## Basic Usage
+Optional extras: `office` (DOCX/PPTX), `jira` / `confluence` (Atlassian
+client), `dev` (tests, lint, typing). Everything else works with the core
+install.
+
+## Quick start
 
 ```python
 import asyncio
-from omni_fetcher import OmniFetcher
 
-async def main():
-    fetcher = OmniFetcher()
-    
-    # Fetch JSON from an API
-    result = await fetcher.fetch("https://jsonplaceholder.typicode.com/users/1")
-    print(result.data)
-    
-    # Fetch from a local file
-    result = await fetcher.fetch("/path/to/data.json")
-    print(result.data)
+from omni_fetcher.v1 import OmniFetcher, Success, builtin_registry
+
+
+async def main() -> None:
+    omni = OmniFetcher(builtin_registry())   # all built-in connectors
+
+    result = await omni.fetch("README.md")
+    if isinstance(result, Success):
+        print(result.tree.metadata.kind)     # "file"
+
 
 asyncio.run(main())
 ```
 
-## Examples
+Or from the command line:
 
-See the `examples/` directory for 17 comprehensive examples:
+```bash
+omni-fetcher v1 fetch README.md
+omni-fetcher v1 fetch https://example.com/feed.xml --json
+```
 
-| Example | Description |
-|---------|-------------|
-| 01_basic_usage.py | Basic fetching from APIs and files |
-| 02_custom_fetcher.py | Creating a custom fetcher |
-| 03_custom_schema.py | Using custom Pydantic schemas |
-| 04_cli_example.py | Building a CLI with OmniFetcher |
-| 05_media_example.py | Fetching media (YouTube, images) |
-| 06_auth_example.py | Various authentication methods |
-| 07_oauth2_example.py | OAuth2 authentication flow |
-| 08_s3_auth_example.py | AWS S3 authentication |
-| 09_atomic_schemas_example.py | Atomic schema primitives |
-| 10_office_webpage_example.py | Office documents and web pages |
-| 11_audio_containers_example.py | Container schemas for feeds and playlists |
-| 12_github_example.py | GitHub API integration |
-| 13_google_drive_example.py | Google Drive file fetching |
-| 14_notion_example.py | Notion workspace integration |
-| 15_confluence_example.py | Confluence pages and spaces |
-| 16_slack_example.py | Slack messaging integration |
-| 17_jira_example.py | Jira issues and projects |
+## Guides
+
+- [Connectors](fetchers.md) — the 21 built-in connectors, URI shapes, zoom,
+  retry, and writing your own.
+- [Authentication](auth.md) — per-call credentials and the multi-tenant
+  model.
+- [Migration from 0.x](migration-v1.md) — field-by-field mapping from the
+  removed source-specific schemas onto the canonical contract.
+- The [README](../README.md) carries the full example gallery and the
+  contract diagram.
+
+## The legacy API
+
+The pre-1.0 layer (`from omni_fetcher import OmniFetcher`) still works but
+is **deprecated and will be removed in 2.0** — importing it emits a
+`DeprecationWarning` pointing here. New code targets `omni_fetcher.v1`.

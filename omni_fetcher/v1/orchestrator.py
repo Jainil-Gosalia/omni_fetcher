@@ -45,7 +45,7 @@ from omni_fetcher.v1.result import (
     Success,
     error,
 )
-from omni_fetcher.v1.zoom import ZoomSpec
+from omni_fetcher.v1.zoom import ZoomSpec, prune_result
 
 
 class OmniFetcher:
@@ -205,6 +205,10 @@ class OmniFetcher:
             return
 
         async for item in fetcher.stream(uri, auth=auth, zoom=zoom):
+            # Central zoom application for the streaming path, mirroring
+            # BaseFetcher.fetch(); pruning is pure and idempotent.
+            if zoom is not None:
+                item = prune_result(item, zoom)
             yield _merge_tags(item, tags)
 
     def _resolve(self, uri: str):

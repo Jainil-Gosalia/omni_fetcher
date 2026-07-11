@@ -35,6 +35,12 @@ app = typer.Typer(
 )
 cache_app = typer.Typer(help="Manage cache")
 
+# The v1 canonical-contract commands live in their own namespace so the
+# legacy commands stay untouched; `fetch` flips to the v1 behavior in 2.0.
+from omni_fetcher.v1.cli import v1_app  # noqa: E402
+
+app.add_typer(v1_app, name="v1")
+
 app.add_typer(cache_app, name="cache")
 
 console = Console(theme=custom_theme)

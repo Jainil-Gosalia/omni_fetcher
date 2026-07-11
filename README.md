@@ -163,27 +163,16 @@ print(table.rows[:3])
 
 ### Wire the orchestrator once, serve every tenant
 
-For hosts routing arbitrary URIs, build an immutable registry once and share a
-single stateless orchestrator across threads and event loops. Each call gets a
-fresh connector instance and its own credentials — nothing is cached or shared
-between calls (proven by the concurrency suite in `tests/v1/test_isolation.py`):
+For hosts routing arbitrary URIs, wire a single stateless orchestrator with
+all built-in connectors in one line and share it across threads and event
+loops. Each call gets a fresh connector instance and its own credentials —
+nothing is cached or shared between calls (proven by the concurrency suite
+in `tests/v1/test_isolation.py`):
 
 ```python
-from omni_fetcher.v1 import BearerAuth
-from omni_fetcher.v1.connectors.github import GitHubConnector
-from omni_fetcher.v1.connectors.rss import RSSConnector
-from omni_fetcher.v1.orchestrator import OmniFetcher
-from omni_fetcher.v1.registry import RegistryBuilder, SourceDefinition
+from omni_fetcher.v1 import BearerAuth, OmniFetcher, builtin_registry
 
-registry = (
-    RegistryBuilder()
-    .add(SourceDefinition(name="github", fetcher_class=GitHubConnector,
-                          uri_patterns=("*github.com/*",), priority=10))
-    .add(SourceDefinition(name="rss", fetcher_class=RSSConnector,
-                          uri_patterns=("*/feed*", "*.xml"), priority=50))
-    .build()                                   # immutable from here on
-)
-omni = OmniFetcher(registry)
+omni = OmniFetcher(builtin_registry())  # every built-in connector, wired once
 
 # Per request — tenant A and tenant B can run concurrently on this instance
 result = await omni.fetch(
@@ -193,7 +182,57 @@ result = await omni.fetch(
 )
 ```
 
-An unrouted URI returns `error(ErrorKind.NOT_FOUND)` — as a value.
+`builtin_registry()` resolves connector modules lazily, skips sources whose
+optional extra isn't installed, and stays immutable after construction. An
+unrouted URI returns `error(ErrorKind.NOT_FOUND)` — as a value. For a custom
+routing table, build your own with `RegistryBuilder` + `SourceDefinition`
+(both importable from `omni_fetcher.v1`).
+
+### Zoom: pick the semantic depth
+
+Zoom selects how deeply a source's natural structure is expanded, per atom
+type — semantic tree depth, never token windowing:
+
+```python
+from omni_fetcher.v1 import AtomKind, DepthLevel, ZoomSpec
+
+spec = ZoomSpec(per_type={AtomKind.TEXT: DepthLevel.PARAGRAPH})
+result = await omni.fetch("notes.md", zoom=spec)
+# one "paragraph" child node per text block; the pieces concatenate
+# exactly to the natural content
+```
+
+Coarser-than-natural levels (`WHOLE`, `SECTION`) work for every connector;
+finer text levels decompose in the text-bearing ones (pptx maps `SECTION`
+onto its slides). A finer level explicitly requested for an atom kind that
+can't decompose records an honest gap instead of a silent no-op.
+
+### Retry transient failures — as values, not exceptions
+
+Connectors classify failures uniformly (429 → `RATE_LIMITED`, 5xx/timeouts →
+`TRANSIENT`), so retrying is a one-liner host decision:
+
+```python
+from omni_fetcher.v1 import RetryPolicy, fetch_with_retry
+
+policy = RetryPolicy(max_attempts=4, initial_delay=0.5, jitter=0.2)
+result = await fetch_with_retry(omni, uri, policy=policy, auth=auth)
+```
+
+The frozen policy is safe to share across tenants; delivered data
+(`Success`/`Partial`) is never retried.
+
+### Or skip Python entirely
+
+```bash
+omni-fetcher v1 fetch README.md
+omni-fetcher v1 fetch "jira://issue/PROJ-1" \
+  --auth-type basic --username-env JIRA_USER --password-env JIRA_TOKEN
+omni-fetcher v1 fetch notes.md --zoom text=paragraph --json
+```
+
+Credentials are environment-variable *names* — no secret touches `argv`.
+Exit codes: 0 success/partial, 1 typed error, 2 usage.
 
 ### Write your own connector
 
