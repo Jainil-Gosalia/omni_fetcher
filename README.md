@@ -188,6 +188,52 @@ unrouted URI returns `error(ErrorKind.NOT_FOUND)` — as a value. For a custom
 routing table, build your own with `RegistryBuilder` + `SourceDefinition`
 (both importable from `omni_fetcher.v1`).
 
+### Zoom: pick the semantic depth
+
+Zoom selects how deeply a source's natural structure is expanded, per atom
+type — semantic tree depth, never token windowing:
+
+```python
+from omni_fetcher.v1 import AtomKind, DepthLevel, ZoomSpec
+
+spec = ZoomSpec(per_type={AtomKind.TEXT: DepthLevel.PARAGRAPH})
+result = await omni.fetch("notes.md", zoom=spec)
+# one "paragraph" child node per text block; the pieces concatenate
+# exactly to the natural content
+```
+
+Coarser-than-natural levels (`WHOLE`, `SECTION`) work for every connector;
+finer text levels decompose in the text-bearing ones (pptx maps `SECTION`
+onto its slides). A finer level explicitly requested for an atom kind that
+can't decompose records an honest gap instead of a silent no-op.
+
+### Retry transient failures — as values, not exceptions
+
+Connectors classify failures uniformly (429 → `RATE_LIMITED`, 5xx/timeouts →
+`TRANSIENT`), so retrying is a one-liner host decision:
+
+```python
+from omni_fetcher.v1 import RetryPolicy, fetch_with_retry
+
+policy = RetryPolicy(max_attempts=4, initial_delay=0.5, jitter=0.2)
+result = await fetch_with_retry(omni, uri, policy=policy, auth=auth)
+```
+
+The frozen policy is safe to share across tenants; delivered data
+(`Success`/`Partial`) is never retried.
+
+### Or skip Python entirely
+
+```bash
+omni-fetcher v1 fetch README.md
+omni-fetcher v1 fetch "jira://issue/PROJ-1" \
+  --auth-type basic --username-env JIRA_USER --password-env JIRA_TOKEN
+omni-fetcher v1 fetch notes.md --zoom text=paragraph --json
+```
+
+Credentials are environment-variable *names* — no secret touches `argv`.
+Exit codes: 0 success/partial, 1 typed error, 2 usage.
+
 ### Write your own connector
 
 Subclass `BaseFetcher`, override `stream()`, build canonical nodes with the

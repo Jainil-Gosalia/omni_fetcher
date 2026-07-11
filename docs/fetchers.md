@@ -1,329 +1,121 @@
-# Built-in Fetchers
+# Connectors
 
-OmniFetcher comes with 20+ built-in fetchers that handle various data sources.
-
-## Fetcher Overview
-
-| Fetcher | Priority | Description |
-|---------|----------|-------------|
-| `local_file` | 10 | Local file reading |
-| `docx` | 20 | Microsoft Word documents |
-| `pptx` | 20 | Microsoft PowerPoint |
-| `pdf` | 20 | PDF documents |
-| `csv` | 20 | CSV files |
-| `audio` | 30 | Audio file metadata |
-| `http_json` | 40 | JSON API endpoints |
-| `http_auth` | 45 | HTTP with authentication |
-| `github` | 50 | GitHub API |
-| `http_url` | 50 | Generic HTTP/HTTPS |
-| `youtube` | 60 | YouTube videos |
-| `rss` | 70 | RSS/Atom feeds |
-| `graphql` | 80 | GraphQL endpoints |
-| `s3` | 90 | AWS S3 storage |
-| `google_drive` | 100 | Google Drive files |
-| `notion` | 100 | Notion workspace |
-| `jira` | 100 | Atlassian Jira |
-| `confluence` | 100 | Atlassian Confluence |
-| `slack` | 100 | Slack messaging |
-
-## HTTP & Web Fetchers
-
-### http_url
-
-Generic HTTP/HTTPS fetcher for any web content.
+Every v1 connector emits the same canonical contract. Fetch through the
+orchestrator (routes any URI) or instantiate a connector directly.
 
 ```python
-result = await fetcher.fetch("https://example.com/page.html")
+from omni_fetcher.v1 import OmniFetcher, builtin_registry
+
+omni = OmniFetcher(builtin_registry())
+result = await omni.fetch("jira://issue/PROJ-1", auth=credential)
 ```
 
-**Returns:** `HTMLDocument`
+`builtin_registry()` registers all built-in connectors lazily (heavy
+dependencies load only when routed to) and skips sources whose optional
+extra is missing. An unrouted URI returns `error(ErrorKind.NOT_FOUND)` — as
+a value, never a raise.
 
-### http_json
+## The built-in matrix
 
-Specialized JSON API fetcher.
+| Connector (`omni_fetcher.v1.connectors.*`) | URI shapes | Auth | Extra |
+|---|---|---|---|
+| `local_file.LocalFileFetcher` | `/path/to/file`, `file://...` | — | — |
+| `http_url.HTTPURLConnector` | `https://...` pages | — | — |
+| `http_json.HTTPJSONConnector` | JSON APIs | optional `BearerAuth` | — |
+| `http_auth.HTTPAuthConnector` | authenticated HTTP | `Bearer`/`ApiKey`/`Basic` | — |
+| `graphql.GraphQLConnector` | GraphQL endpoints | optional | — |
+| `rss.RSSConnector` | feed URLs | optional `BearerAuth` | — |
+| `csv.CSVConnector` | `.csv` paths/URLs | — | — |
+| `pdf.PDFConnector` | `.pdf` paths/URLs | — | — |
+| `docx.DocxConnector` | `.docx` paths/URLs | — | `office` |
+| `pptx.PptxConnector` | `.pptx` paths/URLs | — | `office` |
+| `audio.AudioConnector` | audio paths | — | — |
+| `youtube.YouTubeConnector` | `youtube.com`, `youtu.be` | — | — |
+| `s3.S3Fetcher` | `s3://bucket/key` | `AwsAuth` | — |
+| `github.GitHubConnector` | `github.com/owner/repo[/issues/N, ...]` | optional `BearerAuth` | — |
+| `google_drive.GoogleDriveFetcher` | `drive.google.com`, `docs.google.com` | `OAuth2Auth` | — |
+| `notion.NotionConnector` | `notion.so` pages, `notion://database/<id>` | `BearerAuth` | — |
+| `jira.JiraConnector` | `jira://issue/KEY`, `jira://project/KEY`, ... | `BasicAuth` / `BearerAuth` | `jira` |
+| `confluence.ConfluenceConnector` | Confluence pages/spaces | `BasicAuth` / `BearerAuth` | `confluence` |
+| `slack.SlackConnector` | `slack://channel/ID`, threads, DMs | `BearerAuth` | — |
+| `sharepoint.SharePointConnector` | `sharepoint://site[/Library[/file]]` | `OAuth2Auth` | — |
+| `linear.LinearConnector` | `linear://issue/ABC-1`, `linear.app` URLs | `Bearer`/`ApiKeyAuth` | — |
+
+## Zoom: semantic decomposition depth
+
+Zoom selects how deeply a source's natural structure is expanded, per atom
+type — semantic tree depth, never token windowing:
 
 ```python
-result = await fetcher.fetch("https://api.example.com/users")
+from omni_fetcher.v1 import AtomKind, DepthLevel, ZoomSpec
+
+spec = ZoomSpec(per_type={AtomKind.TEXT: DepthLevel.PARAGRAPH})
+result = await omni.fetch("notes.md", zoom=spec)
+# result.tree now has one "paragraph" child node per text block;
+# the pieces concatenate exactly to the natural content.
 ```
 
-**Returns:** `JSONData`
+- Coarser than natural (`WHOLE`, `SECTION` on deep trees) works for **every**
+  connector — the tree is pruned centrally.
+- Finer than natural (`SECTION`/`PARAGRAPH`/`SENTENCE`) decomposes `Text`
+  atoms in the text-bearing connectors (local_file, http_url, pdf, docx,
+  pptx). pptx maps `SECTION` onto its slides. A finer level explicitly
+  requested for an undecomposable kind (image, audio, video, table) records
+  an honest gap (`Partial`) instead of a silent no-op.
 
-### http_auth
+## Retrying transient failures
 
-HTTP fetcher with authentication support.
+Connectors classify failures onto a shared taxonomy (429 → `RATE_LIMITED`,
+5xx/timeouts → `TRANSIENT` — the table lives in `omni_fetcher.v1.errors`).
+Retrying is a host decision:
 
 ```python
-fetcher = OmniFetcher(auth={"http_auth": {"type": "bearer", "token": "xxx"}})
-result = await fetcher.fetch("https://api.example.com/private")
+from omni_fetcher.v1 import RetryPolicy, fetch_with_retry
+
+policy = RetryPolicy(max_attempts=4, initial_delay=0.5, jitter=0.2)
+result = await fetch_with_retry(omni, uri, policy=policy, auth=credential)
 ```
 
-**Returns:** `BaseFetchedData`
+The policy is frozen (safe to share across tenants); delivered data
+(`Success` / `Partial`) is never retried; the final `Result` comes back
+unchanged.
 
-### graphql
+## Writing a connector
 
-Execute GraphQL queries.
+Subclass `BaseFetcher`, override `stream()`, build canonical nodes with the
+mapping helper — `fetch()` comes for free:
 
 ```python
-result = await fetcher.fetch(
-    "https://api.example.com/graphql",
-    query="{ users { name email } }"
-)
+from typing import AsyncIterator, Optional
+
+from omni_fetcher.v1 import BaseFetcher, Text
+from omni_fetcher.v1.auth import AuthCredential
+from omni_fetcher.v1.mapping import build_node
+from omni_fetcher.v1.result import Result, success
+from omni_fetcher.v1.zoom import ZoomSpec
+
+
+class HelloConnector(BaseFetcher):
+    async def stream(
+        self,
+        uri: str,
+        *,
+        auth: Optional[AuthCredential] = None,
+        zoom: Optional[ZoomSpec] = None,
+    ) -> AsyncIterator[Result]:
+        node = build_node(
+            kind="greeting",
+            atoms=[Text(content=f"hello, {uri}")],
+            source_namespace="hello",
+            source_fields={"lang": "en"},
+        )
+        yield success(node)
 ```
 
-**Returns:** `GraphQLResponse`
+Register it with a `SourceDefinition` on your own `RegistryBuilder` and it
+routes like any built-in.
 
-## Document Fetchers
+## Legacy fetchers
 
-### pdf
-
-Parse PDF documents and extract text, metadata, and images.
-
-```python
-result = await fetcher.fetch("file:///path/to/document.pdf")
-# or
-result = await fetcher.fetch("https://example.com/document.pdf")
-```
-
-**Returns:** `PDFDocument`
-
-**Attributes:**
-- `text`: Extracted text content
-- `page_count`: Number of pages
-- `author`, `title`, `subject`, `creator`, `producer`: Metadata
-- `images`: Extracted images
-- `tags`: Auto-generated tags (`pdf`, `document`, `scanned`)
-
-### docx
-
-Parse Microsoft Word documents.
-
-```python
-result = await fetcher.fetch("file:///path/to/document.docx")
-```
-
-**Returns:** `DOCXDocument`
-
-**Attributes:**
-- `text`: Extracted text content
-- `tables`: Table data
-- `images`: Embedded images
-- `author`, `title`: Document metadata
-
-### pptx
-
-Parse Microsoft PowerPoint presentations.
-
-```python
-result = await fetcher.fetch("file:///path/to/presentation.pptx")
-```
-
-**Returns:** `PPTXDocument`
-
-**Attributes:**
-- `slides`: List of slides with text and images
-- `slide_count`: Number of slides
-- `title`, `author`: Presentation metadata
-
-### csv
-
-Parse CSV files.
-
-```python
-result = await fetcher.fetch("file:///path/to/data.csv")
-# or
-result = await fetcher.fetch("https://example.com/data.csv")
-```
-
-**Returns:** `SpreadsheetDocument`
-
-**Attributes:**
-- `sheets`: List of sheets with headers and rows
-- `row_count`, `column_count`: Dimensions
-
-## Cloud & Storage Fetchers
-
-### s3
-
-Fetch objects from AWS S3.
-
-```python
-result = await fetcher.fetch("s3://bucket-name/path/to/file.json")
-```
-
-**Authentication:**
-```python
-fetcher = OmniFetcher(auth={
-    "s3": {
-        "type": "aws",
-        "aws_access_key_id": "KEY",
-        "aws_secret_access_key": "SECRET",
-        "aws_region": "us-east-1"
-    }
-})
-```
-
-**Returns:** `BaseFetchedData`
-
-### google_drive
-
-Fetch files from Google Drive.
-
-```python
-# By file ID
-result = await fetcher.fetch("gdrive://1abc123...")
-
-# By share link
-result = await fetcher.fetch("https://drive.google.com/file/d/1abc123/view")
-```
-
-**Authentication:** Uses `GOOGLE_APPLICATION_CREDENTIALS` or service account JSON.
-
-**Returns:** Appropriate document type based on file
-
-### notion
-
-Fetch data from Notion workspace.
-
-```python
-# Fetch a page
-result = await fetcher.fetch("notion://page-id")
-
-# Fetch a database
-result = await fetcher.fetch("notion://database-id?type=database")
-```
-
-**Authentication:** Set `NOTION_TOKEN` environment variable.
-
-### confluence
-
-Fetch pages and spaces from Confluence.
-
-```python
-# Fetch a page
-result = await fetcher.fetch("confluence://page-id")
-
-# Fetch a space
-result = await fetcher.fetch("confluence://space-key?type=space")
-```
-
-**Authentication:** Bearer token via `CONFLUENCE_TOKEN` env var.
-
-### jira
-
-Fetch issues and projects from Jira.
-
-```python
-# Fetch an issue
-result = await fetcher.fetch("jira://project-key/ISSUE-123")
-
-# Fetch a project
-result = await fetcher.fetch("jira://project-key?type=project")
-```
-
-**Authentication:** API token via `JIRA_EMAIL` and `JIRA_API_TOKEN` env vars.
-
-### slack
-
-Fetch messages and channel data from Slack.
-
-```python
-# Fetch messages from a channel
-result = await fetcher.fetch("slack://C12345678?type=channel")
-
-# Fetch a thread
-result = await fetcher.fetch("slack://C12345678/thread/TS12345678")
-```
-
-**Authentication:** Bot token via `SLACK_BOT_TOKEN` env var.
-
-## Media Fetchers
-
-### youtube
-
-Fetch YouTube video metadata and transcripts.
-
-```python
-result = await fetcher.fetch("https://youtube.com/watch?v=dQw4w9WgXcQ")
-# or
-result = await fetcher.fetch("https://youtu.be/dQw4w9WgXcQ")
-```
-
-**Returns:** `YouTubeVideo`
-
-**Attributes:**
-- `title`, `description`, `author`: Video metadata
-- `duration`: Video length
-- `thumbnail`: Thumbnail URL
-- `transcript`: Available transcript
-- `tags`: Auto-generated tags
-
-### audio
-
-Extract metadata from audio files.
-
-```python
-result = await fetcher.fetch("file:///path/to/song.mp3")
-result = await fetcher.fetch("https://example.com/podcast.mp3")
-```
-
-**Returns:** `AudioDocument`
-
-**Attributes:**
-- `duration`: Audio length in seconds
-- `format`: Audio format (mp3, wav, etc.)
-- `bitrate`: Audio bitrate
-- `sample_rate`: Sample rate
-
-### rss
-
-Parse RSS and Atom feeds.
-
-```python
-result = await fetcher.fetch("https://blog.example.com/feed.xml")
-```
-
-**Returns:** `FeedDocument`
-
-**Attributes:**
-- `title`: Feed title
-- `entries`: List of feed entries
-- `updated`: Last updated timestamp
-
-## Local File Fetcher
-
-### local_file
-
-Read local files of various formats.
-
-```python
-# By path
-result = await fetcher.fetch("/path/to/data.json")
-
-# With file:// prefix
-result = await fetcher.fetch("file:///path/to/document.pdf")
-```
-
-**Supported formats:** JSON, CSV, PDF, text, images, audio, video
-
-**Returns:** Appropriate type based on file extension
-
-## GitHub Fetcher
-
-### github
-
-Fetch data from GitHub API.
-
-```python
-# User data
-result = await fetcher.fetch("github://octocat")
-
-# Repository data
-result = await fetcher.fetch("github://octocat/hello-world")
-
-# Issues
-result = await fetcher.fetch("github://octocat/hello-world/issues/1")
-```
-
-**Authentication:** Bearer token via `GITHUB_TOKEN` env var.
-
-**Returns:** Appropriate GitHub schema based on endpoint
+The pre-1.0 fetcher classes still exist under `omni_fetcher.fetchers` but
+are deprecated (removal in 2.0). See [migration-v1.md](migration-v1.md).
