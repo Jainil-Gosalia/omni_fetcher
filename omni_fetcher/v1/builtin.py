@@ -74,6 +74,15 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         ("atlassian",),
     ),
     ("slack", f"{_CONNECTORS_PKG}.slack", "SlackConnector", ("slack://*",), 10, ()),
+    ("tail", f"{_CONNECTORS_PKG}.tail", "TailConnector", ("tail://*",), 10, ()),
+    (
+        "kafka",
+        f"{_CONNECTORS_PKG}.kafka",
+        "KafkaConnector",
+        ("kafka://*",),
+        10,
+        ("aiokafka",),
+    ),
     (
         "notion",
         f"{_CONNECTORS_PKG}.notion",

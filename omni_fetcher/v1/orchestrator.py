@@ -204,12 +204,20 @@ class OmniFetcher:
             yield self._not_found(uri)
             return
 
-        async for item in fetcher.stream(uri, auth=auth, zoom=zoom):
-            # Central zoom application for the streaming path, mirroring
-            # BaseFetcher.fetch(); pruning is pure and idempotent.
-            if zoom is not None:
-                item = prune_result(item, zoom)
-            yield _merge_tags(item, tags)
+        inner = fetcher.stream(uri, auth=auth, zoom=zoom)
+        try:
+            async for item in inner:
+                # Central zoom application for the streaming path, mirroring
+                # BaseFetcher.fetch(); pruning is pure and idempotent.
+                if zoom is not None:
+                    item = prune_result(item, zoom)
+                yield _merge_tags(item, tags)
+        finally:
+            # Deterministically close the connector's generator when the
+            # consumer stops iterating: unbounded sources hold real
+            # resources (file handles, broker consumers) that must not
+            # wait for garbage collection.
+            await inner.aclose()
 
     def _resolve(self, uri: str):
         """Instantiate a fresh fetcher for ``uri``, or ``None`` if unrouted."""

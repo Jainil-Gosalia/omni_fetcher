@@ -234,9 +234,7 @@ class TailConnector(BaseFetcher):
                     return
                 if raw.endswith(b"\n"):
                     line_number += 1
-                    yield self._line_result(
-                        uri, path, raw, handle.tell(), line_number, counter
-                    )
+                    yield self._line_result(uri, path, raw, handle.tell(), line_number, counter)
                 elif raw:
                     # Partial line: re-read from the same offset once the
                     # writer finishes it -- whole lines only.

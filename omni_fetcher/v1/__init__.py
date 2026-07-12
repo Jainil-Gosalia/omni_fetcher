@@ -71,7 +71,11 @@ from omni_fetcher.v1.result import (
     partial,
     success,
 )
-from omni_fetcher.v1.retry import RetryPolicy, fetch_with_retry
+from omni_fetcher.v1.retry import (
+    RetryPolicy,
+    fetch_with_retry,
+    stream_with_restart,
+)
 from omni_fetcher.v1.zoom import DepthLevel, ZoomSpec, prune_result, prune_to_zoom
 
 __all__ = [
@@ -116,6 +120,7 @@ __all__ = [
     # Retry
     "RetryPolicy",
     "fetch_with_retry",
+    "stream_with_restart",
     # Fetcher
     "BaseFetcher",
     # Auth

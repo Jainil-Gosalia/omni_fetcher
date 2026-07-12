@@ -41,6 +41,7 @@ ROUTES: list[tuple[str, str]] = [
     ("https://acme.atlassian.net/browse/PROJ-1", "JiraConnector"),
     ("https://acme.atlassian.net/wiki/spaces/ENG", "ConfluenceConnector"),
     ("slack://channel/C0123456789", "SlackConnector"),
+    ("tail:///var/log/app.log?from=end", "TailConnector"),
     ("notion://database/abc123", "NotionConnector"),
     ("https://www.notion.so/Page-abc123", "NotionConnector"),
     ("linear://issue/ABC-1", "LinearConnector"),
@@ -154,6 +155,31 @@ async def test_resolved_class_instantiates_the_real_connector() -> None:
 
 # ---------------------------------------------------------------------------
 # Optional extras
+
+
+async def test_kafka_routes_when_the_extra_is_available(monkeypatch) -> None:
+    """With aiokafka probed available, kafka:// routes (still lazily)."""
+    monkeypatch.setattr(builtin_module, "_extra_available", lambda module: True)
+
+    registry = builtin_registry()
+
+    resolved = registry.resolve("kafka://broker:9092/events?offset=latest")
+    assert resolved is not None and resolved.__name__ == "KafkaConnector"
+
+
+async def test_kafka_is_skipped_without_the_extra(monkeypatch) -> None:
+    """Without aiokafka, the kafka source is skipped; others survive."""
+    real_probe = builtin_module._extra_available
+    monkeypatch.setattr(
+        builtin_module,
+        "_extra_available",
+        lambda module: False if module == "aiokafka" else real_probe(module),
+    )
+
+    registry = builtin_registry()
+
+    assert "kafka" not in [definition.name for definition in registry.definitions()]
+    assert registry.resolve("tail:///var/log/app.log") is not None
 
 
 async def test_missing_extra_skips_source_and_keeps_the_rest(monkeypatch) -> None:

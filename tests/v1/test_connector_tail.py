@@ -98,9 +98,7 @@ async def test_node_shape_positions_and_temporal_order(tmp_path: Path) -> None:
     for item in (first, second):
         node = item.tree
         assert node.metadata.kind == "log_line"
-        assert node.children == [] or all(
-            not hasattr(child, "children") for child in node.children
-        )
+        assert node.children == [] or all(not hasattr(child, "children") for child in node.children)
         atom = node.find_atoms(AtomKind.TEXT)[0]
         assert atom.format == TextFormat.PLAIN
         assert not atom.content.endswith("\n")
@@ -136,9 +134,7 @@ async def test_from_byte_offset_resumes_exactly(tmp_path: Path) -> None:
     log = tmp_path / "app.log"
     log.write_text("alpha\nbeta\n", encoding="utf-8", newline="")
 
-    stream = TailConnector().stream(
-        _uri(log, **{"from": len("alpha\n"), "poll": 0.01})
-    )
+    stream = TailConnector().stream(_uri(log, **{"from": len("alpha\n"), "poll": 0.01}))
     items = await _collect(stream, 1)
 
     assert _line(items[0]) == "beta"
@@ -193,5 +189,29 @@ async def test_abandoned_stream_releases_the_file_handle(tmp_path: Path) -> None
     await stream.aclose()  # type: ignore[attr-defined]
 
     # On Windows an open handle makes unlink fail; success proves cleanup.
+    log.unlink()
+    assert not log.exists()
+
+
+async def test_orchestrator_stream_close_releases_the_handle_too(
+    tmp_path: Path,
+) -> None:
+    """Abandoning the ORCHESTRATOR's stream closes the inner generator.
+
+    Regression: the orchestrator's pass-through generator must aclose()
+    the connector's stream deterministically -- waiting for garbage
+    collection leaks the file handle past the consumer's exit.
+    """
+    from omni_fetcher.v1 import OmniFetcher, builtin_registry
+
+    log = tmp_path / "app.log"
+    log.write_text("one\ntwo\n", encoding="utf-8", newline="")
+
+    omni = OmniFetcher(builtin_registry())
+    stream = omni.stream(_uri(log, **{"from": "start", "poll": 0.01}))
+    first = await stream.__anext__()  # type: ignore[attr-defined]
+    assert isinstance(first, Success)
+    await stream.aclose()  # type: ignore[attr-defined]
+
     log.unlink()
     assert not log.exists()
