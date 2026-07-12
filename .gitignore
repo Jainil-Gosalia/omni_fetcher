@@ -49,3 +49,9 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Internal planning artifacts (development-only; never committed)
+docs/prds/
+docs/plans/
+docs/issues/
+docs/interrogations/
