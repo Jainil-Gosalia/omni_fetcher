@@ -25,7 +25,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import AsyncIterator, Optional, Union
+from typing import Any, AsyncIterator, Optional, Union
 from urllib.parse import parse_qs, unquote
 
 from omni_fetcher.v1.atoms import Text, TextFormat
@@ -219,6 +219,7 @@ class TailConnector(BaseFetcher):
                 handle.seek(0)
             else:
                 handle.seek(int(spec.start))
+            opened_ino = os.fstat(handle.fileno()).st_ino
 
             while True:
                 position_before = handle.tell()
@@ -232,18 +233,80 @@ class TailConnector(BaseFetcher):
                         locator=uri,
                     )
                     return
+
                 if raw.endswith(b"\n"):
                     line_number += 1
                     yield self._line_result(uri, path, raw, handle.tell(), line_number, counter)
-                elif raw:
+                    continue
+                if raw:
                     # Partial line: re-read from the same offset once the
                     # writer finishes it -- whole lines only.
                     handle.seek(position_before)
                     await asyncio.sleep(spec.poll)
-                else:
-                    await asyncio.sleep(spec.poll)
+                    continue
+
+                # At EOF: check for rotation, truncation, or disappearance
+                # before sleeping. ``new_handle`` is a fresh handle when the
+                # file was rotated/truncated, ``None`` when unchanged;
+                # ``reason`` is set for a terminal condition (disappearance /
+                # unreadable reopen).
+                new_handle, reason = await self._follow_check(path, handle, opened_ino, spec.poll)
+                if reason is not None:
+                    yield error(kind=ErrorKind.TRANSIENT, message=reason, locator=uri)
+                    return
+                if new_handle is not None:
+                    handle.close()
+                    handle = new_handle
+                    opened_ino = os.fstat(handle.fileno()).st_ino
+                    line_number = 0
+                    continue
+                await asyncio.sleep(spec.poll)
         finally:
             handle.close()
+
+    async def _follow_check(
+        self,
+        path: Path,
+        handle: Any,
+        opened_ino: int,
+        poll: float,
+    ) -> tuple[Optional[Any], Optional[str]]:
+        """Decide, at EOF, whether the followed file rotated/vanished.
+
+        Returns ``(new_handle, None)`` when the file was rotated (new inode)
+        or truncated (shrank) and a fresh handle at offset 0 should replace
+        the current one; ``(None, reason)`` when the file disappeared (after
+        a one-poll grace for a delete+recreate replace) or could not be
+        reopened; ``(None, None)`` when nothing changed and the caller should
+        idle-poll.
+        """
+
+        def _reopen() -> Any:
+            return path.open("rb")
+
+        try:
+            stat = os.stat(path)
+        except OSError:
+            # Vanished: grant one grace poll so an atomic delete+recreate
+            # replace is seen as rotation rather than deletion.
+            await asyncio.sleep(poll)
+            try:
+                os.stat(path)
+            except OSError:
+                return None, "tailed file disappeared"
+            try:
+                return _reopen(), None
+            except OSError:
+                return None, "could not reopen tailed file after rotation"
+
+        rotated = stat.st_ino != opened_ino
+        truncated = stat.st_size < handle.tell()
+        if rotated or truncated:
+            try:
+                return _reopen(), None
+            except OSError:
+                return None, "could not reopen tailed file"
+        return None, None
 
     async def fetch(
         self,
