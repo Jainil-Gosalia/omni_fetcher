@@ -41,6 +41,67 @@ a value, never a raise.
 | `sharepoint.SharePointConnector` | `sharepoint://site[/Library[/file]]` | `OAuth2Auth` | — |
 | `linear.LinearConnector` | `linear://issue/ABC-1`, `linear.app` URLs | `Bearer`/`ApiKeyAuth` | — |
 
+## Streaming (unbounded) sources
+
+Some sources never end. `tail` and `kafka` follow a file or a topic
+indefinitely, emitting **one `Result` per line/message** through the same
+canonical contract as every bounded source — consume them with `stream()`:
+
+```python
+async for item in omni.stream("tail:///var/log/app.log?from=end"):
+    if isinstance(item, Success):
+        print(item.tree.find_atoms(AtomKind.TEXT)[0].content)
+```
+
+| Connector | URI | Item kind | Positions in `source_extra` |
+|---|---|---|---|
+| `tail.TailConnector` | `tail://<path>?from=end\|start\|<byte>&poll=<s>` | `log_line` | `path`, `byte_offset`, `line_number` |
+| `kafka.KafkaConnector` | `kafka://host[:port]/topic?offset=…&offsets=p:o,…&group=id` | `message` | `topic`, `partition`, `offset`, `key`, `timestamp` |
+
+Configuration lives in the URI query (the only channel that survives the
+orchestrator). Key semantics:
+
+- **`fetch()` is `UNSUPPORTED`** on a streaming source — an unbounded stream
+  cannot be collected into one tree.
+- **Failures are terminal + typed.** A rotated-away file or a dropped broker
+  connection ends the stream with a single `Error(TRANSIENT)`; the tail
+  connector also follows in-place truncation and rotation onto the new file.
+- **Positions enable resume.** Each item's `source_extra` carries the exact
+  offset to restart from.
+- **Kafka is stateless by default** (assign+seek, no commits); `?group=<id>`
+  opts into a committing consumer group whose server-side state the host
+  owns — the one deliberate exception to read-only determinism.
+
+### Resuming a dropped stream
+
+`stream_with_restart` wraps a stream with `RetryPolicy`, swallowing retryable
+ends and reopening from the last item's position (tail `byte_offset` →
+`?from=`, kafka accumulated offsets → `?offsets=p:o+1`):
+
+```python
+from omni_fetcher.v1 import RetryPolicy, stream_with_restart
+
+async for item in stream_with_restart(
+    omni, "kafka://localhost:9092/events?offset=earliest",
+    policy=RetryPolicy(max_attempts=10, initial_delay=1.0),
+):
+    ...  # spans broker reconnects without losing position
+```
+
+Pass a `resume=(uri, last_item) -> uri` callable to override the built-in
+derivation. Delivered data (`Success`/`Partial`) is never retried; a
+non-retryable terminal error passes straight through.
+
+### On the command line
+
+```bash
+omni-fetcher v1 stream "tail:///var/log/app.log?from=end" --max-items 100
+omni-fetcher v1 stream "kafka://localhost:9092/events?offset=earliest" --json
+```
+
+NDJSON out (one `Result` per line), `--max-items` to bound a run, Ctrl-C to
+stop cleanly (exit 130). Kafka needs the extra: `pip install "omni-fetcher[kafka]"`.
+
 ## Zoom: semantic decomposition depth
 
 Zoom selects how deeply a source's natural structure is expanded, per atom

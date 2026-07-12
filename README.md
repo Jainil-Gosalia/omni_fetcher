@@ -307,6 +307,53 @@ print(node.metadata.content_hash)  # stable fingerprint of content + children
 | `sharepoint.SharePointConnector` | `sharepoint://site[/Library[/file]]` | `OAuth2Auth` (Graph token) | — |
 | `linear.LinearConnector` | Linear issues/teams/projects | `BearerAuth` / `ApiKeyAuth` | — |
 
+### Streaming (unbounded) connectors
+
+These emit an item per line/message forever — consume them with `stream()`,
+not `fetch()` (which returns `UNSUPPORTED`):
+
+| Connector | URI shapes | Auth | Extra |
+|---|---|---|---|
+| `tail.TailConnector` | `tail://<path>?from=end\|start\|<byte>&poll=<s>` | — | — |
+| `kafka.KafkaConnector` | `kafka://host[:port]/topic?offset=latest\|earliest\|<n>&group=<id>` | — | `kafka` |
+
+```python
+from omni_fetcher.v1 import AtomKind, OmniFetcher, Success, builtin_registry
+
+omni = OmniFetcher(builtin_registry())
+
+async for item in omni.stream("tail:///var/log/app.log?from=end"):
+    if isinstance(item, Success):
+        line = item.tree.find_atoms(AtomKind.TEXT)[0].content
+        offset = item.tree.metadata.source_extra["tail"]["byte_offset"]
+        print(offset, line)
+```
+
+Each item carries its resume position in `source_extra` (tail `byte_offset`,
+kafka `partition`/`offset`). A dropped stream (rotated file, broker blip)
+ends with a typed `Error(TRANSIENT)`; `stream_with_restart` resumes it from
+the last position:
+
+```python
+from omni_fetcher.v1 import RetryPolicy, stream_with_restart
+
+async for item in stream_with_restart(
+    omni, "tail:///var/log/app.log?from=end", policy=RetryPolicy(max_attempts=5)
+):
+    ...  # seamless across restarts; the resume ?from=/​?offsets= is derived for you
+```
+
+Kafka is stateless by default (no consumer group, no commits — start from
+`?offset=` and resume via the per-message positions); `?group=<id>` opts into
+committing consumer-group semantics that the host owns.
+
+From the CLI, stream as NDJSON:
+
+```bash
+omni-fetcher v1 stream "tail:///var/log/app.log?from=end" --max-items 100
+omni-fetcher v1 stream "kafka://localhost:9092/events?offset=earliest" --json
+```
+
 ## Design guarantees
 
 - **Stateless everywhere.** Connectors, registry, and orchestrator hold no
