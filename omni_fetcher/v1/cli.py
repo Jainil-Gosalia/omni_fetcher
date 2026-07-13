@@ -257,3 +257,114 @@ def fetch_command(
         for hole in result.gaps:
             stderr.print(f"[yellow]gap[/yellow] {hole.kind.value}: {hole.detail}")
     raise typer.Exit(code=0)
+
+
+@v1_app.command("stream")
+def stream_command(
+    uri: str = typer.Argument(..., help="The streaming source URI (e.g. tail://, kafka://)."),
+    auth_type: Optional[str] = typer.Option(
+        None, "--auth-type", help=f"Credential shape: {', '.join(_AUTH_TYPES)}."
+    ),
+    token_env: Optional[str] = typer.Option(
+        None, "--token-env", help="Env var holding the bearer token."
+    ),
+    username_env: Optional[str] = typer.Option(
+        None, "--username-env", help="Env var holding the basic-auth username."
+    ),
+    password_env: Optional[str] = typer.Option(
+        None, "--password-env", help="Env var holding the basic-auth password."
+    ),
+    api_key_env: Optional[str] = typer.Option(
+        None, "--api-key-env", help="Env var holding the API key."
+    ),
+    header: str = typer.Option(
+        "X-API-Key", "--header", help="Header name for --auth-type api-key."
+    ),
+    access_token_env: Optional[str] = typer.Option(
+        None, "--access-token-env", help="Env var holding the OAuth2 access token."
+    ),
+    access_key_id_env: Optional[str] = typer.Option(
+        None, "--access-key-id-env", help="Env var holding the AWS access key id."
+    ),
+    secret_access_key_env: Optional[str] = typer.Option(
+        None,
+        "--secret-access-key-env",
+        help="Env var holding the AWS secret access key.",
+    ),
+    zoom: Optional[str] = typer.Option(
+        None, "--zoom", help="Per-atom-type depth, e.g. text=paragraph,image=whole."
+    ),
+    max_items: Optional[int] = typer.Option(
+        None, "--max-items", help="Stop after N items (default: stream until terminated)."
+    ),
+    tag: list[str] = typer.Option(
+        [], "--tag", help="Advisory tag merged into node metadata (repeatable)."
+    ),
+) -> None:
+    """
+    Stream a URI through the v1 canonical contract as NDJSON
+
+    Iterates the source via the built-in registry, printing one contract
+    ``Result`` JSON object per line as items arrive. Exits 0 on ``--max-items``
+    or a clean stream end, 1 when the stream ends with a typed error (rendered
+    to stderr), 2 on usage errors, and 130 on Ctrl-C after releasing resources.
+
+    Parameters
+    ----------
+        uri:
+            The streaming source URI (e.g. ``tail://``, ``kafka://``).
+        auth_type:
+            Optional credential shape; the matching ``*-env`` flags name the
+            environment variables holding the secret values.
+        zoom:
+            Optional per-atom-type semantic depth specification.
+        max_items:
+            Stop after this many items; unset streams until the source ends.
+        tag:
+            Advisory tags merged into each streamed node's metadata.
+
+    Return
+    ------
+        nothing:
+            NDJSON is written to stdout; the exit code carries the outcome.
+    """
+    credential = _credential_from(
+        auth_type,
+        token_env=token_env,
+        username_env=username_env,
+        password_env=password_env,
+        api_key_env=api_key_env,
+        header=header,
+        access_token_env=access_token_env,
+        access_key_id_env=access_key_id_env,
+        secret_access_key_env=secret_access_key_env,
+    )
+    spec = _zoom_from(zoom)
+    omni = OmniFetcher(builtin_registry())
+    stderr = Console(stderr=True)
+
+    async def _run() -> int:
+        count = 0
+        code = 0
+        stream = omni.stream(uri, auth=credential, zoom=spec, tags=tag or None)
+        try:
+            async for item in stream:
+                if isinstance(item, Error):
+                    stderr.print(f"[red]error[/red] {item.kind.value}: {item.message}")
+                    code = 1
+                    break
+                # One compact Result JSON per line (NDJSON), flushed so
+                # downstream pipes see items as they arrive.
+                print(item.model_dump_json(), flush=True)
+                count += 1
+                if max_items is not None and count >= max_items:
+                    break
+        finally:
+            await stream.aclose()  # type: ignore[attr-defined]
+        return code
+
+    try:
+        exit_code = asyncio.run(_run())
+    except KeyboardInterrupt:
+        raise typer.Exit(code=130)
+    raise typer.Exit(code=exit_code)

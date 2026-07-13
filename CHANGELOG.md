@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-07-12
+
+Streaming: the first unbounded connectors on the `stream()` seam, a
+host-side restart helper, and a streaming CLI.
+
+### Added
+- **`tail` connector** — `tail://<path>?from=end|start|<byte>&poll=<s>`
+  follows a local file, emitting one `Result` per line (kind `log_line`,
+  resume positions in `source_extra["tail"]`). Follows in-place
+  truncation and rotation onto a replaced file; a vanished file ends the
+  stream with a typed `TRANSIENT`.
+- **`kafka` connector** — `kafka://host[:port]/topic?offset=…&offsets=…&group=…`
+  emits one `Result` per message (kind `message`,
+  topic/partition/offset/key/timestamp in `source_extra["kafka"]`).
+  Stateless assign+seek by default; `?group=` opts into a committing
+  consumer group owned by the host. Behind a new `kafka` extra
+  (`pip install "omni-fetcher[kafka]"`); skipped by `builtin_registry()`
+  when absent.
+- **`stream_with_restart`** — a host-side restart wrapper (reusing
+  `RetryPolicy`) that resumes a dropped stream from the last item's
+  position (tail `byte_offset` → `?from=`, kafka accumulated offsets →
+  `?offsets=p:o+1`, or a custom `resume` deriver). Exported from
+  `omni_fetcher.v1`.
+- **`omni-fetcher v1 stream <uri>`** — NDJSON streaming CLI with
+  `--max-items`, env-var-name credential flags, and clean Ctrl-C (exit
+  130).
+
+### Changed
+- `fetch()` on an unbounded source (`tail`, `kafka`) returns a typed
+  `Error(UNSUPPORTED)` immediately instead of hanging.
+- The orchestrator's `stream()` now closes the connector's generator
+  deterministically when the consumer stops iterating, releasing file
+  handles and broker consumers without waiting for garbage collection.
+
 ## [1.1.0] - 2026-07-05
 
 Contract completion & developer experience: one-call wiring, working zoom,

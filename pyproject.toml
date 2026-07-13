@@ -74,6 +74,9 @@ slack = [
 jira = [
     "atlassian-python-api>=3.0.0",
 ]
+kafka = [
+    "aiokafka>=0.10",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -104,6 +107,8 @@ disallow_untyped_defs = false
 [[tool.mypy.overrides]]
 # Optional/untyped third-party dependencies with no usable type stubs.
 module = [
+    "aiokafka",
+    "aiokafka.*",
     "atlassian.*",
     "boto3.*",
     "botocore.*",
