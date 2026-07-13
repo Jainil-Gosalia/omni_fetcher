@@ -432,8 +432,17 @@ class _AioKafkaAdapter:
         return cls(consumer)
 
     async def partition_ids(self, topic: str) -> List[int]:
-        partitions = self._consumer.partitions_for_topic(topic) or set()
-        return sorted(partitions)
+        partitions = self._consumer.partitions_for_topic(topic)
+        if not partitions:
+            # partitions_for_topic reads cached metadata, and a freshly
+            # started assign-mode consumer has none -- so discovery comes
+            # back empty and getone() would block forever. _wait_on_metadata
+            # fetches THIS topic's partition set (consumer.topics() only
+            # refreshes the topic *list*, not partition metadata -- verified
+            # against a live broker; the scripted unit fake cannot reproduce
+            # this staleness). It is aiokafka's own idiom for the same need.
+            partitions = await self._consumer._client._wait_on_metadata(topic)
+        return sorted(partitions or set())
 
     async def assign_and_seek(self, topic: str, starts: Dict[int, StartPosition]) -> None:
         from aiokafka import TopicPartition  # imported only with the extra
