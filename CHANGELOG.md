@@ -71,6 +71,25 @@ seam, following the v1.2 (Kafka/tail) and v1.3 (Redis Streams) pattern.
   SSE's `data:`/`id:`/blank-line wire format is parsed as protocol framing,
   the same way Kafka's record envelope or tail's line-splitting are.
 
+## [1.3.0] - 2026-07-16
+
+Redis Streams: an unbounded connector on the `stream()` seam, following the
+v1.2 (Kafka/tail) pattern.
+
+### Added
+- **`redis` connector** — `redis://host[:port]/stream-key?offset=$|0|<entry-id>&group=<id>&db=<n>`
+  emits one `Result` per message (kind `message`, decoded value as a plain
+  `Text` atom, entry_id/timestamp/stream in `source_extra["redis"]`).
+  Stateless `XREAD` by default (no commits); `?group=<id>` opts into
+  `XREADGROUP` consumer-group semantics owned by the host. `fetch()`
+  returns a typed `UNSUPPORTED`; connection failures yield `TRANSIENT`.
+- `redis-py` is a core dependency (already used by the cache backend), so
+  this connector is registered in `builtin_registry()` unconditionally —
+  no new extra, unlike Kafka's optional `aiokafka`.
+- `stream_with_restart`'s resume-URI derivation (`retry.py`) gained a
+  `redis` branch: `source_extra["redis"].entry_id` maps to `?offset=<id>`
+  on reconnect, alongside the existing tail/kafka branches.
+
 ## [1.2.0] - 2026-07-12
 
 Streaming: the first unbounded connectors on the `stream()` seam, a
