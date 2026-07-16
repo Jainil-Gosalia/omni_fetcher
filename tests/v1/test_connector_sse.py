@@ -183,9 +183,7 @@ async def test_auth_travels_through_the_spec_and_scheme_maps_to_http(
     fake = _FakeSession(["data: a", ""])
     connector, specs = _connector_with(fake, monkeypatch)
 
-    await _collect(
-        connector.stream("sses://events.example.com/live?auth=Bearer+tok"), 1
-    )
+    await _collect(connector.stream("sses://events.example.com/live?auth=Bearer+tok"), 1)
 
     assert specs[0].auth == "Bearer tok"
     assert specs[0].token is None

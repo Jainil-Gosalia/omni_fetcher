@@ -223,7 +223,9 @@ async def test_redis_resume_derives_from_entry_id() -> None:
     policy = RetryPolicy(max_attempts=2, initial_delay=0.0)
 
     await _drain(
-        stream_with_restart(target, "redis://localhost/mystream?offset=$", policy=policy, sleep=_Sleeper())
+        stream_with_restart(
+            target, "redis://localhost/mystream?offset=$", policy=policy, sleep=_Sleeper()
+        )
     )
 
     assert _query(target.uris[1])["offset"] == "1526919030474-0"
@@ -240,9 +242,7 @@ async def test_websocket_resume_derives_from_sequence() -> None:
     )
     policy = RetryPolicy(max_attempts=2, initial_delay=0.0)
 
-    await _drain(
-        stream_with_restart(target, "ws://host/events", policy=policy, sleep=_Sleeper())
-    )
+    await _drain(stream_with_restart(target, "ws://host/events", policy=policy, sleep=_Sleeper()))
 
     assert _query(target.uris[1])["sequence"] == "6"
 
@@ -257,9 +257,7 @@ async def test_sse_resume_derives_from_sequence() -> None:
     )
     policy = RetryPolicy(max_attempts=2, initial_delay=0.0)
 
-    await _drain(
-        stream_with_restart(target, "sse://host/live", policy=policy, sleep=_Sleeper())
-    )
+    await _drain(stream_with_restart(target, "sse://host/live", policy=policy, sleep=_Sleeper()))
 
     assert _query(target.uris[1])["sequence"] == "101"
 

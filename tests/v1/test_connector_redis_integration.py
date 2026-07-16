@@ -11,16 +11,14 @@ To test with real Redis:
 
 from __future__ import annotations
 
-import asyncio
 import os
-from typing import AsyncIterator, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pytest
 
-from omni_fetcher.v1.atoms import AtomKind, TextFormat
+from omni_fetcher.v1.atoms import AtomKind
 from omni_fetcher.v1.connectors.redis import RedisConnector
-from omni_fetcher.v1.errors import ErrorKind
-from omni_fetcher.v1.result import Error, Result, Success
+from omni_fetcher.v1.result import Success
 
 pytestmark = pytest.mark.asyncio
 
@@ -88,9 +86,7 @@ class _RealisticRedisClient:
             return [
                 (
                     stream_key.encode(),
-                    [
-                        (entry_id.encode(), data) for entry_id, data in result_entries
-                    ],
+                    [(entry_id.encode(), data) for entry_id, data in result_entries],
                 )
             ]
         # Return empty without blocking in tests
@@ -127,9 +123,7 @@ class _RealisticRedisClient:
             return [
                 (
                     stream_key.encode(),
-                    [
-                        (entry_id.encode(), data) for entry_id, data in result_entries
-                    ],
+                    [(entry_id.encode(), data) for entry_id, data in result_entries],
                 )
             ]
         # Return empty without blocking in tests
@@ -159,9 +153,11 @@ async def test_stream_from_realistic_redis() -> None:
     )
 
     connector = RedisConnector()
+
     # Inject the realistic fake client (must be async)
     async def mock_make_client(spec, timeout):
         return fake_redis
+
     connector._make_client = mock_make_client
 
     # Stream messages
@@ -216,8 +212,10 @@ async def test_resume_from_realistic_redis() -> None:
     )
 
     connector = RedisConnector()
+
     async def mock_make_client(spec, timeout):
         return fake_redis
+
     connector._make_client = mock_make_client
 
     # Resume from specific entry_id
@@ -250,8 +248,10 @@ async def test_consumer_group_with_realistic_redis() -> None:
     )
 
     connector = RedisConnector()
+
     async def mock_make_client(spec, timeout):
         return fake_redis
+
     connector._make_client = mock_make_client
 
     # Consumer group mode

@@ -321,7 +321,11 @@ class WebSocketConnector(BaseFetcher):
         handshake_timestamp: str,
     ) -> Result:
         """Map one received message onto the canonical per-item Result."""
-        content = payload.decode("utf-8", errors="replace") if isinstance(payload, bytes) else str(payload)
+        content = (
+            payload.decode("utf-8", errors="replace")
+            if isinstance(payload, bytes)
+            else str(payload)
+        )
         sequence = counter.next()
         node = build_node(
             kind=MESSAGE_KIND,

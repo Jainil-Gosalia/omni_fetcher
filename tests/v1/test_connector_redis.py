@@ -25,15 +25,14 @@ Tests verify:
 from __future__ import annotations
 
 import asyncio
-from typing import AsyncIterator, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pytest
 
-from omni_fetcher.v1.atoms import AtomKind, TextFormat
-from omni_fetcher.v1.connectors import redis as redis_module
+from omni_fetcher.v1.atoms import AtomKind
 from omni_fetcher.v1.connectors.redis import RedisConnector
 from omni_fetcher.v1.errors import ErrorKind
-from omni_fetcher.v1.result import Error, Result, Success
+from omni_fetcher.v1.result import Error, Success
 
 pytestmark = pytest.mark.asyncio
 
@@ -120,10 +119,7 @@ class _FakeRedisClient:
             return [
                 (
                     stream_key.encode(),
-                    [
-                        (entry.entry_id.encode(), entry.data)
-                        for entry in result_entries
-                    ],
+                    [(entry.entry_id.encode(), entry.data) for entry in result_entries],
                 )
             ]
         return []
@@ -163,10 +159,7 @@ class _FakeRedisClient:
             return [
                 (
                     stream_key.encode(),
-                    [
-                        (entry.entry_id.encode(), entry.data)
-                        for entry in result_entries
-                    ],
+                    [(entry.entry_id.encode(), entry.data) for entry in result_entries],
                 )
             ]
         return []

@@ -25,8 +25,8 @@ connection is always closed when iteration ends or is abandoned.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
-from urllib.parse import parse_qs, unquote
+from typing import Any, AsyncIterator, Dict, Optional
+from urllib.parse import parse_qs
 
 from omni_fetcher.v1.atoms import Text, TextFormat
 from omni_fetcher.v1.auth import AuthCredential
@@ -348,7 +348,7 @@ class RedisConnector(BaseFetcher):
             timestamp_ms = int(timestamp_str)
             timestamp = datetime.fromtimestamp(timestamp_ms / 1000.0, tz=timezone.utc).isoformat()
         except (ValueError, IndexError):
-            timestamp = now_utc()
+            timestamp = now_utc().isoformat()
 
         node = build_node(
             kind=MESSAGE_KIND,

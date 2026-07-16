@@ -83,7 +83,9 @@ class _Session(Protocol):
 class _SSESpec:
     """Parsed ``sse://`` / ``sses://`` routing decision."""
 
-    def __init__(self, uri: str, http_uri: str, token: Optional[str], auth: Optional[str], sequence: int) -> None:
+    def __init__(
+        self, uri: str, http_uri: str, token: Optional[str], auth: Optional[str], sequence: int
+    ) -> None:
         self.uri = uri
         self.http_uri = http_uri
         self.token = token

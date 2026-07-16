@@ -99,7 +99,9 @@ class _FakeClient:
         self.closed = True
 
 
-def _connector_with(fake: _FakeClient, monkeypatch: pytest.MonkeyPatch) -> tuple[ElasticsearchFetcher, list]:
+def _connector_with(
+    fake: _FakeClient, monkeypatch: pytest.MonkeyPatch
+) -> tuple[ElasticsearchFetcher, list]:
     """A fetcher whose cluster seam returns the scripted fake, recording specs."""
     monkeypatch.setattr(es_module, "ELASTICSEARCH_AVAILABLE", True)
     connector = ElasticsearchFetcher()

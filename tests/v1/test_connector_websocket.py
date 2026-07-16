@@ -137,9 +137,7 @@ async def test_auth_and_sequence_travel_through_the_spec(monkeypatch) -> None:
     fake = _FakeConnection(["x"])
     connector, specs = _connector_with(fake, monkeypatch)
 
-    await _collect(
-        connector.stream(URI + "?token=abc123&sequence=5"), 1
-    )
+    await _collect(connector.stream(URI + "?token=abc123&sequence=5"), 1)
 
     assert specs[0].token == "abc123"
     assert specs[0].auth is None
@@ -272,9 +270,7 @@ async def test_non_integer_sequence_is_invalid_input(monkeypatch) -> None:
     """?sequence= must be an integer."""
     monkeypatch.setattr(websocket_module, "WEBSOCKETS_AVAILABLE", True)
 
-    items = [
-        item async for item in WebSocketConnector().stream(URI + "?sequence=nope")
-    ]
+    items = [item async for item in WebSocketConnector().stream(URI + "?sequence=nope")]
 
     assert len(items) == 1
     assert isinstance(items[0], Error)
