@@ -77,6 +77,10 @@ jira = [
 kafka = [
     "aiokafka>=0.10",
 ]
+websockets = [
+    "websockets>=12.0",
+    "aiohttp>=3.9.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -109,6 +113,10 @@ disallow_untyped_defs = false
 module = [
     "aiokafka",
     "aiokafka.*",
+    "aiohttp",
+    "aiohttp.*",
+    "websockets",
+    "websockets.*",
     "atlassian.*",
     "boto3.*",
     "botocore.*",

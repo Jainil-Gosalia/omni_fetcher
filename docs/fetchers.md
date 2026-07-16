@@ -57,6 +57,9 @@ async for item in omni.stream("tail:///var/log/app.log?from=end"):
 |---|---|---|---|
 | `tail.TailConnector` | `tail://<path>?from=end\|start\|<byte>&poll=<s>` | `log_line` | `path`, `byte_offset`, `line_number` |
 | `kafka.KafkaConnector` | `kafka://host[:port]/topic?offset=…&offsets=p:o,…&group=id` | `message` | `topic`, `partition`, `offset`, `key`, `timestamp` |
+| `redis.RedisConnector` | `redis://host[:port]/stream-key?offset=$\|0\|<id>&group=id` | `message` | `entry_id`, `timestamp`, `stream` |
+| `websocket.WebSocketConnector` | `ws(s)://host[:port]/path?token=&auth=&sequence=<n>` | `message` | `url`, `handshake_timestamp`, `sequence`, `close_code` |
+| `sse.SSEConnector` | `sse(s)://host[:port]/path?token=&auth=&sequence=<n>` | `message` | `url`, `handshake_timestamp`, `sequence`, `close_code` |
 
 Configuration lives in the URI query (the only channel that survives the
 orchestrator). Key semantics:
@@ -71,12 +74,18 @@ orchestrator). Key semantics:
 - **Kafka is stateless by default** (assign+seek, no commits); `?group=<id>`
   opts into a committing consumer group whose server-side state the host
   owns — the one deliberate exception to read-only determinism.
+- **WebSocket/SSE are ephemeral.** Every message is a plain `Text` atom (no
+  JSON parsing — a host-side concern); auth travels as `?token=<value>` or
+  `?auth=Bearer+<token>` in the URI. Unlike Kafka/Redis, a message lost while
+  disconnected cannot be recovered — `?sequence=<n>` only prevents
+  duplicates on resume, it does not replay history.
 
 ### Resuming a dropped stream
 
 `stream_with_restart` wraps a stream with `RetryPolicy`, swallowing retryable
 ends and reopening from the last item's position (tail `byte_offset` →
-`?from=`, kafka accumulated offsets → `?offsets=p:o+1`):
+`?from=`, kafka accumulated offsets → `?offsets=p:o+1`, redis `entry_id` →
+`?offset=`, websocket/sse `sequence` → `?sequence=<n+1>`):
 
 ```python
 from omni_fetcher.v1 import RetryPolicy, stream_with_restart
@@ -97,10 +106,14 @@ non-retryable terminal error passes straight through.
 ```bash
 omni-fetcher v1 stream "tail:///var/log/app.log?from=end" --max-items 100
 omni-fetcher v1 stream "kafka://localhost:9092/events?offset=earliest" --json
+omni-fetcher v1 stream "ws://live.example.com/events?token=abc" --json
+omni-fetcher v1 stream "sse://events.example.com/live?auth=Bearer+tok" --json
 ```
 
 NDJSON out (one `Result` per line), `--max-items` to bound a run, Ctrl-C to
-stop cleanly (exit 130). Kafka needs the extra: `pip install "omni-fetcher[kafka]"`.
+stop cleanly (exit 130). Kafka needs the `kafka` extra
+(`pip install "omni-fetcher[kafka]"`); WebSocket/SSE need the `websockets`
+extra (`pip install "omni-fetcher[websockets]"`).
 
 ## Zoom: semantic decomposition depth
 

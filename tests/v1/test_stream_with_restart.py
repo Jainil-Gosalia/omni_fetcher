@@ -230,6 +230,40 @@ async def test_redis_resume_derives_from_entry_id() -> None:
     assert _query(target.uris[1]).get("db") is None  # Original params preserved
 
 
+async def test_websocket_resume_derives_from_sequence() -> None:
+    """A websocket item's sequence becomes ?sequence=<n+1> on the restart URI."""
+    target = _ScriptedTarget(
+        [
+            [_item("m1", namespace="websocket", sequence=5), _err()],
+            [_item("m2", namespace="websocket", sequence=6)],
+        ]
+    )
+    policy = RetryPolicy(max_attempts=2, initial_delay=0.0)
+
+    await _drain(
+        stream_with_restart(target, "ws://host/events", policy=policy, sleep=_Sleeper())
+    )
+
+    assert _query(target.uris[1])["sequence"] == "6"
+
+
+async def test_sse_resume_derives_from_sequence() -> None:
+    """An sse item's sequence becomes ?sequence=<n+1> on the restart URI."""
+    target = _ScriptedTarget(
+        [
+            [_item("m1", namespace="sse", sequence=100), _err()],
+            [_item("m2", namespace="sse", sequence=101)],
+        ]
+    )
+    policy = RetryPolicy(max_attempts=2, initial_delay=0.0)
+
+    await _drain(
+        stream_with_restart(target, "sse://host/live", policy=policy, sleep=_Sleeper())
+    )
+
+    assert _query(target.uris[1])["sequence"] == "101"
+
+
 async def test_custom_resume_deriver_overrides_builtins() -> None:
     """A resume callable takes precedence over namespace derivation."""
     target = _ScriptedTarget(

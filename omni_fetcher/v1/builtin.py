@@ -92,6 +92,22 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         (),
     ),
     (
+        "websocket",
+        f"{_CONNECTORS_PKG}.websocket",
+        "WebSocketConnector",
+        ("ws://*", "wss://*"),
+        10,
+        ("websockets",),
+    ),
+    (
+        "sse",
+        f"{_CONNECTORS_PKG}.sse",
+        "SSEConnector",
+        ("sse://*", "sses://*"),
+        10,
+        ("aiohttp",),
+    ),
+    (
         "notion",
         f"{_CONNECTORS_PKG}.notion",
         "NotionConnector",

@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-07-16
+
+Live streams: WebSocket and Server-Sent Events connectors on the `stream()`
+seam, following the v1.2 (Kafka/tail) and v1.3 (Redis Streams) pattern.
+
+### Added
+- **`websocket` connector** — `ws://host[:port]/path?token=&auth=&sequence=<n>`
+  emits one `Result` per message (kind `message`, raw payload as a plain
+  `Text` atom, url/handshake_timestamp/sequence/close_code in
+  `source_extra["websocket"]`). Auth and resume position travel as URI
+  query params, forwarded verbatim to the server. Connection loss yields
+  one typed `TRANSIENT`; a clean close (RFC 6455 code 1000/1001 — the
+  server ending the stream on purpose) ends the stream with no `Error`,
+  so `stream_with_restart` doesn't waste attempts reconnecting to a
+  finished stream. `fetch()` is a typed `UNSUPPORTED`.
+- **`sse` connector** — `sse://host[:port]/path?token=&auth=&sequence=<n>`
+  (and `sses://` for TLS) emits one `Result` per dispatched event (kind
+  `message`, raw `data:` payload as a plain `Text` atom, same
+  `source_extra["sse"]` shape as websocket). A server-assigned `id:` field
+  becomes the resume sequence; falls back to receipt order otherwise.
+- Both connectors are behind a new `websockets` extra
+  (`pip install "omni-fetcher[websockets]"`, pulling in `websockets` and
+  `aiohttp`); skipped by `builtin_registry()` when absent.
+- `stream_with_restart`'s resume-URI derivation (`retry.py`) gained
+  `websocket`/`sse` branches: `source_extra[...]["sequence"]` maps to
+  `?sequence=<n+1>` on reconnect, alongside the existing tail/kafka/redis
+  branches.
+
+### Design notes
+- Ephemeral vs. durable tradeoff: unlike Kafka/Redis Streams, a message
+  lost while disconnected cannot be recovered — resume only prevents
+  duplicate delivery, not data loss.
+- No JSON parsing of message content (core decomposes, doesn't transform);
+  SSE's `data:`/`id:`/blank-line wire format is parsed as protocol framing,
+  the same way Kafka's record envelope or tail's line-splitting are.
+
 ## [1.2.0] - 2026-07-12
 
 Streaming: the first unbounded connectors on the `stream()` seam, a

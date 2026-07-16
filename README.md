@@ -316,6 +316,9 @@ not `fetch()` (which returns `UNSUPPORTED`):
 |---|---|---|---|
 | `tail.TailConnector` | `tail://<path>?from=end\|start\|<byte>&poll=<s>` | — | — |
 | `kafka.KafkaConnector` | `kafka://host[:port]/topic?offset=latest\|earliest\|<n>&group=<id>` | — | `kafka` |
+| `redis.RedisConnector` | `redis://host[:port]/stream-key?offset=$\|0\|<id>&group=<id>` | — | — |
+| `websocket.WebSocketConnector` | `ws://host[:port]/path?token=&auth=&sequence=<n>` | via URI query | `websockets` |
+| `sse.SSEConnector` | `sse://host[:port]/path?token=&auth=&sequence=<n>` | via URI query | `websockets` |
 
 ```python
 from omni_fetcher.v1 import AtomKind, OmniFetcher, Success, builtin_registry
@@ -330,9 +333,9 @@ async for item in omni.stream("tail:///var/log/app.log?from=end"):
 ```
 
 Each item carries its resume position in `source_extra` (tail `byte_offset`,
-kafka `partition`/`offset`). A dropped stream (rotated file, broker blip)
-ends with a typed `Error(TRANSIENT)`; `stream_with_restart` resumes it from
-the last position:
+kafka `partition`/`offset`, websocket/sse `sequence`). A dropped stream
+(rotated file, broker blip, closed socket) ends with a typed
+`Error(TRANSIENT)`; `stream_with_restart` resumes it from the last position:
 
 ```python
 from omni_fetcher.v1 import RetryPolicy, stream_with_restart
@@ -347,11 +350,17 @@ Kafka is stateless by default (no consumer group, no commits — start from
 `?offset=` and resume via the per-message positions); `?group=<id>` opts into
 committing consumer-group semantics that the host owns.
 
-From the CLI, stream as NDJSON:
+WebSocket/SSE messages are always plain `Text` (no JSON parsing — that's a
+host-side concern); auth travels as `?token=<value>` or `?auth=Bearer+<token>`
+in the URI, and `?sequence=<n>` seeds/resumes numbering since these sources
+are ephemeral (a message lost while disconnected cannot be recovered, but
+resume prevents duplicates):
 
 ```bash
 omni-fetcher v1 stream "tail:///var/log/app.log?from=end" --max-items 100
 omni-fetcher v1 stream "kafka://localhost:9092/events?offset=earliest" --json
+omni-fetcher v1 stream "ws://live.example.com/events?token=abc" --json
+omni-fetcher v1 stream "sse://events.example.com/live?auth=Bearer+tok" --json
 ```
 
 ## Design guarantees

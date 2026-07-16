@@ -256,6 +256,7 @@ async def stream_with_restart(
       ``?offsets=<partition>:<offset+1>,...`` (resume AFTER each consumed
       message)
     - ``source_extra["redis"].entry_id`` -> ``?offset=<entry-id>``
+    - ``source_extra["websocket"|"sse"].sequence`` -> ``?sequence=<n+1>``
     - no data item seen yet -> the original URI
 
     NOTE:
@@ -365,4 +366,8 @@ def _resume_uri(
         entry_id = fields.get("entry_id")
         if isinstance(entry_id, str):
             return _with_query_params(uri, {"offset": entry_id})
+    elif namespace in ("websocket", "sse"):
+        sequence = fields.get("sequence")
+        if isinstance(sequence, int):
+            return _with_query_params(uri, {"sequence": str(sequence + 1)})
     return uri

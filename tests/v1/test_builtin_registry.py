@@ -71,6 +71,17 @@ ROUTES: list[tuple[str, str]] = [
     ("C:\\Users\\me\\notes.txt", "LocalFileFetcher"),
 ]
 
+# Routed only when their optional extras are probed available (see the
+# extras section below) -- kept separate from ROUTES since a stock test
+# environment has neither aiokafka, websockets, nor aiohttp installed.
+EXTRA_GATED_ROUTES: list[tuple[str, str]] = [
+    ("kafka://broker:9092/events?offset=latest", "KafkaConnector"),
+    ("ws://live.example.com/events", "WebSocketConnector"),
+    ("wss://live.example.com/events", "WebSocketConnector"),
+    ("sse://events.example.com/live", "SSEConnector"),
+    ("sses://events.example.com/live", "SSEConnector"),
+]
+
 
 @pytest.mark.parametrize(("uri", "expected"), ROUTES)
 async def test_documented_uri_shapes_route(uri: str, expected: str) -> None:
@@ -179,6 +190,50 @@ async def test_kafka_is_skipped_without_the_extra(monkeypatch) -> None:
     registry = builtin_registry()
 
     assert "kafka" not in [definition.name for definition in registry.definitions()]
+    assert registry.resolve("tail:///var/log/app.log") is not None
+
+
+@pytest.mark.parametrize(("uri", "expected"), EXTRA_GATED_ROUTES)
+async def test_documented_uri_shapes_route_when_extra_available(
+    monkeypatch, uri: str, expected: str
+) -> None:
+    """With every optional extra probed available, gated sources still route."""
+    monkeypatch.setattr(builtin_module, "_extra_available", lambda module: True)
+
+    registry = builtin_registry()
+
+    resolved = registry.resolve(uri)
+    assert resolved is not None, f"no source claimed {uri!r}"
+    assert resolved.__name__ == expected
+
+
+async def test_websocket_is_skipped_without_the_extra(monkeypatch) -> None:
+    """Without websockets, ws(s):// sources are skipped; others survive."""
+    real_probe = builtin_module._extra_available
+    monkeypatch.setattr(
+        builtin_module,
+        "_extra_available",
+        lambda module: False if module == "websockets" else real_probe(module),
+    )
+
+    registry = builtin_registry()
+
+    assert "websocket" not in [definition.name for definition in registry.definitions()]
+    assert registry.resolve("tail:///var/log/app.log") is not None
+
+
+async def test_sse_is_skipped_without_the_extra(monkeypatch) -> None:
+    """Without aiohttp, sse(s):// sources are skipped; others survive."""
+    real_probe = builtin_module._extra_available
+    monkeypatch.setattr(
+        builtin_module,
+        "_extra_available",
+        lambda module: False if module == "aiohttp" else real_probe(module),
+    )
+
+    registry = builtin_registry()
+
+    assert "sse" not in [definition.name for definition in registry.definitions()]
     assert registry.resolve("tail:///var/log/app.log") is not None
 
 
