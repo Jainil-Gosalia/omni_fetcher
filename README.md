@@ -306,6 +306,22 @@ print(node.metadata.content_hash)  # stable fingerprint of content + children
 | `slack.SlackConnector` | `slack://channel/ID`, threads, DMs | `BearerAuth` (bot token) | — |
 | `sharepoint.SharePointConnector` | `sharepoint://site[/Library[/file]]` | `OAuth2Auth` (Graph token) | — |
 | `linear.LinearConnector` | Linear issues/teams/projects | `BearerAuth` / `ApiKeyAuth` | — |
+| `elasticsearch.ElasticsearchFetcher` | `es://host[:port]/index?q=&size=&scroll=&user=&password=&api_key=` | via URI query | `elasticsearch` |
+
+`ElasticsearchFetcher` is bounded, not streaming: `fetch()` drives the scroll
+API internally (page size capped, `?size=` bounds the total) and returns one
+`Result` whose tree is a `search_results` container node with one
+`json_document` child per matching document:
+
+```python
+result = await omni.fetch("es://search.example.com/logs?q=level:error&size=500")
+if isinstance(result, Success):
+    for doc in result.tree.children:
+        print(doc.find_atoms(AtomKind.TEXT)[0].content)
+```
+
+A query matching zero documents is `Error(NOT_FOUND)`; a scroll failure
+partway through returns a `Partial` with the documents collected so far.
 
 ### Streaming (unbounded) connectors
 

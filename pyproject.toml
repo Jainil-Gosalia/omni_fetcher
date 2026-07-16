@@ -81,6 +81,9 @@ websockets = [
     "websockets>=12.0",
     "aiohttp>=3.9.0",
 ]
+elasticsearch = [
+    "elasticsearch>=8.0,<9.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -117,6 +120,8 @@ module = [
     "aiohttp.*",
     "websockets",
     "websockets.*",
+    "elasticsearch",
+    "elasticsearch.*",
     "atlassian.*",
     "boto3.*",
     "botocore.*",

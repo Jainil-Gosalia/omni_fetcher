@@ -40,6 +40,29 @@ a value, never a raise.
 | `slack.SlackConnector` | `slack://channel/ID`, threads, DMs | `BearerAuth` | — |
 | `sharepoint.SharePointConnector` | `sharepoint://site[/Library[/file]]` | `OAuth2Auth` | — |
 | `linear.LinearConnector` | `linear://issue/ABC-1`, `linear.app` URLs | `Bearer`/`ApiKeyAuth` | — |
+| `elasticsearch.ElasticsearchFetcher` | `es://host[:port]/index?q=&size=&scroll=&user=&password=&api_key=` | via URI query | `elasticsearch` |
+
+`ElasticsearchFetcher` is bounded (D1): `fetch()` drives Elasticsearch's
+scroll API internally and returns one `Result` — a `search_results`
+container node whose children are `json_document` nodes (one per matching
+document, up to `?size=`, default 100). Each document's `_source` is
+preserved losslessly as a `Text` atom (`format=CODE`); there is no
+`JSONData` atom in v1's atom vocabulary (a closed set — `Text`/`Image`/
+`Audio`/`Video`/`Table`), so JSON bodies are serialised the same way
+`http_json` already does. Query-level facts (`index`, `query`, `doc_count`,
+`total_hits`, `took_ms`) live on the container's `source_extra`; per-document
+facts (`doc_id`, `index`, `score`) live on each document node's own
+`source_extra` — mirroring `confluence`'s space/page split.
+
+```python
+result = await omni.fetch("es://search.example.com/logs?q=level:error&size=500")
+```
+
+A query matching zero documents is `Error(NOT_FOUND)` — never a silent empty
+success. A scroll failure after some documents were already collected
+returns a `Partial` (the documents built so far, plus a typed gap) instead
+of discarding progress. `?user=&password=` (basic auth) or `?api_key=`
+authenticate; scroll cursors are always cleared on cleanup.
 
 ## Streaming (unbounded) sources
 

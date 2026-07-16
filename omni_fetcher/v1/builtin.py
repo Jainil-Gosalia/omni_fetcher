@@ -108,6 +108,14 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         ("aiohttp",),
     ),
     (
+        "elasticsearch",
+        f"{_CONNECTORS_PKG}.elasticsearch",
+        "ElasticsearchFetcher",
+        ("es://*",),
+        10,
+        ("elasticsearch",),
+    ),
+    (
         "notion",
         f"{_CONNECTORS_PKG}.notion",
         "NotionConnector",

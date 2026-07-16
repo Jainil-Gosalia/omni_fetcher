@@ -80,6 +80,7 @@ EXTRA_GATED_ROUTES: list[tuple[str, str]] = [
     ("wss://live.example.com/events", "WebSocketConnector"),
     ("sse://events.example.com/live", "SSEConnector"),
     ("sses://events.example.com/live", "SSEConnector"),
+    ("es://search.example.com:9200/logs?q=error", "ElasticsearchFetcher"),
 ]
 
 
@@ -234,6 +235,21 @@ async def test_sse_is_skipped_without_the_extra(monkeypatch) -> None:
     registry = builtin_registry()
 
     assert "sse" not in [definition.name for definition in registry.definitions()]
+    assert registry.resolve("tail:///var/log/app.log") is not None
+
+
+async def test_elasticsearch_is_skipped_without_the_extra(monkeypatch) -> None:
+    """Without elasticsearch-py, es:// sources are skipped; others survive."""
+    real_probe = builtin_module._extra_available
+    monkeypatch.setattr(
+        builtin_module,
+        "_extra_available",
+        lambda module: False if module == "elasticsearch" else real_probe(module),
+    )
+
+    registry = builtin_registry()
+
+    assert "elasticsearch" not in [definition.name for definition in registry.definitions()]
     assert registry.resolve("tail:///var/log/app.log") is not None
 
 

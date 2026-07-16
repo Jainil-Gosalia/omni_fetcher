@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-07-16
+
+Elasticsearch: a bounded search fetcher on the `fetch()` seam, backed by
+the scroll API for large result sets.
+
+### Added
+- **`elasticsearch` fetcher** — `es://host[:port]/index?q=&size=&scroll=&user=&password=&api_key=`
+  queries an index and returns one `Result`: a `search_results` container
+  node with one `json_document` child per matching document (up to
+  `?size=`, default 100). Each document's `_source` is preserved losslessly
+  as a `Text` atom (`format=CODE`) — the PRD's literal "JSONData atom" does
+  not exist in v1's closed atom vocabulary (`Text`/`Image`/`Audio`/`Video`/
+  `Table`), so JSON bodies are serialised the same way `http_json` already
+  does. Query-level facts (index, query, doc_count, total_hits, took_ms)
+  live on the container's `source_extra["elasticsearch"]`; per-document
+  facts (doc_id, index, score) live on each document node's own
+  `source_extra` — mirrors `confluence`'s space/page split rather than the
+  Kafka/Redis/WebSocket/SSE per-message streaming pattern (this is a
+  **bounded** fetcher: `stream()` yields exactly one item, matching
+  `confluence`).
+- Internally drives Elasticsearch's scroll API to page through large
+  result sets without loading everything into memory; the scroll cursor
+  is always cleared in a `finally`. A missing index is `Error(NOT_FOUND)`;
+  a malformed query is `Error(INVALID_INPUT)`; a connection/scroll failure
+  is `Error(TRANSIENT)` (or a `Partial` if some documents were already
+  collected); zero matches is an honest `Error(NOT_FOUND)`.
+- Behind a new `elasticsearch` extra (`pip install "omni-fetcher[elasticsearch]"`,
+  `elasticsearch-py` 8.x targeting Elasticsearch 7.x+); skipped by
+  `builtin_registry()` when absent.
+
 ## [1.4.0] - 2026-07-16
 
 Live streams: WebSocket and Server-Sent Events connectors on the `stream()`
