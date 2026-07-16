@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.5.1] - 2026-07-16
+
+A packaging fix release: `pip install omni-fetcher` produced a package whose
+CLI could not start and whose documented legacy entry point could not be
+imported. Both faults were invisible in development, where every environment
+installs `-e ".[dev,office,...]"` and supplies the missing pieces
+transitively. No API changes.
 
 ### Fixed
 - **CLI was unusable on a clean install** — `omni_fetcher/cli.py` imports
