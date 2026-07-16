@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **CLI was unusable on a clean install** — `omni_fetcher/cli.py` imports
+  `yaml`, but `PyYAML` was never declared in `[project.dependencies]` (only
+  the `types-PyYAML` stub, under the `dev` extra). Every `omni-fetcher`
+  invocation, including `--help`, died with `ModuleNotFoundError: No module
+  named 'yaml'`. `PyYAML>=6.0` is now a runtime dependency. The bug was
+  invisible in development because dev/CI environments pull PyYAML in
+  transitively.
+- **The `office` extra was not actually optional** — `fetchers/docx.py` and
+  `fetchers/pptx.py` raised `ImportError` at *module import* time when
+  `python-docx` / `python-pptx` were absent, and `fetcher.py` imports both
+  eagerly. That broke the documented legacy entry point
+  `from omni_fetcher import OmniFetcher` on a base install, and (via
+  `cli.py`) the CLI as well. Both modules now expose `DOCX_AVAILABLE` /
+  `PPTX_AVAILABLE` and defer the `ImportError` to `fetch()`, matching the
+  existing `confluence` / `jira` pattern. The guidance message is unchanged;
+  it now fires when a DOCX/PPTX is actually fetched rather than at import.
+
+### Packaging
+- Flat-layout auto-discovery was sweeping stray virtualenvs under
+  `omni_fetcher/` into the wheel (`omni_fetcher/venv/Scripts/jp.py`,
+  `vba_extract.py`). Added an explicit `[tool.setuptools.packages.find]`
+  include/exclude so only real packages ship.
+
 ## [1.5.0] - 2026-07-16
 
 Elasticsearch: a bounded search fetcher on the `fetch()` seam, backed by

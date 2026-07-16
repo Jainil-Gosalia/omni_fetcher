@@ -28,6 +28,7 @@ dependencies = [
     "python-dateutil>=2.8.0",
     "typer>=0.9.0",
     "rich>=13.0.0",
+    "PyYAML>=6.0",
     # New for extensions
     "yt-dlp>=2023.0.0",
     "feedparser>=6.0.0",
@@ -84,6 +85,12 @@ websockets = [
 elasticsearch = [
     "elasticsearch>=8.0,<9.0",
 ]
+
+[tool.setuptools.packages.find]
+# Flat layout: without an explicit include, auto-discovery sweeps stray
+# virtualenvs living under omni_fetcher/ into the wheel.
+include = ["omni_fetcher*"]
+exclude = ["omni_fetcher.venv*", "omni_fetcher.vevn*", "tests*", "examples*", "docs*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

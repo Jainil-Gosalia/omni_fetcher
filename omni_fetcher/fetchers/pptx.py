@@ -10,11 +10,6 @@ from typing import Any, List, Optional
 
 import httpx
 
-if importlib.util.find_spec("pptx") is None:
-    raise ImportError(
-        "python-pptx is required for PPTX fetching. Install with: pip install omni_fetcher[office]"
-    )
-
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
 from omni_fetcher.schemas.atomics import (
@@ -27,6 +22,10 @@ from omni_fetcher.schemas.documents import (
     PPTXDocument,
     SlideDocument,
 )
+
+# python-pptx ships in the optional [office] extra; the module must stay
+# importable without it so the legacy top-level API keeps working.
+PPTX_AVAILABLE = importlib.util.find_spec("pptx") is not None
 
 
 @source(
@@ -53,6 +52,12 @@ class PPTXFetcher(BaseFetcher):
 
     async def fetch(self, uri: str, **kwargs: Any) -> PPTXDocument:
         """Fetch and parse a PPTX document."""
+        if not PPTX_AVAILABLE:
+            raise ImportError(
+                "python-pptx is required for PPTX fetching. "
+                'Install with: pip install "omni_fetcher[office]"'
+            )
+
         if uri.startswith("file://"):
             pptx_data = await self._fetch_local(uri)
         else:

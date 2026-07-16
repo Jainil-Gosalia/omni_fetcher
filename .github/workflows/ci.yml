@@ -83,6 +83,84 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
 
+  smoke:
+    name: Base-install smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # setuptools-scm derives the version from git tags.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel
+
+      # A plain "pip install omni-fetcher": the wheel, no extras, not editable.
+      # Every other job installs -e ".[dev,office,...]", which hides undeclared
+      # runtime deps and import-time hard requirements on optional extras.
+      - name: Install the wheel alone
+        run: pip install dist/*.whl
+
+      - name: Assert nothing stray was packaged
+        run: |
+          python - <<'PY'
+          import glob, zipfile
+          names = zipfile.ZipFile(glob.glob("dist/*.whl")[0]).namelist()
+          stray = [n for n in names if "/venv/" in n or "/vevn/" in n]
+          assert not stray, f"stray files packaged into the wheel: {stray}"
+          print(f"wheel clean: {len(names)} entries")
+          PY
+
+      # Runs from a temp dir on purpose: the checkout's ./omni_fetcher source
+      # tree would shadow the installed package and void the whole test.
+      - name: Smoke-test console script and public API
+        run: |
+          cd "$(mktemp -d)"
+          printf '# Title\n\nHello world.\n' > sample.md
+          omni-fetcher --help
+          omni-fetcher version
+          omni-fetcher v1 fetch sample.md
+          python - <<'PY'
+          import asyncio, warnings
+          warnings.filterwarnings("ignore", category=DeprecationWarning, module="omni_fetcher")
+
+          # The legacy entry point is documented in the README and must keep
+          # working on a base install.
+          from omni_fetcher import OmniFetcher  # noqa: F401
+
+          # Fetchers behind optional extras must stay importable without them,
+          # and defer their ImportError to fetch() time.
+          from omni_fetcher.fetchers.docx import DOCXFetcher, DOCX_AVAILABLE
+          from omni_fetcher.fetchers.pptx import PPTXFetcher, PPTX_AVAILABLE
+          assert DOCX_AVAILABLE is False, "expected a base install without [office]"
+          assert PPTX_AVAILABLE is False, "expected a base install without [office]"
+
+          from omni_fetcher.v1 import Success
+          from omni_fetcher.v1.connectors.local_file import LocalFileFetcher
+
+          async def main():
+              result = await LocalFileFetcher().fetch("sample.md")
+              assert isinstance(result, Success), result
+
+              for fetcher, ext in ((DOCXFetcher(), "docx"), (PPTXFetcher(), "pptx")):
+                  try:
+                      await fetcher.fetch(f"x.{ext}")
+                  except ImportError as exc:
+                      assert "omni_fetcher[office]" in str(exc), exc
+                  else:
+                      raise AssertionError(f"{ext}: expected ImportError without [office]")
+
+          asyncio.run(main())
+          print("base install OK: CLI, legacy API, v1 fetch, deferred extras")
+          PY
+
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest

@@ -10,11 +10,6 @@ from typing import Any
 
 import httpx
 
-if importlib.util.find_spec("docx") is None:
-    raise ImportError(
-        "python-docx is required for DOCX fetching. Install with: pip install omni_fetcher[office]"
-    )
-
 from omni_fetcher.core.registry import source
 from omni_fetcher.fetchers.base import BaseFetcher
 from omni_fetcher.schemas.atomics import (
@@ -26,6 +21,10 @@ from omni_fetcher.schemas.atomics import (
 )
 from omni_fetcher.schemas.base import DataCategory, FetchMetadata, MediaType
 from omni_fetcher.schemas.documents import DOCXDocument
+
+# python-docx ships in the optional [office] extra; the module must stay
+# importable without it so the legacy top-level API keeps working.
+DOCX_AVAILABLE = importlib.util.find_spec("docx") is not None
 
 
 @source(
@@ -52,6 +51,12 @@ class DOCXFetcher(BaseFetcher):
 
     async def fetch(self, uri: str, **kwargs: Any) -> DOCXDocument:
         """Fetch and parse a DOCX document."""
+        if not DOCX_AVAILABLE:
+            raise ImportError(
+                "python-docx is required for DOCX fetching. "
+                'Install with: pip install "omni_fetcher[office]"'
+            )
+
         if uri.startswith("file://"):
             docx_data = await self._fetch_local(uri)
         else:
