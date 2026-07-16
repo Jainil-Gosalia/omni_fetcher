@@ -212,6 +212,24 @@ async def test_kafka_resume_accumulates_per_partition_offsets() -> None:
     assert _query(target.uris[1])["offsets"] == "0:6,1:10"
 
 
+async def test_redis_resume_derives_from_entry_id() -> None:
+    """A Redis item's entry_id becomes ?offset= on the restart URI."""
+    target = _ScriptedTarget(
+        [
+            [_item("m1", namespace="redis", entry_id="1526919030474-0"), _err()],
+            [_item("m2", namespace="redis", entry_id="1526919030475-0")],
+        ]
+    )
+    policy = RetryPolicy(max_attempts=2, initial_delay=0.0)
+
+    await _drain(
+        stream_with_restart(target, "redis://localhost/mystream?offset=$", policy=policy, sleep=_Sleeper())
+    )
+
+    assert _query(target.uris[1])["offset"] == "1526919030474-0"
+    assert _query(target.uris[1]).get("db") is None  # Original params preserved
+
+
 async def test_custom_resume_deriver_overrides_builtins() -> None:
     """A resume callable takes precedence over namespace derivation."""
     target = _ScriptedTarget(

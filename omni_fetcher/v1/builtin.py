@@ -84,6 +84,14 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         ("aiokafka",),
     ),
     (
+        "redis",
+        f"{_CONNECTORS_PKG}.redis",
+        "RedisConnector",
+        ("redis://*",),
+        10,
+        (),
+    ),
+    (
         "notion",
         f"{_CONNECTORS_PKG}.notion",
         "NotionConnector",

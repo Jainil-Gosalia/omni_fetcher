@@ -255,6 +255,7 @@ async def stream_with_restart(
     - ``source_extra["kafka"]`` positions accumulated per partition ->
       ``?offsets=<partition>:<offset+1>,...`` (resume AFTER each consumed
       message)
+    - ``source_extra["redis"].entry_id`` -> ``?offset=<entry-id>``
     - no data item seen yet -> the original URI
 
     NOTE:
@@ -360,4 +361,8 @@ def _resume_uri(
             f"{partition}:{offset + 1}" for partition, offset in sorted(kafka_offsets.items())
         )
         return _with_query_params(uri, {"offsets": pairs})
+    elif namespace == "redis":
+        entry_id = fields.get("entry_id")
+        if isinstance(entry_id, str):
+            return _with_query_params(uri, {"offset": entry_id})
     return uri
