@@ -18,14 +18,19 @@ import sys
 from pathlib import Path
 from typing import AsyncIterator, Optional
 
-from mcp.shared.memory import create_connected_server_and_client_session
+import pytest
 
-from omni_fetcher.mcp.server import build_server
-from omni_fetcher.v1 import BaseFetcher, RegistryBuilder, SourceDefinition
-from omni_fetcher.v1.auth import AuthCredential
-from omni_fetcher.v1.atoms import Text, TextFormat
-from omni_fetcher.v1.mapping import build_node
-from omni_fetcher.v1.result import Result, success
+# Skip the whole module when the optional ``mcp`` extra is absent (D12).
+pytest.importorskip("mcp")
+
+from mcp.shared.memory import create_connected_server_and_client_session  # noqa: E402
+
+from omni_fetcher.mcp.server import build_server  # noqa: E402
+from omni_fetcher.v1 import BaseFetcher, RegistryBuilder, SourceDefinition  # noqa: E402
+from omni_fetcher.v1.auth import AuthCredential  # noqa: E402
+from omni_fetcher.v1.atoms import Text, TextFormat  # noqa: E402
+from omni_fetcher.v1.mapping import build_node  # noqa: E402
+from omni_fetcher.v1.result import Result, success  # noqa: E402
 
 # No module-level asyncio mark: this file mixes async protocol tests with one
 # sync subprocess test. The repo runs asyncio_mode="auto", so async tests are

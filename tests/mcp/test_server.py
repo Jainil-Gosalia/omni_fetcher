@@ -13,8 +13,11 @@ from typing import Any, AsyncIterator, Optional
 
 import pytest
 
-from omni_fetcher.mcp.credentials import load_credentials
-from omni_fetcher.mcp.server import build_server
+# Skip the whole module when the optional ``mcp`` extra is absent (D12).
+pytest.importorskip("mcp")
+
+from omni_fetcher.mcp.credentials import load_credentials  # noqa: E402
+from omni_fetcher.mcp.server import build_server  # noqa: E402
 from omni_fetcher.v1 import (
     BaseFetcher,
     RegistryBuilder,

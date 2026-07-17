@@ -43,7 +43,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          # ``mcp`` is a typed dependency, so installing it lets mypy actually
+          # check the MCP server against the SDK's stubs rather than treating
+          # it as Any. Other optional connector deps stay uninstalled and are
+          # handled by the ignore_missing_imports override in pyproject.
+          pip install -e ".[dev,mcp]"
 
       - name: Run mypy
         run: mypy omni_fetcher/
@@ -67,7 +71,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,office,web,gdrive,confluence,slack,jira,kafka]"
+          pip install -e ".[dev,office,web,gdrive,confluence,slack,jira,kafka,mcp]"
 
       # tests/integration hits live services (httpbin, wikipedia,
       # YouTube, ...) and needs real credentials; it is for local,

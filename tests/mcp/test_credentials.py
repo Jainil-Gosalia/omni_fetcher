@@ -10,7 +10,14 @@ from __future__ import annotations
 
 import logging
 
-from omni_fetcher.mcp.credentials import CredentialStore, load_credentials
+import pytest
+
+# The MCP server lives behind the optional ``mcp`` extra. Without it,
+# ``omni_fetcher.mcp`` raises ImportError by design (D12), so skip this whole
+# module rather than fail collection in a core-only environment.
+pytest.importorskip("mcp")
+
+from omni_fetcher.mcp.credentials import CredentialStore, load_credentials  # noqa: E402
 from omni_fetcher.v1.auth import ApiKeyAuth, AwsAuth, BasicAuth, BearerAuth, OAuth2Auth
 
 KNOWN = frozenset({"github", "jira", "s3", "google_drive", "http_url", "stripe"})
