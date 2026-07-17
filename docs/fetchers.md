@@ -83,6 +83,7 @@ async for item in omni.stream("tail:///var/log/app.log?from=end"):
 | `redis.RedisConnector` | `redis://host[:port]/stream-key?offset=$\|0\|<id>&group=id` | `message` | `entry_id`, `timestamp`, `stream` |
 | `websocket.WebSocketConnector` | `ws(s)://host[:port]/path?token=&auth=&sequence=<n>` | `message` | `url`, `handshake_timestamp`, `sequence`, `close_code` |
 | `sse.SSEConnector` | `sse(s)://host[:port]/path?token=&auth=&sequence=<n>` | `message` | `url`, `handshake_timestamp`, `sequence`, `close_code` |
+| `postgres_cdc.PostgresCDCConnector` | `postgres-cdc://host[:port]/database?slot=&user=&password=` | `change` | `table`, `operation`, `lsn`, `timestamp`, `xid`, `slot` |
 
 Configuration lives in the URI query (the only channel that survives the
 orchestrator). Key semantics:
@@ -102,13 +103,27 @@ orchestrator). Key semantics:
   `?auth=Bearer+<token>` in the URI. Unlike Kafka/Redis, a message lost while
   disconnected cannot be recovered — `?sequence=<n>` only prevents
   duplicates on resume, it does not replay history.
+- **Postgres CDC manages its replication slot.** Each row change
+  (INSERT/UPDATE/DELETE, one per `Result`) is a JSON `Text` atom
+  `{op, table, new, old, lsn, timestamp, xid}` decoded from `pgoutput`
+  logical replication (`wal_level=logical` and a replication-capable role
+  required). The slot named by `?slot=` (generated `omni_fetcher_*` when
+  omitted) is created on `stream()` entry, dropped on clean end or
+  abandonment, and deliberately *kept* after a transport failure — its
+  `confirmed_flush_lsn` is the durable resume pointer. The stream starts
+  at the current WAL position: no initial snapshot (run a bounded SQL
+  query first if you need history), no transaction BEGIN/COMMIT markers
+  (`xid` is in the metadata for host-side grouping).
 
 ### Resuming a dropped stream
 
 `stream_with_restart` wraps a stream with `RetryPolicy`, swallowing retryable
 ends and reopening from the last item's position (tail `byte_offset` →
 `?from=`, kafka accumulated offsets → `?offsets=p:o+1`, redis `entry_id` →
-`?offset=`, websocket/sse `sequence` → `?sequence=<n+1>`):
+`?offset=`, websocket/sse `sequence` → `?sequence=<n+1>`, postgres `slot` →
+`?slot=` — the slot itself remembers the LSN, so no position appears in the
+URI; a slot abandoned after restarts are exhausted must be dropped host-side
+with `SELECT pg_drop_replication_slot(...)`):
 
 ```python
 from omni_fetcher.v1 import RetryPolicy, stream_with_restart
@@ -131,12 +146,14 @@ omni-fetcher v1 stream "tail:///var/log/app.log?from=end" --max-items 100
 omni-fetcher v1 stream "kafka://localhost:9092/events?offset=earliest" --json
 omni-fetcher v1 stream "ws://live.example.com/events?token=abc" --json
 omni-fetcher v1 stream "sse://events.example.com/live?auth=Bearer+tok" --json
+omni-fetcher v1 stream "postgres-cdc://db.example.com/mydb?user=repl&password=…" --max-items 5
 ```
 
 NDJSON out (one `Result` per line), `--max-items` to bound a run, Ctrl-C to
 stop cleanly (exit 130). Kafka needs the `kafka` extra
 (`pip install "omni-fetcher[kafka]"`); WebSocket/SSE need the `websockets`
-extra (`pip install "omni-fetcher[websockets]"`).
+extra (`pip install "omni-fetcher[websockets]"`); Postgres CDC needs the
+`postgres` extra (`pip install "omni-fetcher[postgres]"`).
 
 ## Zoom: semantic decomposition depth
 

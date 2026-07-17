@@ -262,6 +262,26 @@ async def test_sse_resume_derives_from_sequence() -> None:
     assert _query(target.uris[1])["sequence"] == "101"
 
 
+async def test_postgres_resume_derives_from_slot() -> None:
+    """A postgres item's slot becomes ?slot= on the restart URI (no LSN)."""
+    target = _ScriptedTarget(
+        [
+            [_item("c1", namespace="postgres", slot="omni_fetcher_ab12", lsn="0/16B2D80"), _err()],
+            [_item("c2", namespace="postgres", slot="omni_fetcher_ab12", lsn="0/16B2E10")],
+        ]
+    )
+    policy = RetryPolicy(max_attempts=2, initial_delay=0.0)
+
+    await _drain(
+        stream_with_restart(
+            target, "postgres-cdc://db.example.com/mydb", policy=policy, sleep=_Sleeper()
+        )
+    )
+
+    assert _query(target.uris[1])["slot"] == "omni_fetcher_ab12"
+    assert "lsn" not in _query(target.uris[1])  # slot pointer, never an LSN
+
+
 async def test_custom_resume_deriver_overrides_builtins() -> None:
     """A resume callable takes precedence over namespace derivation."""
     target = _ScriptedTarget(

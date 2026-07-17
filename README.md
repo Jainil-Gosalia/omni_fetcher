@@ -335,6 +335,7 @@ not `fetch()` (which returns `UNSUPPORTED`):
 | `redis.RedisConnector` | `redis://host[:port]/stream-key?offset=$\|0\|<id>&group=<id>` | — | — |
 | `websocket.WebSocketConnector` | `ws://host[:port]/path?token=&auth=&sequence=<n>` | via URI query | `websockets` |
 | `sse.SSEConnector` | `sse://host[:port]/path?token=&auth=&sequence=<n>` | via URI query | `websockets` |
+| `postgres_cdc.PostgresCDCConnector` | `postgres-cdc://host[:port]/database?slot=&user=&password=` | via URI query | `postgres` |
 
 ```python
 from omni_fetcher.v1 import AtomKind, OmniFetcher, Success, builtin_registry
@@ -349,7 +350,7 @@ async for item in omni.stream("tail:///var/log/app.log?from=end"):
 ```
 
 Each item carries its resume position in `source_extra` (tail `byte_offset`,
-kafka `partition`/`offset`, websocket/sse `sequence`). A dropped stream
+kafka `partition`/`offset`, websocket/sse `sequence`, postgres `slot`). A dropped stream
 (rotated file, broker blip, closed socket) ends with a typed
 `Error(TRANSIENT)`; `stream_with_restart` resumes it from the last position:
 
@@ -370,13 +371,22 @@ WebSocket/SSE messages are always plain `Text` (no JSON parsing — that's a
 host-side concern); auth travels as `?token=<value>` or `?auth=Bearer+<token>`
 in the URI, and `?sequence=<n>` seeds/resumes numbering since these sources
 are ephemeral (a message lost while disconnected cannot be recovered, but
-resume prevents duplicates):
+resume prevents duplicates).
+
+Postgres CDC (`postgres-cdc://`) streams row-level INSERT/UPDATE/DELETE
+changes via logical replication — each change is one `Result` whose `Text`
+atom is JSON `{op, table, new, old, lsn, timestamp, xid}`. The connector
+creates and drops its replication slot itself (`?slot=` to name it); after a
+transport failure the slot is kept so `stream_with_restart` resumes from its
+`confirmed_flush_lsn` with no change loss. Requires `wal_level=logical` and
+the `postgres` extra (`pip install "omni-fetcher[postgres]"`):
 
 ```bash
 omni-fetcher v1 stream "tail:///var/log/app.log?from=end" --max-items 100
 omni-fetcher v1 stream "kafka://localhost:9092/events?offset=earliest" --json
 omni-fetcher v1 stream "ws://live.example.com/events?token=abc" --json
 omni-fetcher v1 stream "sse://events.example.com/live?auth=Bearer+tok" --json
+omni-fetcher v1 stream "postgres-cdc://db.example.com/mydb?user=repl&password=…" --max-items 5
 ```
 
 ## Design guarantees

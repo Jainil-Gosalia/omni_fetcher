@@ -108,6 +108,14 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         ("aiohttp",),
     ),
     (
+        "postgres_cdc",
+        f"{_CONNECTORS_PKG}.postgres_cdc",
+        "PostgresCDCConnector",
+        ("postgres-cdc://*",),
+        10,
+        ("asyncpg",),
+    ),
+    (
         "elasticsearch",
         f"{_CONNECTORS_PKG}.elasticsearch",
         "ElasticsearchFetcher",
@@ -248,7 +256,9 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         "LocalFileFetcher",
         # Fallback: anything without a URI scheme is treated as a local
         # path. Unknown schemes (nope://x) match nothing and stay NOT_FOUND.
-        (r"re:^(?!\w+://)",),
+        # The scheme charset follows RFC 3986 (letters, digits, +, -, .) so
+        # hyphenated schemes like postgres-cdc:// never fall through here.
+        (r"re:^(?![A-Za-z][A-Za-z0-9+.-]*://)",),
         95,
         (),
     ),

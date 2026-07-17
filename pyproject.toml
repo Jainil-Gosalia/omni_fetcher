@@ -85,6 +85,9 @@ websockets = [
 elasticsearch = [
     "elasticsearch>=8.0,<9.0",
 ]
+postgres = [
+    "asyncpg>=0.29",
+]
 
 [tool.setuptools.packages.find]
 # Flat layout: without an explicit include, auto-discovery sweeps stray
@@ -123,6 +126,8 @@ disallow_untyped_defs = false
 module = [
     "aiokafka",
     "aiokafka.*",
+    "asyncpg",
+    "asyncpg.*",
     "aiohttp",
     "aiohttp.*",
     "websockets",

@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-07-17
+
+### Added
+- **PostgreSQL CDC connector (v1.6)** — `PostgresCDCConnector`
+  (`postgres-cdc://host[:port]/database?slot=&user=&password=`) streams
+  row-level changes via PostgreSQL logical replication (built-in `pgoutput`
+  plugin) on the `stream()` seam. Each INSERT/UPDATE/DELETE is one `Result`:
+  a `kind="change"` node whose `Text` atom is JSON
+  `{op, table, new, old, lsn, timestamp, xid}`, with the same facts (plus
+  the slot name) in `source_extra["postgres"]`. One `Result` per row change;
+  no transaction BEGIN/COMMIT markers (`xid` supports host-side grouping).
+  The stream starts at the current WAL position — no initial snapshot.
+- **Connector-managed replication slots** — the slot named by `?slot=` (a
+  generated `omni_fetcher_<uuid>` name when omitted) is created — or reused —
+  on `stream()` entry and dropped on clean end or abandonment. After a
+  transport failure (one typed `Error(TRANSIENT)`, as with Kafka/Redis/tail)
+  the slot is deliberately kept: its `confirmed_flush_lsn` is the durable
+  resume pointer.
+- **Slot-based restart derivation** — `stream_with_restart` now derives
+  `?slot=<name>` from `source_extra["postgres"]` when reopening a dropped
+  CDC stream, so the reconnect reattaches to the same slot and continues
+  from its flush LSN with no duplicates and no gaps (no LSN ever appears in
+  the URI).
+- **`postgres` extra** — asyncpg is optional; `builtin_registry()` skips
+  `postgres-cdc://` when it is missing and direct use yields a typed
+  `UNSUPPORTED` naming the extra (`pip install "omni-fetcher[postgres]"`).
+
+### Fixed
+- **Hyphenated URI schemes no longer fall through to the local-file
+  fallback** — the schemeless-path pattern in `builtin_registry()` now
+  recognises the full RFC 3986 scheme charset (letters, digits, `+`, `-`,
+  `.`), so `postgres-cdc://` on an install without the extra stays a clean
+  unrouted `NOT_FOUND` instead of being misread as a relative path.
+
 ## [1.5.1] - 2026-07-16
 
 A packaging fix release: `pip install omni-fetcher` produced a package whose

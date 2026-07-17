@@ -257,6 +257,8 @@ async def stream_with_restart(
       message)
     - ``source_extra["redis"].entry_id`` -> ``?offset=<entry-id>``
     - ``source_extra["websocket"|"sse"].sequence`` -> ``?sequence=<n+1>``
+    - ``source_extra["postgres"].slot`` -> ``?slot=<name>`` (the slot's
+      ``confirmed_flush_lsn`` is the resume position; no LSN in the URI)
     - no data item seen yet -> the original URI
 
     NOTE:
@@ -370,4 +372,8 @@ def _resume_uri(
         sequence = fields.get("sequence")
         if isinstance(sequence, int):
             return _with_query_params(uri, {"sequence": str(sequence + 1)})
+    elif namespace == "postgres":
+        slot = fields.get("slot")
+        if isinstance(slot, str):
+            return _with_query_params(uri, {"slot": slot})
     return uri
