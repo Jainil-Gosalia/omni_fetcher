@@ -23,7 +23,7 @@ import typer
 from rich.console import Console
 from rich.tree import Tree
 
-from omni_fetcher.v1.atoms import Atom, AtomKind
+from omni_fetcher.v1.atoms import Atom
 from omni_fetcher.v1.auth import (
     ApiKeyAuth,
     AuthCredential,
@@ -36,7 +36,7 @@ from omni_fetcher.v1.builtin import builtin_registry
 from omni_fetcher.v1.node import CompositionNode
 from omni_fetcher.v1.orchestrator import OmniFetcher
 from omni_fetcher.v1.result import Error, Partial, Result
-from omni_fetcher.v1.zoom import DepthLevel, ZoomSpec
+from omni_fetcher.v1.zoom import ZoomSpec, parse_zoom_spec
 
 v1_app = typer.Typer(
     help="v1 canonical-contract commands (one typed Result shape per fetch).",
@@ -98,21 +98,15 @@ def _credential_from(
 
 
 def _zoom_from(zoom: Optional[str]) -> Optional[ZoomSpec]:
-    """Parse ``--zoom text=paragraph,image=whole`` into a ``ZoomSpec``."""
-    if not zoom:
-        return None
-    per_type: dict[AtomKind, DepthLevel] = {}
-    for pair in zoom.split(","):
-        key, _, value = pair.partition("=")
-        try:
-            per_type[AtomKind(key.strip())] = DepthLevel(value.strip())
-        except ValueError as exc:
-            raise typer.BadParameter(
-                f"bad --zoom entry {pair!r}: expected <atom-kind>=<depth-level> "
-                f"(kinds: {', '.join(k.value for k in AtomKind)}; levels: "
-                f"{', '.join(level.value for level in DepthLevel)})"
-            ) from exc
-    return ZoomSpec(per_type=per_type)
+    """Parse ``--zoom text=paragraph,image=whole`` into a ``ZoomSpec``.
+
+    Delegates to the shared ``parse_zoom_spec`` (one zoom syntax across the
+    CLI and MCP server) and re-raises its ``ValueError`` in typer's idiom.
+    """
+    try:
+        return parse_zoom_spec(zoom)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
 
 def _atom_label(atom: Atom) -> str:

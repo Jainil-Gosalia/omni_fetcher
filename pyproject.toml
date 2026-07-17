@@ -39,6 +39,7 @@ dependencies = [
 
 [project.scripts]
 omni-fetcher = "omni_fetcher.cli:main"
+omni-fetcher-mcp = "omni_fetcher.mcp.__main__:main"
 
 [project.optional-dependencies]
 dev = [
@@ -87,6 +88,9 @@ elasticsearch = [
 ]
 postgres = [
     "asyncpg>=0.29",
+]
+mcp = [
+    "mcp>=1.0",
 ]
 
 [tool.setuptools.packages.find]

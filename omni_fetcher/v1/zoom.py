@@ -129,6 +129,46 @@ class ZoomSpec(BaseModel):
         return self.per_type.get(atom_kind, self.default)
 
 
+def parse_zoom_spec(zoom: str | None) -> ZoomSpec | None:
+    """
+    Parse a ``text=paragraph,image=whole`` string into a ``ZoomSpec``
+
+    The one textual zoom syntax, shared by every host surface (the CLI and
+    the MCP server) so a user learns it once. Comma-separated
+    ``<atom-kind>=<depth-level>`` pairs; an empty or ``None`` input means
+    "natural granularity everywhere" and returns ``None``.
+
+    Raises a plain ``ValueError`` (naming the bad entry and the valid kinds
+    and levels) rather than any framework-specific error, so each caller can
+    surface it in its own idiom -- the CLI wraps it as a ``typer`` parameter
+    error, the MCP server maps it onto ``Error(INVALID_INPUT)``.
+
+    Parameters
+    ----------
+        zoom:
+            The zoom string, or ``None`` / empty for natural granularity.
+
+    Return
+    ------
+        spec:
+            The parsed ``ZoomSpec``, or ``None`` when no zoom was requested.
+    """
+    if not zoom:
+        return None
+    per_type: dict[AtomKind, DepthLevel] = {}
+    for pair in zoom.split(","):
+        key, _, value = pair.partition("=")
+        try:
+            per_type[AtomKind(key.strip())] = DepthLevel(value.strip())
+        except ValueError as exc:
+            raise ValueError(
+                f"bad zoom entry {pair!r}: expected <atom-kind>=<depth-level> "
+                f"(kinds: {', '.join(k.value for k in AtomKind)}; levels: "
+                f"{', '.join(level.value for level in DepthLevel)})"
+            ) from exc
+    return ZoomSpec(per_type=per_type)
+
+
 def resolve_level(
     spec: ZoomSpec,
     atom_kind: AtomKind,

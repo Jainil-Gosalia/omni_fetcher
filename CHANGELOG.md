@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **MCP server (`omni-fetcher-mcp`)** — an stdio Model Context Protocol server
+  behind the new `mcp` extra (`pip install omni_fetcher[mcp]`), wrapping
+  `OmniFetcher(builtin_registry())` so Claude (or any MCP client) can fetch any
+  built-in source through the v1 contract with no user-written glue. Two tools:
+  - `fetch(uri, zoom?, tags?)` — routes a URI through the registry and returns
+    the canonical `Result` as JSON (round-trips through `ResultAdapter`).
+    Bounded sources only; an unbounded source returns the connector's own typed
+    `unsupported` pointing at the CLI.
+  - `list_sources()` — every routable source with its URI patterns and a
+    bounded/unbounded flag.
+- **Host-configured credentials, never model-supplied** — the server resolves
+  credentials once at startup from `OMNI_FETCHER_<SOURCE>_<FIELD>` env vars into
+  an in-memory map and injects them per call into the stateless orchestrator.
+  The `fetch` tool has no credential parameter, so a token never enters the
+  model's context, transcripts, or logs. An auth-requiring source with nothing
+  configured returns a typed `auth_failed` naming the env var to set.
+- **Result size guard** — a serialised tool result over `--max-bytes`
+  (default 1 MiB) degrades to a `partial` with a typed `Gap` naming the dropped
+  subtrees, rather than flooding the model's context or truncating silently.
+- **`parse_zoom_spec`** — the `text=paragraph,image=whole` zoom parser is now a
+  shared helper (`omni_fetcher.v1.zoom`) used by both the CLI and the MCP server.
+
 ## [1.6.1] - 2026-07-17
 
 ### Added
