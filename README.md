@@ -389,6 +389,19 @@ omni-fetcher v1 stream "sse://events.example.com/live?auth=Bearer+tok" --json
 omni-fetcher v1 stream "postgres-cdc://db.example.com/mydb?user=repl&password=…" --max-items 5
 ```
 
+## Agent skill
+
+If you drive OmniFetcher from Claude Code or another agentic system, install the
+bundled skill and the agent knows the contract — result states, per-call auth,
+`source_extra`, streaming vs. bounded connectors — without you re-explaining it:
+
+```bash
+cp -r .claude/skills/omni-fetcher ~/.claude/skills/
+```
+
+See [.claude/skills/omni-fetcher/README.md](.claude/skills/omni-fetcher/README.md)
+for project-scoped and non-Claude-Code installs.
+
 ## Design guarantees
 
 - **Stateless everywhere.** Connectors, registry, and orchestrator hold no

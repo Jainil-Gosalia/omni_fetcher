@@ -62,3 +62,6 @@ demo-ideas.md
 
 # Exploratory notes (scratch work)
 docs/maybe_explore.md
+
+# Per-machine Claude Code settings (the shared skill in .claude/skills is tracked)
+.claude/settings.local.json

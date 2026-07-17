@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`postgres` extra** — asyncpg is optional; `builtin_registry()` skips
   `postgres-cdc://` when it is missing and direct use yields a typed
   `UNSUPPORTED` naming the extra (`pip install "omni-fetcher[postgres]"`).
+- **Bundled agent skill** — `.claude/skills/omni-fetcher/` teaches Claude
+  Code (and other agentic systems) the v1 contract: result states, per-call
+  auth, `source_extra`, streaming vs. bounded connectors, and the custom
+  connector pattern. Install with
+  `cp -r .claude/skills/omni-fetcher ~/.claude/skills/`.
 
 ### Fixed
 - **Hyphenated URI schemes no longer fall through to the local-file
