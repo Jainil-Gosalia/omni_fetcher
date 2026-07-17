@@ -221,6 +221,9 @@ async def test_binary_file_returns_partial_with_gap(
     # The undecoded content is surfaced explicitly as a gap, never silently.
     assert len(result.gaps) == 1
     assert result.gaps[0].kind is ErrorKind.UNSUPPORTED
+    # The placeholder atom asserts no syntax: we never decoded these bytes, so
+    # calling them PLAIN would claim they are prose.
+    assert result.tree.find_atoms(AtomKind.TEXT)[0].format is TextFormat.OPAQUE
 
 
 # ---------------------------------------------------------------------------

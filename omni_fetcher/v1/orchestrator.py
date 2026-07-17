@@ -36,6 +36,7 @@ from __future__ import annotations
 from typing import AsyncIterator, Optional, Sequence
 
 from omni_fetcher.v1.auth import AuthCredential, AuthResolver
+from omni_fetcher.v1.decompose import decompose_result
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.node import CompositionNode
 from omni_fetcher.v1.registry import Registry
@@ -208,9 +209,12 @@ class OmniFetcher:
         try:
             async for item in inner:
                 # Central zoom application for the streaming path, mirroring
-                # BaseFetcher.fetch(); pruning is pure and idempotent.
+                # BaseFetcher.fetch(): expand to the requested depth, then
+                # trim past each kind's budget. Both halves are pure and
+                # idempotent, so connectors that already decomposed are
+                # unaffected.
                 if zoom is not None:
-                    item = prune_result(item, zoom)
+                    item = prune_result(decompose_result(item, zoom), zoom)
                 yield _merge_tags(item, tags)
         finally:
             # Deterministically close the connector's generator when the

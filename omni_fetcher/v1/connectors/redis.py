@@ -355,7 +355,9 @@ class RedisConnector(BaseFetcher):
             atoms=[
                 Text(
                     content=content,
-                    format=TextFormat.PLAIN,
+                    # Stream field values are arbitrary decoded bytes, joined
+                    # for transport; no claim is made about their syntax.
+                    format=TextFormat.OPAQUE,
                 )
             ],
             source_url=uri,

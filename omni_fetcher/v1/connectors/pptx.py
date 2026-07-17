@@ -32,9 +32,8 @@ from typing import Any, AsyncIterator, Optional
 
 import httpx
 
-from omni_fetcher.v1.atoms import AtomKind, Image, Table, Text, TextFormat
+from omni_fetcher.v1.atoms import Image, Table, Text, TextFormat
 from omni_fetcher.v1.auth import AuthCredential
-from omni_fetcher.v1.decompose import decompose_result
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.mapping import build_node
@@ -47,7 +46,7 @@ from omni_fetcher.v1.result import (
     partial,
     success,
 )
-from omni_fetcher.v1.zoom import DepthLevel, ZoomSpec
+from omni_fetcher.v1.zoom import ZoomSpec
 
 # Source namespace for descriptive PPTX fields placed in ``source_extra``.
 _PPTX_NAMESPACE = "pptx"
@@ -179,11 +178,12 @@ class PptxConnector(BaseFetcher):
             )
             return
 
+        # Zoom is applied centrally (BaseFetcher.fetch / orchestrator.stream).
+        # Slides already ARE the deck's sections, and central decomposition
+        # preserves that: slide text is PLAIN, which has no section markers of
+        # its own, so a SECTION request leaves the natural slide layer intact
+        # (and does not gap). Finer levels decompose the slide text.
         result: Result = partial(tree, gaps) if gaps else success(tree)
-        if zoom is not None and zoom.level_for(AtomKind.TEXT) is not DepthLevel.SECTION:
-            # Slides already ARE the deck's sections, so SECTION keeps the
-            # natural slide structure; finer levels decompose slide text.
-            result = decompose_result(result, zoom)
         yield result
 
     async def _load_bytes(

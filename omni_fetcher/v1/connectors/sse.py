@@ -360,7 +360,8 @@ class SSEConnector(BaseFetcher):
 
         node = build_node(
             kind=MESSAGE_KIND,
-            atoms=[Text(content=sse_event.data, format=TextFormat.PLAIN)],
+            # Event data is an arbitrary payload, routinely JSON.
+            atoms=[Text(content=sse_event.data, format=TextFormat.OPAQUE)],
             source_url=uri,
             source_namespace=SOURCE_NAMESPACE,
             source_fields={

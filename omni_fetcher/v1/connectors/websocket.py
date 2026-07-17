@@ -329,7 +329,8 @@ class WebSocketConnector(BaseFetcher):
         sequence = counter.next()
         node = build_node(
             kind=MESSAGE_KIND,
-            atoms=[Text(content=content, format=TextFormat.PLAIN)],
+            # A socket frame is an arbitrary payload, routinely JSON.
+            atoms=[Text(content=content, format=TextFormat.OPAQUE)],
             source_url=uri,
             source_namespace=SOURCE_NAMESPACE,
             source_fields={

@@ -355,7 +355,8 @@ class TailConnector(BaseFetcher):
         content = raw.decode("utf-8", errors="replace").rstrip("\r\n")
         node = build_node(
             kind=LINE_KIND,
-            atoms=[Text(content=content, format=TextFormat.PLAIN)],
+            # A log line is arbitrary decoded text, not asserted prose.
+            atoms=[Text(content=content, format=TextFormat.OPAQUE)],
             source_url=uri,
             source_namespace=SOURCE_NAMESPACE,
             source_fields={

@@ -147,7 +147,10 @@ async def test_messages_map_onto_canonical_message_nodes(monkeypatch) -> None:
     assert node.metadata.kind == "message"
     atom = node.find_atoms(AtomKind.TEXT)[0]
     assert atom.content == "first payload"
-    assert atom.format == TextFormat.PLAIN
+    # A broker payload is arbitrary decoded bytes (routinely JSON), so the
+    # connector asserts no syntax for it. PLAIN would claim it is prose and
+    # license zoom to split it on sentence punctuation.
+    assert atom.format == TextFormat.OPAQUE
 
     extra = node.metadata.source_extra["kafka"]
     assert extra["topic"] == "events"

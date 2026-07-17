@@ -46,7 +46,6 @@ from omni_fetcher.v1.result import (
     partial,
     success,
 )
-from omni_fetcher.v1.decompose import decompose_result
 from omni_fetcher.v1.zoom import ZoomSpec
 
 # Source namespace under which all descriptive ``local_file`` fields are stored
@@ -240,11 +239,8 @@ class LocalFileFetcher(BaseFetcher):
                 A bounded async iterator yielding one ``Result``.
         """
         counter = SequenceCounter()
+        # Zoom is applied centrally (BaseFetcher.fetch / orchestrator.stream).
         result = self._read_one(uri)
-        if zoom is not None and not isinstance(result, Error):
-            # Finer-than-natural text zoom: decompose Text atoms into
-            # section/paragraph/sentence child nodes (pure, lossless).
-            result = decompose_result(result, zoom)
         if not isinstance(result, Error):
             # Success / Partial both carry a ``tree`` to stamp; an Error has
             # no node to order.
@@ -296,7 +292,7 @@ class LocalFileFetcher(BaseFetcher):
             # explicit about the gap rather than emit a silent empty success.
             node = build_node(
                 kind=FILE_KIND,
-                atoms=[Text(content="", format=TextFormat.PLAIN)],
+                atoms=[Text(content="", format=TextFormat.OPAQUE)],
                 source_url=uri,
                 updated=datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
                 source_namespace=SOURCE_NAMESPACE,

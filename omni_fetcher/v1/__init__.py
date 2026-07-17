@@ -41,6 +41,7 @@ from omni_fetcher.v1.auth import (
     OAuth2Auth,
 )
 from omni_fetcher.v1.builtin import builtin_registry
+from omni_fetcher.v1.decompose import decompose_result, split_text
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.metadata import (
@@ -112,11 +113,14 @@ __all__ = [
     "match",
     # Error taxonomy
     "ErrorKind",
-    # Zoom
+    # Zoom -- both halves: prune collapses to coarser, decompose expands to
+    # finer. Exporting only one is what let the two drift apart.
     "ZoomSpec",
     "DepthLevel",
     "prune_to_zoom",
     "prune_result",
+    "decompose_result",
+    "split_text",
     # Retry
     "RetryPolicy",
     "fetch_with_retry",

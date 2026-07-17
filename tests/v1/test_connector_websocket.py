@@ -113,7 +113,8 @@ async def test_messages_map_onto_canonical_message_nodes(monkeypatch) -> None:
     assert node.metadata.kind == "message"
     atom = node.find_atoms(AtomKind.TEXT)[0]
     assert atom.content == "first payload"
-    assert atom.format == TextFormat.PLAIN
+    # A socket frame is an arbitrary payload; no syntax is asserted for it.
+    assert atom.format == TextFormat.OPAQUE
 
     extra = node.metadata.source_extra["websocket"]
     assert extra["url"] == URI

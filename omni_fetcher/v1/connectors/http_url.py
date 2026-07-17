@@ -32,7 +32,6 @@ from bs4 import BeautifulSoup
 
 from omni_fetcher.v1.atoms import Text, TextFormat
 from omni_fetcher.v1.auth import AuthCredential, NormalizedAuthResolver
-from omni_fetcher.v1.decompose import decompose_result
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.mapping import (
@@ -235,10 +234,8 @@ class HTTPURLConnector(BaseFetcher):
         node = self._build_webpage_node(uri, response, body)
         seq = SequenceCounter()
         stamp_temporal(node, sequence=seq.next(), timestamp=now_utc())
+        # Zoom is applied centrally (BaseFetcher.fetch / orchestrator.stream).
         result: Result = success(node)
-        if zoom is not None:
-            # Finer-than-natural text zoom (see v1.decompose); lossless.
-            result = decompose_result(result, zoom)
         yield result
 
     def _build_webpage_node(

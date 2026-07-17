@@ -30,7 +30,6 @@ from typing import Any, AsyncIterator, Optional
 
 from omni_fetcher.v1.atoms import Image, Table, Text, TextFormat
 from omni_fetcher.v1.auth import AuthCredential
-from omni_fetcher.v1.decompose import decompose_result
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.mapping import build_node
@@ -167,10 +166,8 @@ class DocxConnector(BaseFetcher):
             source_fields=parsed.source_fields,
         )
 
+        # Zoom is applied centrally (BaseFetcher.fetch / orchestrator.stream).
         result: Result = partial(node, parsed.gaps) if parsed.gaps else success(node)
-        if zoom is not None:
-            # Finer-than-natural text zoom (see v1.decompose); lossless.
-            result = decompose_result(result, zoom)
         yield result
 
 

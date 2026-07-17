@@ -383,7 +383,9 @@ class KafkaConnector(BaseFetcher):
             atoms=[
                 Text(
                     content=value.decode("utf-8", errors="replace"),
-                    format=TextFormat.PLAIN,
+                    # A broker payload is arbitrary bytes: routinely JSON, often
+                    # not prose. We decoded it; we make no claim about its syntax.
+                    format=TextFormat.OPAQUE,
                 )
             ],
             source_url=uri,

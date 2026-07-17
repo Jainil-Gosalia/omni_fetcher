@@ -100,7 +100,8 @@ async def test_node_shape_positions_and_temporal_order(tmp_path: Path) -> None:
         assert node.metadata.kind == "log_line"
         assert node.children == [] or all(not hasattr(child, "children") for child in node.children)
         atom = node.find_atoms(AtomKind.TEXT)[0]
-        assert atom.format == TextFormat.PLAIN
+        # A log line is arbitrary decoded text, not asserted prose.
+        assert atom.format == TextFormat.OPAQUE
         assert not atom.content.endswith("\n")
 
     extra_one = first.tree.metadata.source_extra["tail"]

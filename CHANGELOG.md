@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **`TextFormat.OPAQUE`** — "decoded to text, with no claim about surface
+  syntax". The honest label for content a connector decoded but did not
+  inspect: an arbitrary broker payload, a log line, a socket frame.
+- **Format-aware decomposition** — `split_text()` takes the atom's
+  `TextFormat` and applies that syntax's split rules. Which `(format, level)`
+  pairs are decomposable now lives in exactly one reviewable table
+  (`decompose._SPLIT_RULES`) instead of being implied by markdown regexes.
+  HTML splits on real element boundaries (via the already-present
+  `beautifulsoup4`), and only between top-level siblings, so every piece is a
+  well-formed fragment rather than severed markup.
+- **Central decomposition** — `decompose_result` now runs at the two seams
+  that already applied pruning (`BaseFetcher.fetch()` and
+  `OmniFetcher.stream()`), so *every* connector honours finer-than-natural
+  zoom, including the ~22 that accepted a `ZoomSpec` and ignored it. Order is
+  expand-then-collapse.
+- **`decompose_result` / `split_text` are exported** from `omni_fetcher.v1`,
+  alongside the `prune_result` / `prune_to_zoom` half that was already public.
+
+### Fixed
+- **Zoom no longer shreds JSON and code into fragments that lie about their
+  format.** A `Text` atom with `format=CODE` — emitted by `postgres_cdc`,
+  `http_json`, `graphql`, `elasticsearch`, `github`, `s3`, and `local_file` —
+  was split on prose punctuation, so a CDC record at `text=sentence` returned
+  four `code` atoms, none parseable as JSON, as a **`success` with no gaps**.
+  `CODE` and `OPAQUE` now return whole with a typed `UNSUPPORTED` gap: their
+  content has structure, but not *prose* structure, and reducing it further
+  destroys the meaning (PHILOSOPHY §4).
+- **Zoom is no longer a silent no-op on most connectors.** `text=sentence`
+  against Jira, GitHub, Notion, Slack, Confluence, and the rest returned the
+  natural tree unchanged, with no gap and no error. A requested level is now
+  always either delivered or explained.
+- **Stream connectors no longer mislabel undecoded bytes as prose.** `kafka`,
+  `tail`, `redis`, `sse`, and `websocket` stamped `TextFormat.PLAIN` on
+  `bytes.decode(errors="replace")`; they now emit `OPAQUE`. This was a
+  contract defect independent of zoom — a consumer rendering a JSON broker
+  payload as prose was misled by `format` itself. `local_file` and `s3`
+  likewise now label undecoded binary `OPAQUE` rather than `PLAIN`.
+
+### Changed
+- **BREAKING (contract-visible): `Text.format` now defaults to
+  `TextFormat.OPAQUE`, not `TextFormat.PLAIN`.** An atom whose format nobody
+  asserted previously *claimed to be prose*, which is what made the shredding
+  above possible. No connector relies on the default (all 46 `Text(...)`
+  construction sites assert explicitly), so no built-in source's output
+  changes; the flip disarms the trap for the next connector that forgets.
+  Callers constructing `Text` themselves and relying on the old default must
+  now pass `format=TextFormat.PLAIN` to keep prose decomposition.
+- **`PLAIN` means "positively asserted prose"** and nothing else. Markdown
+  rules are no longer applied to it: a `#` in plain text is not a heading, so
+  `PLAIN` at `SECTION` answers "one section" rather than splitting.
+- Per-connector `decompose_result` calls were removed from `pdf`, `pptx`,
+  `docx`, `local_file`, and `http_url` in favour of the central path.
+  Decomposition is idempotent, so their output is unchanged. `pptx`'s special
+  case (skip decomposition at `SECTION`, because slides already *are* the
+  deck's sections) is now general behaviour: slide text is `PLAIN`, which has
+  no section markers of its own, so the natural slide layer stands.
+
 ## [1.6.0] - 2026-07-17
 
 ### Added

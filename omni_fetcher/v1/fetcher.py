@@ -37,6 +37,7 @@ from abc import ABC, abstractmethod
 from typing import AsyncIterator, Optional
 
 from omni_fetcher.v1.auth import AuthCredential
+from omni_fetcher.v1.decompose import decompose_result
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.metadata import Metadata
 from omni_fetcher.v1.node import CompositionNode
@@ -149,10 +150,11 @@ class BaseFetcher(ABC):
         gaps: list[Gap] = []
         first_error: Optional[Error] = None
 
-        # Central zoom application: the collected tree is pruned to the
-        # spec below, so connectors that ignore ``zoom`` still honor
-        # coarser-than-natural requests (pruning is idempotent for
-        # connectors that already decomposed to the spec).
+        # Central zoom application: the collected tree is decomposed and then
+        # pruned to the spec below, so connectors that ignore ``zoom`` still
+        # honor both finer- and coarser-than-natural requests. Both halves are
+        # pure and idempotent, so a connector that already decomposed to the
+        # spec is unaffected.
         async for item in self.stream(uri, auth=auth, zoom=zoom):
             if isinstance(item, Success):
                 trees.append(item.tree)
@@ -173,7 +175,11 @@ class BaseFetcher(ABC):
         result = self._collect(trees, gaps, first_error, uri)
         if zoom is None:
             return result
-        return prune_result(result, zoom)
+        # Expand first, then collapse: decomposition grows the tree to the
+        # requested depth and pruning trims anything past each atom kind's
+        # budget. The reverse order would trim structure that decomposition
+        # was about to create.
+        return prune_result(decompose_result(result, zoom), zoom)
 
     @staticmethod
     def _collect(

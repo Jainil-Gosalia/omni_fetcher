@@ -1,11 +1,14 @@
 """Text-decomposition rollout tests: http_url, pdf, docx, pptx (issue 009).
 
-The tracer-proven splitter (issue 008) is wired into the remaining
-text-bearing connectors. Each is driven end to end through ``fetch()``:
+Each text-bearing connector is driven end to end through ``fetch()``:
 http_url against a mock transport, docx against a real generated document,
 pdf/pptx through their scripted parse seams (mirroring their own suites).
 pptx maps SECTION onto its existing slide structure instead of re-splitting
 flattened text; no connector changes behavior when zoom is omitted.
+
+These connectors no longer call ``decompose_result`` themselves -- zoom is
+applied centrally (see ``test_zoom_central.py``) -- so this suite now serves
+as the equivalence check that centralizing did not change their output.
 """
 
 from __future__ import annotations
@@ -18,7 +21,7 @@ import httpx
 import pytest
 
 from omni_fetcher.v1 import DepthLevel, ZoomSpec
-from omni_fetcher.v1.atoms import AtomKind, Text
+from omni_fetcher.v1.atoms import AtomKind, Text, TextFormat
 from omni_fetcher.v1.connectors.docx import DocxConnector
 from omni_fetcher.v1.connectors.http_url import HTTPURLConnector
 from omni_fetcher.v1.connectors.pdf import PDFConnector
@@ -89,7 +92,10 @@ def _scripted_pdf(node: CompositionNode) -> PDFConnector:
 
 async def test_pdf_sentence_zoom_decomposes_document_text() -> None:
     """The pdf stream path decomposes its document text at SENTENCE."""
-    node = build_node(kind="document", atoms=[Text(content="One. Two. Three.")])
+    node = build_node(
+        kind="document",
+        atoms=[Text(content="One. Two. Three.", format=TextFormat.PLAIN)],
+    )
     connector = _scripted_pdf(node)
 
     result = await connector.fetch("file:///paper.pdf", zoom=SENTENCE_TEXT)
@@ -102,7 +108,10 @@ async def test_pdf_sentence_zoom_decomposes_document_text() -> None:
 
 async def test_pdf_without_zoom_is_untouched() -> None:
     """No spec, no decomposition -- the natural node passes through."""
-    node = build_node(kind="document", atoms=[Text(content="One. Two. Three.")])
+    node = build_node(
+        kind="document",
+        atoms=[Text(content="One. Two. Three.", format=TextFormat.PLAIN)],
+    )
     connector = _scripted_pdf(node)
 
     result = await connector.fetch("file:///paper.pdf")
@@ -147,8 +156,16 @@ def _scripted_pptx(tree: CompositionNode) -> PptxConnector:
 
 
 def _deck() -> CompositionNode:
-    slide_one = build_node(kind="slide", atoms=[Text(content="Intro. Agenda.")])
-    slide_two = build_node(kind="slide", atoms=[Text(content="Body. Close.")])
+    # PLAIN mirrors what pptx.py actually emits for slide text. The format
+    # default is OPAQUE ("no claim about this syntax"), which would rightly
+    # refuse to decompose -- so an unlabelled fixture would test the refusal
+    # rather than the slide mapping under test.
+    slide_one = build_node(
+        kind="slide", atoms=[Text(content="Intro. Agenda.", format=TextFormat.PLAIN)]
+    )
+    slide_two = build_node(
+        kind="slide", atoms=[Text(content="Body. Close.", format=TextFormat.PLAIN)]
+    )
     return build_node(kind="presentation", children=[slide_one, slide_two])
 
 

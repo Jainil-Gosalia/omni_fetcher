@@ -60,11 +60,23 @@ class TextFormat(str, Enum):
     can render or parse it correctly. This is a property of the *content*
     itself (not descriptive metadata), so it lives on the atom.
     ===============================================
+    NOTE:
+        1. Every member is a positive assertion about the content's syntax,
+           made by the connector that produced it. ``OPAQUE`` is the one
+           member that asserts nothing, and is therefore the default: an
+           unlabelled atom is unknown, never assumed to be prose.
+        2. ``omni_fetcher.v1.decompose`` dispatches on this enum to decide
+           whether content has a prose structure it can split. A wrong label
+           here produces wrong (though still lossless) decomposition, so
+           connectors must assert only what they actually know.
 
     Attributes
     ----------
+        OPAQUE:
+            Decoded to text, with no claim about surface syntax (e.g. an
+            arbitrary broker payload or log line). The default.
         PLAIN:
-            Unformatted plain text.
+            Unformatted plain text, positively asserted to be prose.
         MARKDOWN:
             Markdown-formatted text.
         HTML:
@@ -72,11 +84,12 @@ class TextFormat(str, Enum):
         RST:
             reStructuredText.
         CODE:
-            Source code.
+            Source code or a structured serialisation (e.g. JSON).
         TRANSCRIPT:
             A transcript (e.g. of audio/video), as text.
     """
 
+    OPAQUE = "opaque"
     PLAIN = "plain"
     MARKDOWN = "markdown"
     HTML = "html"
@@ -159,6 +172,12 @@ class Text(Atom):
     ===============================================
     A unit of textual content.
     ===============================================
+    NOTE:
+        1. ``format`` defaults to ``TextFormat.OPAQUE`` -- "we make no claim
+           about this content's syntax" -- so an atom is never *assumed* to
+           be prose. A connector that knows its content is prose (or
+           markdown, HTML, ...) must say so explicitly; that assertion is
+           what licenses ``decompose`` to split it.
 
     Attributes
     ----------
@@ -168,6 +187,7 @@ class Text(Atom):
             The text itself.
         format:
             Surface syntax of ``content`` (plain, markdown, code, ...).
+            Defaults to ``OPAQUE``: unknown unless asserted.
         language:
             Optional BCP-47 / ISO language hint for the content.
         encoding:
@@ -176,7 +196,7 @@ class Text(Atom):
 
     kind: Literal[AtomKind.TEXT] = AtomKind.TEXT
     content: str
-    format: TextFormat = TextFormat.PLAIN
+    format: TextFormat = TextFormat.OPAQUE
     language: Optional[str] = None
     encoding: Optional[str] = None
 

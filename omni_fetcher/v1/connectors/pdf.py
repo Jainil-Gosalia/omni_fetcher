@@ -28,7 +28,6 @@ from pypdf import PdfReader
 
 from omni_fetcher.v1.atoms import Text, TextFormat
 from omni_fetcher.v1.auth import AuthCredential
-from omni_fetcher.v1.decompose import decompose_result
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.mapping import build_node
@@ -168,11 +167,8 @@ class PDFConnector(BaseFetcher):
             )
             return
 
-        result = self._build_result(uri, extraction)
-        if zoom is not None:
-            # Finer-than-natural text zoom (see v1.decompose); lossless.
-            result = decompose_result(result, zoom)
-        yield result
+        # Zoom is applied centrally (BaseFetcher.fetch / orchestrator.stream).
+        yield self._build_result(uri, extraction)
 
     async def _read_bytes(self, uri: str) -> bytes:
         """Read raw PDF bytes from a local path or a remote URL."""

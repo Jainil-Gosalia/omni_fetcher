@@ -450,7 +450,7 @@ class S3Fetcher(BaseFetcher):
         # about the gap rather than emit a silent empty success.
         node = build_node(
             kind=FILE_KIND,
-            atoms=[Text(content="", format=TextFormat.PLAIN)],
+            atoms=[Text(content="", format=TextFormat.OPAQUE)],
             source_url=uri,
             updated=updated,
             source_namespace=SOURCE_NAMESPACE,
