@@ -216,9 +216,7 @@ async def test_idle_stream_yields_transient_and_closes() -> None:
     IdleConnector.closed = False
     server = _server("idle", IdleConnector, "idle")
 
-    data = _payload(
-        await server.call_tool("sample", {"uri": "idle://x", "timeout_seconds": 0.3})
-    )
+    data = _payload(await server.call_tool("sample", {"uri": "idle://x", "timeout_seconds": 0.3}))
 
     assert data["state"] == "error" and data["kind"] == "transient"
     assert "0 items" in data["message"]
@@ -259,9 +257,7 @@ async def test_sample_records_its_stop_metadata() -> None:
     server = _server("inf", InfiniteConnector, "inf")
 
     data = _payload(
-        await server.call_tool(
-            "sample", {"uri": "inf://x", "max_items": 3, "timeout_seconds": 9.0}
-        )
+        await server.call_tool("sample", {"uri": "inf://x", "max_items": 3, "timeout_seconds": 9.0})
     )
 
     extra = _sample_extra(data)
@@ -271,9 +267,7 @@ async def test_sample_records_its_stop_metadata() -> None:
 async def test_sample_applies_zoom_to_each_item() -> None:
     server = _server("prose", ProseStreamConnector, "prose")
 
-    data = _payload(
-        await server.call_tool("sample", {"uri": "prose://x", "zoom": "text=sentence"})
-    )
+    data = _payload(await server.call_tool("sample", {"uri": "prose://x", "zoom": "text=sentence"}))
 
     # The single prose item decomposes into sentence child nodes under it.
     def count_kind(node: dict, kind: str) -> int:
@@ -293,7 +287,9 @@ async def test_sample_injects_the_configured_credential() -> None:
     creds = load_credentials(frozenset({"auth"}), {"OMNI_FETCHER_AUTH_TOKEN": "tok"})
     registry = (
         RegistryBuilder()
-        .add(SourceDefinition(name="auth", fetcher_class=AuthEchoStream, uri_patterns=("auth://*",)))
+        .add(
+            SourceDefinition(name="auth", fetcher_class=AuthEchoStream, uri_patterns=("auth://*",))
+        )
         .build()
     )
     server = build_server(registry, creds)
