@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **MySQL / MariaDB query connector** — `mysql://host[:port]/database` (and a
+  `mariadb://` alias; MariaDB is wire-compatible, so one connector serves both),
+  behind the new `mysql` extra (`aiomysql`). The third connector in the SQL
+  query family, reusing the v1.9 shared spec (`_sql_query`) wholesale — it adds
+  only the driver, the read-only mechanism, and the error mapping.
+  - Same shape as `postgres://`/`sqlite://`: `?table=` / `?query=` /
+    `?query_env=`, `?limit=`, a `kind="query_result"` node with a `Table` atom,
+    facts in `source_extra["mysql"]`.
+  - **Read-only enforced by the engine** — every query runs inside
+    `START TRANSACTION READ ONLY`; a write returns `permission_denied`
+    (MySQL error 1792), no row changes.
+  - **Credentials** as a per-call `BasicAuth`, so the MCP server injects
+    `OMNI_FETCHER_MYSQL_USERNAME` / `_PASSWORD`; URI `?user=`/`?password=` remain
+    a fallback.
+  - Verified against real MySQL 8 and MariaDB 11 (types, read-only refusal,
+    error taxonomy, auth, row cap).
+
+### Changed
+- **The shared SQL query base gained two portability seams**, prompted by MySQL
+  as the spec's second real customer (no behaviour change for existing
+  connectors): a shared `parse_sql_uri` (Postgres now uses it too, replacing its
+  own copy), and a dialect **identifier-quote parameter** on
+  `quote_identifier`/`build_select_star`/`resolve_statement` — standard SQL uses
+  double quotes, MySQL/MariaDB use backticks. This is the abstraction growing
+  where a second database proved it had to, rather than a fork.
+
 ## [1.9.0] - 2026-07-18
 
 ### Added

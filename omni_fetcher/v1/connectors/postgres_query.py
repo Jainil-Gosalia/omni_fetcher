@@ -34,11 +34,12 @@ from __future__ import annotations
 import importlib.util
 import os
 from typing import Any, AsyncIterator, Optional, Protocol
-from urllib.parse import parse_qs
 
 from omni_fetcher.v1.auth import AuthCredential, BasicAuth
 from omni_fetcher.v1.connectors._sql_query import (
+    SqlQuerySpec,
     build_query_result,
+    parse_sql_uri,
     resolve_row_cap,
     resolve_statement,
 )
@@ -84,68 +85,8 @@ class _QueryExecutor(Protocol):
         ...
 
 
-class _PostgresQuerySpec:
-    """Parsed ``postgres://`` routing decision (target + statement + creds)."""
-
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        database: str,
-        table: Optional[str],
-        query: Optional[str],
-        query_env: Optional[str],
-        limit: Optional[str],
-        user: Optional[str],
-        password: Optional[str],
-    ) -> None:
-        self.host = host
-        self.port = port
-        self.database = database
-        self.table = table
-        self.query = query
-        self.query_env = query_env
-        self.limit = limit
-        self.user = user
-        self.password = password
-
-
-def _parse_uri(uri: str) -> _PostgresQuerySpec:
-    """Parse a ``postgres://`` URI into a spec, raising ``ValueError`` when bad."""
-    if not uri.startswith(_SCHEME):
-        raise ValueError(f"not a postgres:// URI: {uri}")
-    remainder = uri[len(_SCHEME) :]
-    location, _, query = remainder.partition("?")
-    host_part, _, database = location.partition("/")
-    if not host_part or not database or "/" in database:
-        raise ValueError(f"postgres:// URI must be postgres://host[:port]/database: {uri}")
-
-    if ":" in host_part:
-        host, port_text = host_part.rsplit(":", 1)
-        try:
-            port = int(port_text)
-        except ValueError as exc:
-            raise ValueError(f"postgres:// port must be numeric: {port_text}") from exc
-    else:
-        host = host_part
-        port = _DEFAULT_PORT
-
-    params = parse_qs(query)
-    return _PostgresQuerySpec(
-        host=host,
-        port=port,
-        database=database,
-        table=params.get("table", [None])[0],
-        query=params.get("query", [None])[0],
-        query_env=params.get("query_env", [None])[0],
-        limit=params.get("limit", [None])[0],
-        user=params.get("user", [None])[0],
-        password=params.get("password", [None])[0],
-    )
-
-
 def _resolve_credentials(
-    spec: _PostgresQuerySpec, auth: Optional[AuthCredential]
+    spec: SqlQuerySpec, auth: Optional[AuthCredential]
 ) -> tuple[Optional[str], Optional[str]]:
     """Resolve ``(user, password)``: per-call ``BasicAuth`` wins, URI is the fallback (D8)."""
     if isinstance(auth, BasicAuth):
@@ -178,9 +119,7 @@ class _AsyncpgExecutor:
         queries is a follow-up.
     """
 
-    def __init__(
-        self, spec: _PostgresQuerySpec, user: Optional[str], password: Optional[str]
-    ) -> None:
+    def __init__(self, spec: SqlQuerySpec, user: Optional[str], password: Optional[str]) -> None:
         self._spec = spec
         self._user = user
         self._password = password
@@ -278,7 +217,7 @@ class PostgresQueryConnector(BaseFetcher):
             return
 
         try:
-            spec = _parse_uri(uri)
+            spec = parse_sql_uri(uri, scheme=_SCHEME, default_port=_DEFAULT_PORT)
             row_cap = resolve_row_cap(spec.limit)
             sql = resolve_statement(
                 table_ref=spec.table,
@@ -310,7 +249,7 @@ class PostgresQueryConnector(BaseFetcher):
         )
 
     def _make_executor(
-        self, spec: _PostgresQuerySpec, user: Optional[str], password: Optional[str]
+        self, spec: SqlQuerySpec, user: Optional[str], password: Optional[str]
     ) -> _QueryExecutor:
         """Build the DB executor (the test seam). Overridden by fakes in tests."""
         return _AsyncpgExecutor(spec, user, password)

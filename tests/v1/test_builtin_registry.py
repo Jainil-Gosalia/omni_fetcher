@@ -84,6 +84,8 @@ EXTRA_GATED_ROUTES: list[tuple[str, str]] = [
     ("es://search.example.com:9200/logs?q=error", "ElasticsearchFetcher"),
     ("postgres-cdc://db.example.com:5432/mydb?slot=feed", "PostgresCDCConnector"),
     ("postgres://db.example.com:5432/app?query=SELECT%201", "PostgresQueryConnector"),
+    ("mysql://db.example.com:3306/app?query=SELECT%201", "MySQLQueryConnector"),
+    ("mariadb://db.example.com/app?table=app.users", "MySQLQueryConnector"),
 ]
 
 

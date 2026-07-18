@@ -20,6 +20,7 @@ from omni_fetcher.v1.connectors._sql_query import (
     build_query_result,
     build_select_star,
     coerce_cell,
+    parse_sql_uri,
     quote_identifier,
     resolve_row_cap,
     resolve_statement,
@@ -65,6 +66,14 @@ def test_build_select_star_quotes_each_part() -> None:
     assert build_select_star("public.users", limit=5) == 'SELECT * FROM "public"."users" LIMIT 5'
     with pytest.raises(ValueError):
         build_select_star("a.b.c", limit=1)
+
+
+def test_build_select_star_honours_the_dialect_quote() -> None:
+    # MySQL/MariaDB use backticks; the shared builder is parameterised on it.
+    assert (
+        build_select_star("app.users", limit=5, quote="`") == "SELECT * FROM `app`.`users` LIMIT 5"
+    )
+    assert quote_identifier("users", "`") == "`users`"
 
 
 def test_resolve_row_cap() -> None:
@@ -123,6 +132,31 @@ def test_build_query_result_over_cap_is_partial_and_round_trips() -> None:
     assert result.gaps and result.tree.metadata.source_extra["sqlite"]["truncated"] is True
     rebuilt = ResultAdapter.validate_python(json.loads(result.model_dump_json()))
     assert rebuilt.state.value == "partial"
+
+
+def test_parse_sql_uri_host_port_database_and_params() -> None:
+    spec = parse_sql_uri(
+        "mysql://db.example.com:3307/app?table=app.users&limit=5&user=bob&password=pw",
+        scheme="mysql://",
+        default_port=3306,
+    )
+    assert (spec.host, spec.port, spec.database) == ("db.example.com", 3307, "app")
+    assert spec.table == "app.users" and spec.limit == "5"
+    assert (spec.user, spec.password) == ("bob", "pw")
+
+
+def test_parse_sql_uri_defaults_port_and_rejects_malformed() -> None:
+    spec = parse_sql_uri(
+        "postgres://h/db?query=SELECT%201", scheme="postgres://", default_port=5432
+    )
+    # parse_qs URL-decodes, so %20 becomes a space -- the SQL that will run.
+    assert spec.port == 5432 and spec.query == "SELECT 1"
+    with pytest.raises(ValueError):
+        parse_sql_uri("postgres://h", scheme="postgres://", default_port=5432)  # no database
+    with pytest.raises(ValueError):
+        parse_sql_uri("mysql://h/db", scheme="postgres://", default_port=5432)  # scheme mismatch
+    with pytest.raises(ValueError):
+        parse_sql_uri("postgres://h:xx/db", scheme="postgres://", default_port=5432)  # bad port
 
 
 def test_build_query_result_coerces_cells() -> None:

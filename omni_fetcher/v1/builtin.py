@@ -233,6 +233,14 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
     ),
     ("sqlite", f"{_CONNECTORS_PKG}.sqlite", "SQLiteQueryConnector", ("sqlite://*",), 10, ()),
     (
+        "mysql",
+        f"{_CONNECTORS_PKG}.mysql",
+        "MySQLQueryConnector",
+        ("mysql://*", "mariadb://*"),
+        10,
+        ("aiomysql",),
+    ),
+    (
         "rss",
         f"{_CONNECTORS_PKG}.rss",
         "RSSConnector",

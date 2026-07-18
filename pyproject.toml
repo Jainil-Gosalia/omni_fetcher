@@ -89,6 +89,9 @@ elasticsearch = [
 postgres = [
     "asyncpg>=0.29",
 ]
+mysql = [
+    "aiomysql>=0.2",
+]
 mcp = [
     "mcp>=1.0",
 ]
@@ -130,6 +133,8 @@ disallow_untyped_defs = false
 module = [
     "aiokafka",
     "aiokafka.*",
+    "aiomysql",
+    "aiomysql.*",
     "asyncpg",
     "asyncpg.*",
     "aiohttp",

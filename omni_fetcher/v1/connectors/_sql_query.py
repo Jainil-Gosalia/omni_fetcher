@@ -25,8 +25,10 @@ from __future__ import annotations
 
 import datetime as _dt
 import re
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Iterable, Mapping, Optional, Sequence
+from urllib.parse import parse_qs
 from uuid import UUID
 
 from omni_fetcher.v1.atoms import Table
@@ -47,6 +49,85 @@ MAX_ROW_CAP = 100_000
 # real object name that does not match must be reached via an explicit
 # ``?query=`` instead, so the table-reference path can never carry injection.
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+@dataclass(frozen=True)
+class SqlQuerySpec:
+    """Parsed routing decision shared by the server-based SQL query connectors.
+
+    ``host[:port]/database`` plus the statement inputs (a table reference, an
+    inline query, or an env-var-named query), the row-cap override, and the URI
+    credential fallback. Every server SQL connector (Postgres, MySQL, ...) parses
+    into this same shape via :func:`parse_sql_uri`; only the driver, the
+    read-only mechanism, and the auth model differ per database.
+    """
+
+    host: str
+    port: int
+    database: str
+    table: Optional[str]
+    query: Optional[str]
+    query_env: Optional[str]
+    limit: Optional[str]
+    user: Optional[str]
+    password: Optional[str]
+
+
+def parse_sql_uri(uri: str, *, scheme: str, default_port: int) -> SqlQuerySpec:
+    """
+    Parse a ``<scheme>host[:port]/database?...`` URI into a :class:`SqlQuerySpec`
+
+    Shared by the server-based SQL query connectors (``postgres://``,
+    ``mysql://``, ...): the location is ``host[:port]/database`` and the query
+    string carries ``table`` / ``query`` / ``query_env`` / ``limit`` / ``user`` /
+    ``password``. Raises ``ValueError`` (mapped to ``INVALID_INPUT`` at the
+    boundary) for a malformed URI.
+
+    Parameters
+    ----------
+        uri:
+            The full source URI.
+        scheme:
+            The exact matched scheme prefix (e.g. ``"postgres://"``,
+            ``"mysql://"``, ``"mariadb://"``).
+        default_port:
+            The port to use when the URI omits one.
+
+    Return
+    ------
+        spec:
+            The parsed routing decision.
+    """
+    if not uri.startswith(scheme):
+        raise ValueError(f"not a {scheme} URI: {uri}")
+    remainder = uri[len(scheme) :]
+    location, _, query = remainder.partition("?")
+    host_part, _, database = location.partition("/")
+    if not host_part or not database or "/" in database:
+        raise ValueError(f"{scheme} URI must be {scheme}host[:port]/database: {uri}")
+
+    if ":" in host_part:
+        host, port_text = host_part.rsplit(":", 1)
+        try:
+            port = int(port_text)
+        except ValueError as exc:
+            raise ValueError(f"{scheme} port must be numeric: {port_text}") from exc
+    else:
+        host = host_part
+        port = default_port
+
+    params = parse_qs(query)
+    return SqlQuerySpec(
+        host=host,
+        port=port,
+        database=database,
+        table=params.get("table", [None])[0],
+        query=params.get("query", [None])[0],
+        query_env=params.get("query_env", [None])[0],
+        limit=params.get("limit", [None])[0],
+        user=params.get("user", [None])[0],
+        password=params.get("password", [None])[0],
+    )
 
 
 def coerce_cell(value: Any) -> Any:
@@ -92,40 +173,52 @@ def coerce_row(row: Iterable[Any]) -> list[Any]:
     return [coerce_cell(cell) for cell in row]
 
 
-def quote_identifier(part: str) -> str:
+# Identifier quote characters. Standard SQL (PostgreSQL, SQLite) uses the
+# double quote; MySQL/MariaDB use the backtick unless ANSI_QUOTES is set. The
+# connector passes its dialect's character -- the one place identifier quoting
+# is not portable, surfaced by MySQL as the SQL query family's second customer.
+STANDARD_QUOTE = '"'
+MYSQL_QUOTE = "`"
+
+
+def quote_identifier(part: str, quote: str = STANDARD_QUOTE) -> str:
     """
     Quote one SQL identifier for safe interpolation
 
-    Accepts only a strict identifier (``[A-Za-z_][A-Za-z0-9_]*``) and returns it
-    double-quoted (standard SQL, honoured by both PostgreSQL and SQLite). Raises
-    ``ValueError`` for anything else, so a table reference can never carry
-    injection -- exotic names go through an explicit ``?query=``.
+    Accepts only a strict identifier (``[A-Za-z_][A-Za-z0-9_]*``) and wraps it in
+    ``quote`` -- the double quote for standard SQL (PostgreSQL, SQLite), the
+    backtick for MySQL/MariaDB. Raises ``ValueError`` for anything else, so a
+    table reference can never carry injection; exotic names go through an
+    explicit ``?query=``.
 
     Parameters
     ----------
         part:
             A single identifier (a schema or table name).
+        quote:
+            The dialect's identifier quote character (default ``"``).
 
     Return
     ------
         quoted:
-            The double-quoted identifier.
+            The quoted identifier.
     """
     if not _IDENTIFIER.match(part):
         raise ValueError(
             f"unsafe SQL identifier {part!r}; use ?query= for names with dots, spaces, or quoting"
         )
-    return f'"{part}"'
+    return f"{quote}{part}{quote}"
 
 
-def build_select_star(table_ref: str, *, limit: int) -> str:
+def build_select_star(table_ref: str, *, limit: int, quote: str = STANDARD_QUOTE) -> str:
     """
     Build a ``SELECT * FROM <table> LIMIT <n>`` for a table reference
 
     ``table_ref`` is a ``table`` or ``schema.table`` reference; each dotted part
-    is validated and quoted via :func:`quote_identifier`. The ``LIMIT`` is
-    applied in SQL (cap+1 detection happens in :func:`build_query_result`) so a
-    table browse never scans an unbounded table.
+    is validated and quoted via :func:`quote_identifier` using ``quote`` (the
+    dialect's identifier quote character). The ``LIMIT`` is applied in SQL (cap+1
+    detection happens in :func:`build_query_result`) so a table browse never
+    scans an unbounded table.
 
     Parameters
     ----------
@@ -133,6 +226,8 @@ def build_select_star(table_ref: str, *, limit: int) -> str:
             A ``table`` or ``schema.table`` reference.
         limit:
             The row limit to apply in the generated SQL.
+        quote:
+            The dialect's identifier quote character (default ``"``).
 
     Return
     ------
@@ -142,7 +237,7 @@ def build_select_star(table_ref: str, *, limit: int) -> str:
     parts = table_ref.split(".")
     if not 1 <= len(parts) <= 2 or any(not p for p in parts):
         raise ValueError(f"table reference must be 'table' or 'schema.table': {table_ref!r}")
-    quoted = ".".join(quote_identifier(p) for p in parts)
+    quoted = ".".join(quote_identifier(p, quote) for p in parts)
     return f"SELECT * FROM {quoted} LIMIT {int(limit)}"
 
 
@@ -181,6 +276,7 @@ def resolve_statement(
     query_env: Optional[str],
     environ: Mapping[str, str],
     row_cap: int,
+    quote: str = STANDARD_QUOTE,
 ) -> str:
     """
     Resolve the caller's input into the SQL statement to run
@@ -240,7 +336,7 @@ def resolve_statement(
     assert table_ref is not None  # exactly-one guarantees this branch.
     # cap + 1 so an over-cap table is detectable as a truncation, exactly as a
     # raw query's bounded fetch(cap + 1) is.
-    return build_select_star(table_ref, limit=row_cap + 1)
+    return build_select_star(table_ref, limit=row_cap + 1, quote=quote)
 
 
 def build_query_result(
