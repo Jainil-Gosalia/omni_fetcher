@@ -92,6 +92,31 @@ class BigConnector(BaseFetcher):
         return uri.startswith("big://")
 
 
+class UnboundedConnector(BaseFetcher):
+    """A stream-only connector: overrides ``fetch`` to refuse, like kafka/tail.
+
+    Lets the "unbounded -> unsupported through MCP" behaviour be tested
+    deterministically, without depending on which optional-extra streaming
+    connectors happen to be installed.
+    """
+
+    async def stream(
+        self, uri: str, *, auth: Optional[AuthCredential] = None, zoom: Any = None
+    ) -> AsyncIterator[Result]:
+        yield success(build_node(kind="item", atoms=[Text(content="x", format=TextFormat.PLAIN)]))
+
+    async def fetch(self, uri: str, *, auth: Any = None, zoom: Any = None) -> Result:
+        return error(
+            kind=ErrorKind.UNSUPPORTED,
+            message="unbounded source; iterate stream() instead",
+            locator=uri,
+        )
+
+    @classmethod
+    def can_handle(cls, uri: str) -> bool:
+        return uri.startswith("stream://")
+
+
 def _fake_registry(name: str, cls: type[BaseFetcher], scheme: str):
     return (
         RegistryBuilder()
@@ -228,18 +253,23 @@ async def test_credentials_do_not_bleed_between_sources() -> None:
 # Unbounded sources
 
 
-@pytest.mark.parametrize(
-    "uri",
-    [
-        "kafka://host/topic",
-        "tail://host/log",
-        "redis://host/stream",
-        "sse://host/events",
-        "ws://host/socket",
-        "postgres-cdc://host/db",
-    ],
-)
-async def test_unbounded_scheme_returns_unsupported_via_builtin(uri: str) -> None:
+async def test_unbounded_source_returns_unsupported_through_the_server() -> None:
+    """A stream-only connector's typed UNSUPPORTED passes through fetch."""
+    server = build_server(_fake_registry("stream", UnboundedConnector, "stream"))
+
+    data = _payload(await server.call_tool("fetch", {"uri": "stream://x"}))
+
+    assert data["state"] == "error" and data["kind"] == "unsupported"
+
+
+@pytest.mark.parametrize("uri", ["tail://host/log", "redis://host/stream"])
+async def test_unbounded_builtin_scheme_returns_unsupported(uri: str) -> None:
+    """The extra-free unbounded built-ins (tail, redis) refuse fetch too.
+
+    Only ``tail`` and ``redis`` are asserted: they need no optional extra, so
+    they are registered in every environment. ``kafka``/``sse``/``ws``/
+    ``postgres-cdc`` depend on extras that CI may not install.
+    """
     server = build_server(builtin_registry())
 
     data = _payload(await server.call_tool("fetch", {"uri": uri}))
@@ -257,10 +287,16 @@ async def test_list_sources_labels_bounded_and_unbounded() -> None:
     data = _payload(await server.call_tool("list_sources", {}))
     by_name = {s["name"]: s for s in data["sources"]}
 
+    # Bounded document sources (core deps, always registered).
     assert by_name["local_file"]["bounded"] is True
     assert by_name["pdf"]["bounded"] is True
-    for unbounded in ("kafka", "tail", "sse", "websocket", "redis", "postgres_cdc"):
-        assert by_name[unbounded]["bounded"] is False
+    # Unbounded sources needing no optional extra, so present everywhere.
+    assert by_name["tail"]["bounded"] is False
+    assert by_name["redis"]["bounded"] is False
+    # Extra-gated unbounded sources are labelled correctly *when present*.
+    for maybe in ("kafka", "sse", "websocket", "postgres_cdc"):
+        if maybe in by_name:
+            assert by_name[maybe]["bounded"] is False
     # Each source carries its routing patterns.
     assert by_name["github"]["uri_patterns"]
 
