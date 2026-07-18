@@ -62,6 +62,7 @@ ROUTES: list[tuple[str, str]] = [
     ("file:///deck.pptx", "PptxConnector"),
     ("/docs/paper.pdf", "PDFConnector"),
     ("data/sales.csv", "CSVConnector"),
+    ("sqlite:///data/app.db?table=users", "SQLiteQueryConnector"),
     ("https://blog.example.com/feed.xml", "RSSConnector"),
     ("https://example.com/rss", "RSSConnector"),
     ("https://example.com/api/item", "HTTPJSONConnector"),
@@ -82,6 +83,7 @@ EXTRA_GATED_ROUTES: list[tuple[str, str]] = [
     ("sses://events.example.com/live", "SSEConnector"),
     ("es://search.example.com:9200/logs?q=error", "ElasticsearchFetcher"),
     ("postgres-cdc://db.example.com:5432/mydb?slot=feed", "PostgresCDCConnector"),
+    ("postgres://db.example.com:5432/app?query=SELECT%201", "PostgresQueryConnector"),
 ]
 
 

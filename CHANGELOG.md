@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **SQL query connectors — PostgreSQL and SQLite** — the read-side "run a
+  query, get a `Table` atom" complement to `postgres-cdc://`, and the first
+  entries in a SQL query connector family over a small shared spec.
+  - `postgres://host[:port]/database` (bounded; behind the `postgres` extra) and
+    `sqlite:///path/to/db.sqlite` (bounded; **no extra** — stdlib `sqlite3`, so
+    it works on a base install). Both return one `kind="query_result"` node
+    carrying a `Table` atom (columns as `headers`, rows as `rows`), with column
+    names/types, row count, and truncation in `source_extra["postgres"|"sqlite"]`.
+  - **Two inputs**: `?table=<name>` browses a table (`SELECT *` under the row
+    cap), `?query=<url-encoded SELECT>` runs an arbitrary read query, and
+    `?query_env=<ENV_NAME>` reads long/sensitive SQL from an environment
+    variable. A `schema.table` reference is strictly validated and quoted, so
+    it cannot carry injection.
+  - **Read-only is enforced by the engine, not by parsing** — Postgres runs
+    every query inside a `READ ONLY` transaction; SQLite opens `mode=ro` and
+    sets `PRAGMA query_only=ON`. A write is refused with a typed
+    `permission_denied` and (SQLite) the file is left byte-for-byte unchanged.
+  - **Row cap** (default 1000, `?limit=` up to 100k) degrades an over-cap result
+    to a `partial` with a typed `Gap`, never a silent truncation. Non-JSON
+    column types (timestamp, numeric, uuid, bytea, jsonb, arrays) coerce to
+    JSON-round-trippable scalars.
+  - **Credentials**: the Postgres connector accepts a per-call `BasicAuth`, so
+    the MCP server injects it from `OMNI_FETCHER_POSTGRES_USERNAME` /
+    `_PASSWORD` (URI `?user=`/`?password=` remain a CLI fallback). SQLite is a
+    local file and needs none.
+
 ## [1.8.0] - 2026-07-18
 
 ### Added

@@ -218,6 +218,20 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
     ("pptx", f"{_CONNECTORS_PKG}.pptx", "PptxConnector", ("*.pptx",), 30, ("pptx",)),
     ("pdf", f"{_CONNECTORS_PKG}.pdf", "PDFConnector", ("*.pdf",), 30, ()),
     ("csv", f"{_CONNECTORS_PKG}.csv", "CSVConnector", ("*.csv",), 30, ()),
+    # SQL query connectors. postgres needs the asyncpg (postgres) extra; sqlite
+    # is stdlib and ungated, so it is always available.
+    (
+        # Registry name is "postgres" (not "postgres_query") so the MCP
+        # credential convention is OMNI_FETCHER_POSTGRES_USERNAME/_PASSWORD;
+        # longest-prefix matching keeps it distinct from "postgres_cdc".
+        "postgres",
+        f"{_CONNECTORS_PKG}.postgres_query",
+        "PostgresQueryConnector",
+        ("postgres://*",),
+        10,
+        ("asyncpg",),
+    ),
+    ("sqlite", f"{_CONNECTORS_PKG}.sqlite", "SQLiteQueryConnector", ("sqlite://*",), 10, ()),
     (
         "rss",
         f"{_CONNECTORS_PKG}.rss",
