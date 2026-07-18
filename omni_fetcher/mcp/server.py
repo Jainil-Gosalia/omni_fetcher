@@ -11,6 +11,7 @@ translates between MCP tool calls and ``Result`` values (see the v1.7 MCP PRD).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Optional
 
@@ -23,17 +24,21 @@ from omni_fetcher.v1 import (
     Registry,
     builtin_registry,
 )
-from omni_fetcher.v1.fetcher import BaseFetcher
+from omni_fetcher.v1.fetcher import COLLECTION_KIND, BaseFetcher
+from omni_fetcher.v1.mapping import build_node
 from omni_fetcher.v1.node import CompositionNode
 from omni_fetcher.v1.result import (
     Error,
+    Gap,
     Partial,
     Result,
+    Success,
     error,
     gap,
     partial,
+    success,
 )
-from omni_fetcher.v1.zoom import parse_zoom_spec
+from omni_fetcher.v1.zoom import ZoomSpec, parse_zoom_spec
 
 logger = logging.getLogger("omni_fetcher.mcp")
 
@@ -41,6 +46,11 @@ logger = logging.getLogger("omni_fetcher.mcp")
 # model's context, so an unbounded document must degrade honestly rather than
 # flood it (PRD D10).
 DEFAULT_MAX_BYTES = 1024 * 1024  # 1 MiB
+
+# ``sample`` defaults: a small window and a short wall-clock budget, tuned for
+# an agent peeking at an unbounded stream rather than draining it.
+DEFAULT_MAX_ITEMS = 10
+DEFAULT_TIMEOUT_SECONDS = 30.0
 
 
 def _result_bytes(result: Result) -> int:
@@ -113,6 +123,132 @@ def _is_bounded(definition: Any) -> bool:
         return True
 
 
+def _fold_sample(
+    trees: list[CompositionNode],
+    gaps: list[Gap],
+    first_error: Optional[Error],
+    uri: str,
+    *,
+    max_items: int,
+    timeout: float,
+    stopped: str,
+) -> Result:
+    """Fold sampled stream items into one ``Result``.
+
+    Non-empty samples become one synthetic ``"collection"`` root whose children
+    are the sampled trees in arrival order, with the stop condition recorded in
+    ``source_extra["sample"]`` (count, the requested cap and window, and why it
+    stopped: ``max_items`` / ``timeout`` / ``stream_end`` / ``error``). Errors
+    fold into the ``gaps`` channel, so a sample that hit an error still returns
+    what it collected. An empty sample is never a silent success: it is the
+    first error if one occurred, a ``NOT_FOUND`` if the stream simply ended, or
+    a retryable ``TRANSIENT`` if the window elapsed with the stream idle.
+    """
+    if not trees:
+        if first_error is not None:
+            return first_error
+        if stopped == "timeout":
+            return error(
+                kind=ErrorKind.TRANSIENT,
+                message=(
+                    f"sampled 0 items from {uri} within {timeout}s; the stream "
+                    "was idle in the window -- retry, or raise timeout_seconds"
+                ),
+                locator=uri,
+            )
+        return error(
+            kind=ErrorKind.NOT_FOUND,
+            message="stream produced no items",
+            locator=uri,
+        )
+
+    root = build_node(
+        kind=COLLECTION_KIND,
+        children=trees,
+        source_url=uri,
+        source_namespace="sample",
+        source_fields={
+            "count": len(trees),
+            "max_items": max_items,
+            "timeout_seconds": timeout,
+            "stopped": stopped,
+        },
+    )
+    if gaps:
+        return partial(root, gaps)
+    return success(root)
+
+
+async def _sample_stream(
+    orchestrator: OmniFetcher,
+    uri: str,
+    *,
+    auth: Any,
+    zoom: Optional[ZoomSpec],
+    tags: Optional[list[str]],
+    max_items: int,
+    timeout: float,
+) -> Result:
+    """Collect up to ``max_items`` items from an unbounded stream, then stop.
+
+    The bounded window over an unbounded source: iterate the orchestrator's
+    stream (which already applies zoom, merges tags, and cleans up), taking
+    node-bearing items until ``max_items`` is reached, the wall-clock
+    ``timeout`` elapses, the stream ends, or an error item arrives. The stream
+    is always closed on the way out (``aclose``), so the connector releases its
+    broker consumer / file handle / socket whether we finished, timed out, or
+    the caller's task was cancelled.
+
+    Timeout is enforced per pending item against a single overall deadline, so
+    an idle stream cannot hang the tool: ``wait_for`` cancels the outstanding
+    ``__anext__`` and the deadline caps the total wait.
+    """
+    trees: list[CompositionNode] = []
+    gaps: list[Gap] = []
+    first_error: Optional[Error] = None
+    stopped = "max_items"
+
+    stream = orchestrator.stream(uri, auth=auth, zoom=zoom, tags=tags)
+    loop = asyncio.get_event_loop()
+    deadline = loop.time() + timeout if timeout and timeout > 0 else None
+    try:
+        while len(trees) < max_items:
+            remaining = None if deadline is None else deadline - loop.time()
+            if remaining is not None and remaining <= 0:
+                stopped = "timeout"
+                break
+            try:
+                if remaining is None:
+                    item = await stream.__anext__()
+                else:
+                    item = await asyncio.wait_for(stream.__anext__(), remaining)
+            except StopAsyncIteration:
+                stopped = "stream_end"
+                break
+            except (asyncio.TimeoutError, TimeoutError):
+                stopped = "timeout"
+                break
+
+            if isinstance(item, Success):
+                trees.append(item.tree)
+            elif isinstance(item, Partial):
+                trees.append(item.tree)
+                gaps.extend(item.gaps)
+            else:  # Error -- terminates the sample, never dropped.
+                first_error = item
+                gaps.append(gap(kind=item.kind, locator=item.locator, detail=item.message))
+                stopped = "error"
+                break
+    finally:
+        # The orchestrator's stream is an async generator; closing it releases
+        # the connector's resources (mirrors the CLI's stream command).
+        await stream.aclose()  # type: ignore[attr-defined]
+
+    return _fold_sample(
+        trees, gaps, first_error, uri, max_items=max_items, timeout=timeout, stopped=stopped
+    )
+
+
 def build_server(
     registry: Optional[Registry] = None,
     credentials: Optional[CredentialStore] = None,
@@ -183,6 +319,63 @@ def build_server(
         result = await orchestrator.fetch(uri, auth=credential, zoom=spec, tags=tags)
         result = _apply_size_guard(result, max_bytes)
         result = _enrich_unconfigured_auth(result, source, creds)
+        result = _enrich_unbounded_fetch(result, definition)
+        return result.model_dump(mode="json")
+
+    @server.tool()
+    async def sample(
+        uri: str,
+        max_items: int = DEFAULT_MAX_ITEMS,
+        timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+        zoom: Optional[str] = None,
+        tags: Optional[list[str]] = None,
+    ) -> dict:
+        """Sample a bounded window of items from an unbounded stream.
+
+        For stream-only sources (kafka://, tail://, redis://, ws://, sse://,
+        postgres-cdc://) that `fetch` refuses, `sample` collects up to
+        `max_items` items -- or whatever arrives within `timeout_seconds` --
+        into one `Result`: a `collection` tree whose children are the sampled
+        items, with the stop reason in `source_extra.sample`. Also works on a
+        bounded source (it just returns up to `max_items`). Credentials come
+        from the server's environment -- never pass a token here.
+
+        Args:
+            uri: The source URI to sample.
+            max_items: Maximum items to collect (default 10).
+            timeout_seconds: Wall-clock budget; stop even if fewer arrive
+                (default 30). An idle stream yields a retryable `transient`.
+            zoom: Optional decomposition depth, e.g. "text=sentence".
+            tags: Optional advisory labels merged into each item's metadata.
+        """
+        try:
+            spec = parse_zoom_spec(zoom)
+        except ValueError as exc:
+            return error(kind=ErrorKind.INVALID_INPUT, message=str(exc), locator=uri).model_dump(
+                mode="json"
+            )
+        if max_items < 1:
+            return error(
+                kind=ErrorKind.INVALID_INPUT,
+                message=f"max_items must be >= 1, got {max_items}",
+                locator=uri,
+            ).model_dump(mode="json")
+
+        definition = reg.definition_for(uri)
+        source = definition.name if definition is not None else None
+        credential = creds.get(source) if source is not None else None
+
+        result = await _sample_stream(
+            orchestrator,
+            uri,
+            auth=credential,
+            zoom=spec,
+            tags=tags,
+            max_items=max_items,
+            timeout=timeout_seconds,
+        )
+        result = _apply_size_guard(result, max_bytes)
+        result = _enrich_unconfigured_auth(result, source, creds)
         return result.model_dump(mode="json")
 
     @server.tool()
@@ -230,6 +423,27 @@ def _enrich_unconfigured_auth(
         hint = CredentialStore.env_hint(source)
         message = f"{result.message}; {hint}" if result.message else hint
         return error(kind=ErrorKind.AUTH_FAILED, message=message, locator=result.locator)
+    return result
+
+
+def _enrich_unbounded_fetch(result: Result, definition: Any) -> Result:
+    """Point an unbounded ``fetch`` at the ``sample`` tool.
+
+    An unbounded source refuses ``fetch`` with a typed ``UNSUPPORTED`` (its own
+    message names the CLI's ``stream``). Over MCP the better next step is the
+    ``sample`` tool, so the message is extended to name it -- but only when the
+    source is genuinely stream-only, never for a bounded source that returned
+    ``UNSUPPORTED`` for an unrelated (recognised-but-unsupported) reason.
+    """
+    if (
+        isinstance(result, Error)
+        and result.kind is ErrorKind.UNSUPPORTED
+        and definition is not None
+        and not _is_bounded(definition)
+    ):
+        extra = "use the `sample` tool for a bounded window of this stream"
+        message = f"{result.message}; {extra}" if result.message else extra
+        return error(kind=ErrorKind.UNSUPPORTED, message=message, locator=result.locator)
     return result
 
 

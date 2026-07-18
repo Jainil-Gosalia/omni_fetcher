@@ -146,9 +146,9 @@ async def test_fetch_schema_has_no_credential_field() -> None:
     assert not any(k in p.lower() for p in props for k in ("cred", "token", "auth", "secret"))
 
 
-async def test_only_fetch_and_list_sources_are_exposed() -> None:
+async def test_the_curated_tool_set_is_exposed() -> None:
     server = build_server(_fake_registry("prose", ProseConnector, "prose"))
-    assert {t.name for t in await server.list_tools()} == {"fetch", "list_sources"}
+    assert {t.name for t in await server.list_tools()} == {"fetch", "sample", "list_sources"}
 
 
 # ---------------------------------------------------------------------------
@@ -275,6 +275,16 @@ async def test_unbounded_builtin_scheme_returns_unsupported(uri: str) -> None:
     data = _payload(await server.call_tool("fetch", {"uri": uri}))
 
     assert data["state"] == "error" and data["kind"] == "unsupported"
+
+
+async def test_unbounded_fetch_points_the_caller_at_sample() -> None:
+    """An unbounded fetch's UNSUPPORTED message names the `sample` tool."""
+    server = build_server(builtin_registry())
+
+    data = _payload(await server.call_tool("fetch", {"uri": "tail://host/log"}))
+
+    assert data["kind"] == "unsupported"
+    assert "sample" in data["message"]
 
 
 # ---------------------------------------------------------------------------

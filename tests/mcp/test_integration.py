@@ -58,14 +58,14 @@ def _registry():
     )
 
 
-async def test_client_lists_both_tools_over_the_protocol() -> None:
+async def test_client_lists_the_tools_over_the_protocol() -> None:
     server = build_server(_registry())
 
     async with create_connected_server_and_client_session(server) as client:
         result = await client.list_tools()
 
     names = {t.name for t in result.tools}
-    assert names == {"fetch", "list_sources"}
+    assert names == {"fetch", "sample", "list_sources"}
 
 
 async def test_client_can_fetch_over_the_protocol() -> None:

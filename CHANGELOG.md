@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **MCP `sample` tool** — a bounded window over an unbounded stream. For
+  stream-only sources (`kafka://`, `tail://`, `redis://`, `ws://`, `sse://`,
+  `postgres-cdc://`) that `fetch` refuses, `sample(uri, max_items=10,
+  timeout_seconds=30, zoom?, tags?)` collects up to `max_items` items — or
+  whatever arrives within the wall-clock window — into one `Result`: a
+  `collection` tree whose children are the sampled items, with the stop reason
+  (`max_items` / `timeout` / `stream_end` / `error`) and counts recorded in
+  `source_extra["sample"]`. An error item folds into the `gaps` channel and
+  stops the sample; an idle stream yields a retryable `transient`; the stream
+  is always closed (`aclose`) so the connector releases its resources whether
+  the sample finished, timed out, or was cancelled.
+- **`fetch` now points unbounded sources at `sample`** — an unbounded source's
+  `unsupported` message is extended over MCP to name the `sample` tool.
+
 ## [1.7.0] - 2026-07-18
 
 ### Added
