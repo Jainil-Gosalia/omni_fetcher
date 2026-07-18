@@ -70,13 +70,19 @@ class _SQLiteSpec:
 def _uri_to_path(raw: str) -> str:
     """Resolve the ``sqlite://`` path part to a filesystem path.
 
-    ``sqlite:///abs`` keeps its leading slash (an absolute POSIX path);
-    ``sqlite:///C:/...`` drops the slash before a Windows drive letter;
-    ``sqlite://relative`` is used as-is.
+    Handles the file-URI slash forms uniformly (the pattern is checked, not the
+    OS, so behaviour is identical everywhere):
+
+    - ``/C:/data.db`` -> ``C:/data.db`` (Windows drive: drop the leading slash);
+    - ``//abs/path`` -> ``/abs/path`` (``sqlite:///abs`` and the ``sqlite:////abs``
+      that ``"sqlite:///" + "/abs"`` produces both mean the absolute path);
+    - ``/abs/path`` and ``relative.db`` -> unchanged.
     """
     path = unquote(raw)
-    if os.name == "nt" and len(path) >= 3 and path[0] == "/" and path[2] == ":":
-        path = path[1:]
+    if len(path) >= 3 and path[0] == "/" and path[2] == ":":
+        return path[1:]
+    if path.startswith("//"):
+        return "/" + path.lstrip("/")
     return path
 
 

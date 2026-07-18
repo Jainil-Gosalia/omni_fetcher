@@ -19,7 +19,8 @@ from omni_fetcher.v1.connectors.sqlite import SOURCE_NAMESPACE, SQLiteQueryConne
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.result import Error, Partial, ResultAdapter, Success
 
-pytestmark = pytest.mark.asyncio
+# No module-level asyncio mark: this file mixes async connector tests with a
+# sync helper test. asyncio_mode="auto" (pyproject) auto-marks the async ones.
 
 
 def _make_db(tmp_path: Path, rows: int = 3) -> Path:
@@ -140,3 +141,23 @@ async def test_both_query_and_table_is_invalid_input(tmp_path: Path) -> None:
 async def test_can_handle_only_sqlite_scheme() -> None:
     assert SQLiteQueryConnector.can_handle("sqlite:///a.db")
     assert not SQLiteQueryConnector.can_handle("postgres://h/db")
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("/abs/path.db", "/abs/path.db"),  # sqlite:///abs -> 3 slashes
+        ("//abs/path.db", "/abs/path.db"),  # sqlite:////abs (built by "sqlite:///" + "/abs")
+        ("relative.db", "relative.db"),  # sqlite://relative
+        ("/C:/data/app.db", "C:/data/app.db"),  # Windows drive
+    ],
+)
+def test_uri_to_path_slash_forms(raw: str, expected: str) -> None:
+    """Absolute POSIX paths collapse leading slashes; a Windows drive drops one.
+
+    OS-independent (checks the pattern, not os.name), so the POSIX 4-slash form
+    -- the one that failed on Linux CI -- is pinned from any platform.
+    """
+    from omni_fetcher.v1.connectors.sqlite import _uri_to_path
+
+    assert _uri_to_path(raw) == expected
