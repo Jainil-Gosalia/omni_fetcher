@@ -2,8 +2,14 @@
 
 Teaches Claude (and any agent that reads skills) how to use
 [omni-fetcher](https://pypi.org/project/omni-fetcher/) correctly: the `Result`
-contract, per-call auth, `source_extra`, streaming vs. bounded connectors, zoom,
-retry, and writing custom connectors.
+contract, per-call auth, `source_extra`, bounded vs. streaming sources, zoom,
+retry, the MCP server, and writing custom connectors.
+
+It is **discovery-based**: the skill teaches the *stable contract* directly, but
+for the *volatile surface* — which connectors exist, which are installed, which
+stream, what the MCP server exposes — it teaches the agent the commands to ask
+the installed package at runtime, rather than baking in a list that goes stale
+and is blind to the actual environment.
 
 The skill loads only when it's relevant — an agent that never touches
 omni-fetcher never pays for the context.
@@ -46,15 +52,20 @@ The skill documents the library; it does not install it. The agent still needs
 
 ```
 omni-fetcher/
-├── SKILL.md                   # contract, rules, walking the tree, zoom/retry/CLI
+├── SKILL.md                   # discovery + contract, rules, tree-walking, zoom/retry/CLI/MCP
 └── references/
-    └── connectors.md          # connector tables, custom connectors, v0.x legacy
+    └── connectors.md          # discovery, custom connectors, v0.x legacy
 ```
 
 ## Maintaining it
 
-`SKILL.md` is API documentation and drifts like any other. When a connector is
-added, a URI shape changes, or the public surface of `omni_fetcher.v1` moves,
-update the skill in the same PR. Every code sample in both files has been
-executed against the package — keep it that way rather than editing samples by
-eye.
+The discovery design keeps the maintenance surface small, on purpose. Because
+the skill does not enumerate connectors — it teaches the agent to discover them —
+**adding a connector or an extra needs no skill change**; the discovery command
+surfaces it automatically, correctly, per environment.
+
+Update the skill only when the *stable contract* moves: a new `Result` state or
+`ErrorKind`, a change to the atom vocabulary or zoom semantics, a new public
+export from `omni_fetcher.v1`, or a change to the MCP tool surface. Every code
+sample and discovery command in both files has been executed against the
+package — keep it that way rather than editing by eye.

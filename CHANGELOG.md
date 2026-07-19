@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Bundled agent skill (`.claude/skills/omni-fetcher/`) is now discovery-based.**
+  It teaches the stable contract directly but, for the volatile surface (which
+  connectors exist, which are installed, which stream, the MCP tools), teaches
+  the agent to discover it at runtime from the installed package —
+  `builtin_registry()` for the source set + bounded/stream flag, a connector's
+  own module docstring for its URI/auth/options, `list_sources` over MCP — rather
+  than baking in a list that goes stale and is blind to the environment. Adds the
+  MCP server (`fetch`/`sample`/`list_sources`) and the SQL query connectors, and
+  removes the static connector tables. No library code change; the skill ships in
+  the repo (not the wheel).
+
 ## [1.10.0] - 2026-07-19
 
 ### Added

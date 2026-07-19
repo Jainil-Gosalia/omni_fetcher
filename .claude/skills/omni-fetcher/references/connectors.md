@@ -4,89 +4,86 @@ All connectors live under `omni_fetcher.v1.connectors.*` and return the same
 `Result` / `CompositionNode` contract. Prefer routing through
 `OmniFetcher(builtin_registry())` unless the source is fixed and known.
 
-## Bounded connectors — use `fetch()`
+The set of connectors grows every release and depends on which optional extras
+are installed, so this file does **not** enumerate them — a static list would be
+wrong the moment a connector is added or an extra is missing. Discover the live
+set instead; the details of any one connector live in its own docstring, which
+ships with the code and never drifts.
 
-| Connector | URI shapes | Auth | Extra |
-|---|---|---|---|
-| `local_file.LocalFileFetcher` | `/path/to/file`, `file://...` | — | — |
-| `http_url.HTTPURLConnector` | `https://...` pages | — | — |
-| `http_json.HTTPJSONConnector` | JSON APIs | optional `BearerAuth` | — |
-| `http_auth.HTTPAuthConnector` | authenticated HTTP | `Bearer`/`ApiKey`/`Basic` | — |
-| `graphql.GraphQLConnector` | GraphQL endpoints | optional | — |
-| `rss.RSSConnector` | feed URLs | optional `BearerAuth` | — |
-| `csv.CSVConnector` | `.csv` paths/URLs | — | — |
-| `pdf.PDFConnector` | `.pdf` paths/URLs | — | — |
-| `docx.DocxConnector` | `.docx` paths/URLs | — | `office` |
-| `pptx.PptxConnector` | `.pptx` paths/URLs | — | `office` |
-| `audio.AudioConnector` | audio paths/URLs | — | — |
-| `youtube.YouTubeConnector` | `youtube.com`, `youtu.be` | — | — |
-| `s3.S3Fetcher` | `s3://bucket/key` | `AwsAuth` | — |
-| `github.GitHubConnector` | `github.com/owner/repo[/issues/N, /pull/N, ...]` | optional `BearerAuth` | — |
-| `google_drive.GoogleDriveFetcher` | `drive.google.com`, `docs.google.com` | `OAuth2Auth` | — |
-| `notion.NotionConnector` | Notion pages/databases | `BearerAuth` (integration token) | — |
-| `jira.JiraConnector` | `jira://issue/KEY`, `jira://project/KEY`, `jira://sprint/N`, `jira://epic/KEY` | `BasicAuth` (Cloud) / `BearerAuth` (Server) | `jira` |
-| `confluence.ConfluenceConnector` | Confluence pages/spaces | `BasicAuth` / `BearerAuth` | `confluence` |
-| `slack.SlackConnector` | `slack://channel/ID`, threads, DMs | `BearerAuth` (bot token) | — |
-| `sharepoint.SharePointConnector` | `sharepoint://site[/Library[/file]]` | `OAuth2Auth` (Graph token) | — |
-| `linear.LinearConnector` | Linear issues/teams/projects | `BearerAuth` / `ApiKeyAuth` | — |
-| `elasticsearch.ElasticsearchFetcher` | `es://host[:port]/index?q=&size=&scroll=&user=&password=&api_key=` | via URI query | `elasticsearch` |
+## Discovering connectors
 
-### Elasticsearch
+**The routable sources in this install, and which are streams:**
 
-Bounded, not streaming — `fetch()` drives the scroll API internally (page size
-capped, `?size=` bounds the total) and returns one `Result` whose tree is a
-`search_results` container with one `json_document` child per hit.
-
-```python
-result = await omni.fetch("es://search.example.com/logs?q=level:error&size=500")
-if isinstance(result, Success):
-    for doc in result.tree.find_by_kind("json_document"):
-        print("\n".join(a.content for a in doc.find_atoms(AtomKind.TEXT)))
+```bash
+python -c "
+from omni_fetcher.v1 import builtin_registry
+from omni_fetcher.v1.fetcher import BaseFetcher
+for d in sorted(builtin_registry().definitions(), key=lambda d: d.name):
+    stream = type(d.fetcher_class()).fetch is not BaseFetcher.fetch
+    print(f'{d.name:16s} {\"stream\" if stream else \"bounded\"}  {d.uri_patterns[0]}')
+"
 ```
 
-Prefer `find_by_kind("json_document")` over iterating `result.tree.children`:
-`children` is a mixed node/atom list, so calling node methods on it is only safe
-behind an `isinstance` check.
+Only sources whose extra is installed appear, so this is the true set for the
+environment you are in — not a wishlist.
 
-Zero matches is `Error(NOT_FOUND)`. A scroll that fails partway returns
-`Partial` with the documents collected so far.
+**A specific connector's URI shape, auth, options, and behaviour** — read its
+module docstring (authoritative and current):
 
-## Streaming (unbounded) connectors — use `stream()`
+```bash
+python -c "from omni_fetcher.v1.connectors import postgres_query; print(postgres_query.__doc__)"
+python -c "from omni_fetcher.v1.connectors import kafka; print(kafka.__doc__)"
+```
 
-`fetch()` on these returns `Error(UNSUPPORTED)`.
+Over the MCP server, the same discovery is the `list_sources` tool.
 
-| Connector | URI shapes | Auth | Extra |
-|---|---|---|---|
-| `tail.TailConnector` | `tail://<path>?from=end\|start\|<byte>&poll=<s>` | — | — |
-| `kafka.KafkaConnector` | `kafka://host[:port]/topic?offset=latest\|earliest\|<n>&group=<id>` | — | `kafka` |
-| `redis.RedisConnector` | `redis://host[:port]/stream-key?offset=$\|0\|<id>&group=<id>` | — | — |
-| `websocket.WebSocketConnector` | `ws://host[:port]/path?token=&auth=&sequence=<n>` | via URI query | `websockets` |
-| `sse.SSEConnector` | `sse://host[:port]/path?token=&auth=&sequence=<n>` | via URI query | `websockets` |
-| `postgres_cdc.PostgresCDCConnector` | `postgres-cdc://host[:port]/database?slot=&user=&password=` | via URI query | `postgres` |
+## Bounded vs. unbounded — the stable rule
 
-Each item carries its resume position in `source_extra`: tail `byte_offset`,
-kafka `partition`/`offset`, websocket/sse `sequence`, postgres `slot`. A
-dropped stream (rotated file, broker blip, closed socket) ends with
-`Error(TRANSIENT)`; `stream_with_restart` derives the resume `?from=` /
-`?offsets=` / `?slot=` and continues.
+The one thing that does not change is *how* the two kinds behave:
 
-Kafka is stateless by default — no consumer group, no commits; start from
-`?offset=` and resume via per-message positions. `?group=<id>` opts into
-committing consumer-group semantics the host then owns.
+- **Bounded** sources (documents, an Elasticsearch search, a SQL query) terminate.
+  Use `fetch()`; it returns one `Result`.
+- **Unbounded** sources (a log tail, a Kafka/Redis stream, a CDC feed, a
+  WebSocket/SSE socket) emit items forever. Use `stream()`; `fetch()` on them
+  returns `Error(UNSUPPORTED)`. Over MCP, use the `sample` tool for a bounded
+  window.
 
-WebSocket/SSE messages are always plain `Text` — no JSON parsing, that's a
-host-side concern. Auth travels as `?token=<value>` or `?auth=Bearer+<token>`.
-`?sequence=<n>` seeds/resumes numbering; these sources are ephemeral, so a
-message lost while disconnected can't be recovered, but resume prevents
-duplicates.
+A stream never silently ends: a dropped connection (rotated file, broker blip,
+closed socket) comes back as `Error(TRANSIENT)`, and each yielded item carries
+its resume position in `source_extra` (a byte offset, a partition/offset, a
+sequence, a replication slot). `stream_with_restart` reads that position and
+reconnects where it left off:
 
-Postgres CDC streams row-level INSERT/UPDATE/DELETE via logical replication
-(`wal_level=logical` required): each change is a `kind="change"` node whose
-`Text` atom is JSON `{op, table, new, old, lsn, timestamp, xid}`. The
-connector creates and drops its replication slot itself; after a transport
-failure the slot is kept so a restart resumes from its `confirmed_flush_lsn`
-with no change loss. No initial snapshot — the stream starts at the current
-WAL position.
+```python
+from omni_fetcher.v1 import RetryPolicy, stream_with_restart
+
+async for item in stream_with_restart(omni, uri, policy=RetryPolicy(max_attempts=4)):
+    ...   # resumes from each item's position after a TRANSIENT drop
+```
+
+The per-connector specifics — a stream's exact query params, a database
+connector's read-only guarantee, an SQL connector's `?table=`/`?query=` inputs —
+are in each connector's docstring. Read it rather than guessing.
+
+## SQL query connectors
+
+The `postgres://`, `mysql://` (with a `mariadb://` alias), and `sqlite://`
+connectors are bounded: they run one read query and return a
+`kind="query_result"` node carrying a single `Table` atom (columns as
+`headers`, rows as `rows`). Three inputs, exactly one per call:
+
+```
+?table=<schema.table>       # SELECT * under a row cap (identifier-quoted, injection-safe)
+?query=<url-encoded SELECT> # an arbitrary read query
+?query_env=<ENV_NAME>       # read the SQL from an environment variable
+```
+
+Read-only is enforced by the engine, not by string parsing (a `READ ONLY`
+transaction on Postgres/MySQL, `mode=ro` on SQLite), so a write is refused. A
+result over the row cap (default 1000, `?limit=` to raise) comes back as
+`Partial` with a typed gap rather than a silent truncation. `sqlite://` needs no
+extra; `postgres`/`mysql` do. Full URI/auth/type-coercion detail is in each
+connector's docstring.
 
 ## Writing a custom connector
 
@@ -129,6 +126,8 @@ Hold to the contract the built-ins hold to:
 - Yield `partial(node, gaps=[...])` with typed gaps when you get some of the
   data; don't silently truncate.
 - Keep the connector stateless — no credentials, no fetched data on `self`.
+- For an unbounded source, override `fetch` to return `error(ErrorKind.UNSUPPORTED)`
+  (this is also what marks it a stream to discovery and to the MCP server).
 
 Register it to route like a built-in:
 
@@ -150,17 +149,13 @@ registry = (
 omni = OmniFetcher(registry)
 ```
 
-`RegistryBuilder.source(name, uri_patterns=..., priority=...)` is the equivalent
-decorator form, applied to the fetcher class.
-
 ## Legacy v0.x API
 
 `from omni_fetcher import OmniFetcher` (no `.v1`) is the pre-1.0 layer. It still
-ships and works unchanged, but it is not the contract above — don't mix them,
-and use v1 for new code.
+ships and works unchanged, but it is not the contract above — don't mix them, and
+use v1 for new code.
 
 The ~50 source-specific schema classes (`GitHubIssue`, `NotionPage`,
 `JiraIssue`, …) are no longer exported from `omni_fetcher` as of 1.0.
 `docs/migration-v1.md` in the repo maps every removed schema family onto
-atoms + metadata + `source_extra`, field by field. The `examples/` directory
-covers the legacy API end to end.
+atoms + metadata + `source_extra`, field by field.
