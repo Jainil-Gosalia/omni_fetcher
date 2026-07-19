@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Assemble-context agent skill (`.claude/skills/omni-fetcher-assemble-context/`)**
+  — the first *task* skill: it pulls a set of related sources (issues, PRs, wiki
+  pages, documents, a `postgres://`/`mysql://` query, a log tail) into one
+  provenance-tagged context bundle over the `fetch`/`sample` surface, and reports
+  honestly what could not be fetched (typed errors/partials, a
+  requested-vs-fetched count). Adds no library code — it orchestrates the
+  existing tools and defers all contract/discovery detail to the `omni-fetcher`
+  skill. Ships in the repo, not the wheel.
+
 ### Changed
 - **Bundled agent skill (`.claude/skills/omni-fetcher/`) is now discovery-based.**
   It teaches the stable contract directly but, for the volatile surface (which
