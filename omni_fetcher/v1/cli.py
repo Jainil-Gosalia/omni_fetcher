@@ -21,6 +21,7 @@ from typing import Optional
 
 import typer
 from rich.console import Console
+from rich.table import Table
 from rich.tree import Tree
 
 from omni_fetcher.v1.atoms import Atom
@@ -33,6 +34,7 @@ from omni_fetcher.v1.auth import (
     OAuth2Auth,
 )
 from omni_fetcher.v1.builtin import builtin_registry
+from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.node import CompositionNode
 from omni_fetcher.v1.orchestrator import OmniFetcher
 from omni_fetcher.v1.result import Error, Partial, Result
@@ -362,3 +364,68 @@ def stream_command(
     except KeyboardInterrupt:
         raise typer.Exit(code=130)
     raise typer.Exit(code=exit_code)
+
+
+def _is_bounded(definition: object) -> bool:
+    """Report whether a source is bounded (its ``fetch`` is the base sugar).
+
+    A stream-only connector overrides ``fetch`` to return a typed
+    ``UNSUPPORTED``; a bounded one inherits ``BaseFetcher.fetch``. The registry
+    holds lazy proxies, so the real class is reached by instantiating (cheap and
+    side-effect-free by the stateless design) and inspecting its type. Any
+    failure is treated as bounded -- the common case.
+    """
+    try:
+        instance = definition.fetcher_class()  # type: ignore[attr-defined]
+        return type(instance).fetch is BaseFetcher.fetch
+    except Exception:
+        return True
+
+
+@v1_app.command("sources")
+def sources_command(
+    as_json: bool = typer.Option(False, "--json", help="Emit the source list as JSON."),
+) -> None:
+    """
+    List the sources this install can route
+
+    Prints each built-in source's name, whether it is bounded (drive it with
+    ``fetch``) or a stream (drive it with ``stream``), and the URI pattern it
+    claims. Only sources whose optional extra is installed appear, so this is
+    the true set for the current environment -- the discovery command, so you
+    never have to guess whether a scheme is supported.
+
+    Parameters
+    ----------
+        as_json:
+            Emit a JSON array of ``{name, bounded, uri_patterns}`` instead of a
+            table (for scripting / piping to ``jq``).
+
+    Return
+    ------
+        nothing:
+            The listing is written to stdout; exit code is always 0.
+    """
+    listing: list[tuple[str, bool, list[str]]] = [
+        (definition.name, _is_bounded(definition), list(definition.uri_patterns))
+        for definition in sorted(builtin_registry().definitions(), key=lambda d: d.name)
+    ]
+
+    if as_json:
+        Console().print_json(
+            data=[
+                {"name": name, "bounded": bounded, "uri_patterns": patterns}
+                for name, bounded, patterns in listing
+            ]
+        )
+        raise typer.Exit(code=0)
+
+    table = Table(title=f"{len(listing)} sources routable in this install")
+    table.add_column("source", style="bold")
+    table.add_column("kind")
+    table.add_column("uri pattern", style="dim")
+    for name, bounded, patterns in listing:
+        kind = "bounded" if bounded else "[cyan]stream[/cyan]"
+        table.add_row(name, kind, patterns[0])
+    Console().print(table)
+    raise typer.Exit(code=0)

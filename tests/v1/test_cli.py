@@ -129,3 +129,31 @@ def test_v1_namespace_is_mounted_on_the_legacy_app(
 
     assert result.exit_code == 0
     assert "URI" in result.output
+
+
+def test_sources_lists_the_routable_set() -> None:
+    """`omni-fetcher v1 sources` renders a table of the installed sources."""
+    result = runner.invoke(v1_app, ["sources"])
+
+    assert result.exit_code == 0, result.output
+    assert "sources routable" in result.output
+    # A core bounded source and a core stream source both appear, labelled.
+    assert "local_file" in result.output
+    assert "tail" in result.output
+
+
+def test_sources_json_labels_bounded_and_streams() -> None:
+    """--json emits {name, bounded, uri_patterns}; streams are bounded=false."""
+    result = runner.invoke(v1_app, ["sources", "--json"])
+
+    assert result.exit_code == 0, result.output
+    rows = json.loads(result.output)
+    by_name = {row["name"]: row for row in rows}
+
+    # Shape is the documented contract for scripting.
+    assert set(by_name["local_file"]) == {"name", "bounded", "uri_patterns"}
+    # Core, extra-free sources are always present with the right flag.
+    assert by_name["local_file"]["bounded"] is True
+    assert by_name["tail"]["bounded"] is False
+    assert by_name["redis"]["bounded"] is False
+    assert isinstance(by_name["local_file"]["uri_patterns"], list)

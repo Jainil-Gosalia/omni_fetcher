@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`omni-fetcher v1 sources`** — a first-class discovery command that lists
+  every source this install can route, each labelled `bounded` (drive with
+  `fetch`) or `stream` (drive with `stream`), with its URI pattern; `--json` for
+  scripting. Only sources whose optional extra is installed appear, so it is the
+  truth of the environment. Makes the discovery-based skill and README point at
+  one clean command instead of an inline `python -c` snippet.
 - **Assemble-context agent skill (`.claude/skills/omni-fetcher-assemble-context/`)**
   — the first *task* skill: it pulls a set of related sources (issues, PRs, wiki
   pages, documents, a `postgres://`/`mysql://` query, a log tail) into one

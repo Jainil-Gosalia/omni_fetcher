@@ -29,19 +29,15 @@ takes a given URI, discover it.
 **What sources can this install route, and which are streams?**
 
 ```bash
-python -c "
-from omni_fetcher.v1 import builtin_registry
-from omni_fetcher.v1.fetcher import BaseFetcher
-for d in sorted(builtin_registry().definitions(), key=lambda d: d.name):
-    stream = type(d.fetcher_class()).fetch is not BaseFetcher.fetch
-    print(f'{d.name:16s} {\"stream\" if stream else \"bounded\"}  {d.uri_patterns[0]}')
-"
+omni-fetcher v1 sources          # a table: each source, bounded-or-stream, its URI pattern
+omni-fetcher v1 sources --json   # the same as JSON, for scripting / piping to jq
 ```
 
-`builtin_registry()` skips any source whose optional extra is not installed, so
-this lists exactly what *this* environment can fetch — not a wishlist. A source
-that overrides `fetch` is unbounded (use `stream()` / the MCP `sample` tool); the
-rest are bounded (use `fetch()`).
+This lists exactly what *this* environment can fetch — sources whose optional
+extra is not installed do not appear, so it is the truth of the install, not a
+wishlist. `bounded` sources use `fetch()`; `stream` sources use `stream()` (or
+the MCP `sample` tool). The same list is available in Python via
+`builtin_registry().definitions()`.
 
 **How do I use a specific source — its URI shape, auth, and options?** Read the
 connector module's own docstring. It ships with the code, so it never drifts:

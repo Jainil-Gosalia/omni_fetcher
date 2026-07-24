@@ -199,13 +199,8 @@ Don't trust a list in a README — ask the installed package what it can actuall
 reach (only sources whose extras are installed show up):
 
 ```bash
-python -c "
-from omni_fetcher.v1 import builtin_registry
-from omni_fetcher.v1.fetcher import BaseFetcher
-for d in sorted(builtin_registry().definitions(), key=lambda d: d.name):
-    stream = type(d.fetcher_class()).fetch is not BaseFetcher.fetch
-    print(f'{d.name:16s} {\"stream\" if stream else \"bounded\"}  {d.uri_patterns[0]}')
-"
+omni-fetcher v1 sources          # a table of every routable source + bounded/stream flag
+omni-fetcher v1 sources --json   # the same, as JSON
 ```
 
 ## 60 seconds

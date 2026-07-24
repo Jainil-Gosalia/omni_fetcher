@@ -15,17 +15,13 @@ ships with the code and never drifts.
 **The routable sources in this install, and which are streams:**
 
 ```bash
-python -c "
-from omni_fetcher.v1 import builtin_registry
-from omni_fetcher.v1.fetcher import BaseFetcher
-for d in sorted(builtin_registry().definitions(), key=lambda d: d.name):
-    stream = type(d.fetcher_class()).fetch is not BaseFetcher.fetch
-    print(f'{d.name:16s} {\"stream\" if stream else \"bounded\"}  {d.uri_patterns[0]}')
-"
+omni-fetcher v1 sources          # table: each source, bounded-or-stream, its URI pattern
+omni-fetcher v1 sources --json   # the same as JSON
 ```
 
 Only sources whose extra is installed appear, so this is the true set for the
-environment you are in — not a wishlist.
+environment you are in — not a wishlist. The same data is available in Python via
+`builtin_registry().definitions()`.
 
 **A specific connector's URI shape, auth, options, and behaviour** — read its
 module docstring (authoritative and current):
