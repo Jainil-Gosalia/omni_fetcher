@@ -42,8 +42,13 @@ the connector-only roadmap (see `ROADMAP.md`).
 ### Notes
 - Verified through each connector's seam with scripted fakes (the documents
   container, per-document facts, change nodes, GetItem-miss→`NOT_FOUND` vs
-  empty-Scan container, credential resolution, error mapping, truncation); not
-  against a live MongoDB or DynamoDB.
+  empty-Scan container, credential resolution, error mapping, truncation).
+- **MongoDB is additionally verified end-to-end against a live server** — a
+  Dockerised single-node replica set (`mongo:7 --replSet`), driving both the
+  bounded `find` and the change stream through the real `motor` path (see
+  `tests/v1/integration/test_mongodb_docker.py`, skipped unless a MongoDB is
+  reachable). DynamoDB remains seam-verified (no faithful free local emulator
+  matching the connector's endpoint assumptions).
 - This completes the five-release connector roadmap (v1.12–v1.16): cloud object
   storage, SQL warehouses, knowledge base & wiki, cloud messaging streams, and
   NoSQL document stores.
