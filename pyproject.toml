@@ -97,6 +97,12 @@ postgres = [
 mysql = [
     "aiomysql>=0.2",
 ]
+pubsub = [
+    "google-cloud-pubsub>=2.18.0",
+]
+amqp = [
+    "aio-pika>=9.0.0",
+]
 mcp = [
     "mcp>=1.0",
 ]
@@ -144,6 +150,8 @@ module = [
     "asyncpg.*",
     "aiohttp",
     "aiohttp.*",
+    "aio_pika",
+    "aio_pika.*",
     "websockets",
     "websockets.*",
     "elasticsearch",

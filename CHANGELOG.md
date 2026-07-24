@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2026-07-25
+
+Cloud messaging streams: AWS Kinesis, GCP Pub/Sub, and RabbitMQ/AMQP — three
+unbounded connectors on the `stream()` seam, following the Kafka/Redis pattern.
+Fourth release of the connector-only roadmap (see `ROADMAP.md`).
+
+### Added
+- **New shared spec `connectors/_messaging.py`** — `build_message_result`, the
+  fold of one consumed broker message into the canonical per-item `Result` (a
+  `kind="message"` node with one `Text` atom, resume/descriptive facts in
+  `source_extra[namespace]`, stamped with the per-stream sequence).
+- **Kinesis connector** — `kinesis://<stream>?shard=&region=&after=&at=`
+  (unbounded; **no extra** — core `boto3`). Per-call `AwsAuth`; each record's
+  `sequence_number` is the resume position (`?after=`). A closed shard ends the
+  stream cleanly; a transport failure is one terminal `TRANSIENT`.
+- **Pub/Sub connector** — `pubsub://<project>/<subscription>` (unbounded; behind
+  the new `pubsub` extra, `google-cloud-pubsub`). Per-call `OAuth2Auth` (MCP
+  wires `OMNI_FETCHER_PUBSUB_ACCESS_TOKEN`); each message is acked after it is
+  yielded. Unacked messages redeliver, so there is no URI resume position.
+- **AMQP / RabbitMQ connector** — `amqp://[user[:pass]@]host[:port]/<queue>`
+  (`amqps://` for TLS; `?vhost=`; unbounded; behind the new `amqp` extra,
+  `aio-pika`). Per-call `BasicAuth` overrides URI userinfo, else `guest`; each
+  message is acked after it is yielded. Unacked messages requeue.
+- All three refuse `fetch()` with a typed `UNSUPPORTED` (they are unbounded; the
+  MCP `sample` tool gives a bounded window), and route broker access through a
+  `_consume` seam so tests script fakes and never touch a live broker.
+
+### Changed
+- **`stream_with_restart` gained a `kinesis` resume branch** — a dropped Kinesis
+  stream reopens at `?after=<sequence_number>` from the last consumed record's
+  `source_extra["kinesis"]`, alongside the existing tail/kafka/redis/ws/sse/
+  postgres branches. Pub/Sub and AMQP need no branch: an unacked message is
+  redelivered/requeued by the broker, so a reopened stream simply continues.
+
+### Notes
+- Verified through each connector's `_consume` seam with scripted fakes (per-
+  message nodes, resume-position facts, `fetch()`→`UNSUPPORTED`, auth refusal,
+  terminal `TRANSIENT` on a mid-stream failure) and the Kinesis resume
+  derivation; not against a live broker.
+
 ## [1.11.0] - 2026-07-24
 
 ### Added
