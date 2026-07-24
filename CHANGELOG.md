@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-07-25
+
+Knowledge base & wiki: Obsidian, Logseq, plain Markdown/Org, and MediaWiki — a
+new connector family for the "second brain" and documentation sources that feed
+agent context. Third release of the connector-only roadmap (see `ROADMAP.md`).
+
+### Added
+- **New shared spec `connectors/_wiki_notes.py`** — the family's genuinely
+  shared part: YAML frontmatter splitting, `[[wikilink]]` extraction (the
+  knowledge graph's edges), `#tag` + frontmatter-`tags:` merging, and the
+  fold of a note into a `kind="note"` node (body as one `Text` atom; title,
+  frontmatter, wikilinks, tags in `source_extra[namespace]`) or a set of notes
+  into a `kind="collection"`.
+- **Obsidian connector** — `obsidian://<path>`: a single `.md` note, or a vault
+  folder walked for notes into a capped `collection` (over the cap → `Partial`
+  with a typed gap). Namespace `source_extra["obsidian"]`. No extra needed.
+- **Logseq connector** — `logseq://<path>`: a single page, or a graph folder
+  whose walk is scoped to `pages/` and `journals/` when present (falling back to
+  the whole folder). Namespace `source_extra["logseq"]`. No extra needed.
+- **Markdown / Org connector** — `markdown://<path>`: the generic local member;
+  a `.md`/`.markdown`/`.mdx` body is `TextFormat.MARKDOWN`, an `.org` body is the
+  honest `PLAIN`. Namespace `source_extra["markdown"]`. No extra needed.
+- **MediaWiki connector** — `mediawiki://<host>/wiki/<Title>`: fetches a page via
+  the MediaWiki API (`action=parse`) and emits its rendered HTML as a `Text` atom
+  (`TextFormat.HTML` — labelled honestly rather than lossily converted), with the
+  page's outbound links as `wikilinks` and its categories as `tags`. Optional
+  per-call `BearerAuth` for a private wiki. Uses `httpx` (a core dependency), so
+  no optional extra; HTTP status and API `error` codes map onto the taxonomy.
+- The three local connectors share one base (`_local_notes.LocalNotesConnector`)
+  differing only in scheme, namespace, and vault-walk subfolders; all are
+  read-only and stream exactly one `Result`.
+
+### Notes
+- The local connectors are verified against **real** temp files (frontmatter,
+  wikilinks, tags, the Markdown-vs-Org format label, vault collections, the note
+  cap, Logseq's `pages/journals` scoping); MediaWiki is verified with a scripted
+  `httpx.MockTransport`, no live wiki.
+- Two further requested formats (an "OKF" format and an "OpenWiki" format) are
+  intentionally **not** shipped: no concrete specification for either could be
+  confirmed, and a connector must target a real wire format. They remain a
+  follow-up pending a specification.
+
 ## [1.11.0] - 2026-07-24
 
 ### Added

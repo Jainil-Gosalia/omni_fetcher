@@ -131,6 +131,40 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         10,
         (),
     ),
+    # Knowledge-base & wiki family (v1.14). The local three need no extra
+    # (PyYAML + stdlib); mediawiki uses httpx (a core dependency).
+    (
+        "obsidian",
+        f"{_CONNECTORS_PKG}.obsidian",
+        "ObsidianConnector",
+        ("obsidian://*",),
+        10,
+        (),
+    ),
+    (
+        "logseq",
+        f"{_CONNECTORS_PKG}.logseq",
+        "LogseqConnector",
+        ("logseq://*",),
+        10,
+        (),
+    ),
+    (
+        "markdown",
+        f"{_CONNECTORS_PKG}.markdown",
+        "MarkdownConnector",
+        ("markdown://*",),
+        10,
+        (),
+    ),
+    (
+        "mediawiki",
+        f"{_CONNECTORS_PKG}.mediawiki",
+        "MediaWikiConnector",
+        ("mediawiki://*",),
+        10,
+        (),
+    ),
     (
         "linear",
         f"{_CONNECTORS_PKG}.linear",
