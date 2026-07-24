@@ -43,7 +43,12 @@ Fourth release of the connector-only roadmap (see `ROADMAP.md`).
 - Verified through each connector's `_consume` seam with scripted fakes (per-
   message nodes, resume-position facts, `fetch()`→`UNSUPPORTED`, auth refusal,
   terminal `TRANSIENT` on a mid-stream failure) and the Kinesis resume
-  derivation; not against a live broker.
+  derivation.
+- **All three are additionally verified end-to-end against live brokers** via
+  Docker (`tests/v1/integration/`, skipped unless the service is reachable):
+  AMQP against `rabbitmq:3`, Kinesis against LocalStack (boto3's
+  `AWS_ENDPOINT_URL` override — the connector is unchanged), and Pub/Sub against
+  the emulator (`PUBSUB_EMULATOR_HOST`).
 
 ## [1.11.0] - 2026-07-24
 
