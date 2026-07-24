@@ -46,7 +46,12 @@ dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.0",
-    "ruff>=0.1.0",
+    # Pinned to the 0.9 series: ruff's *default* lint ruleset (and formatter)
+    # drifts across minor versions, and an unpinned `>=` silently pulled a newer
+    # ruff that flags ~200 pre-existing findings repo-wide -- an infra failure,
+    # not a code one. Pin so CI is deterministic; adopting a newer ruff + fixing
+    # its findings is a separate, deliberate cleanup.
+    "ruff>=0.9.0,<0.10.0",
     "mypy>=1.0",
     "types-PyYAML",
     "types-python-dateutil",
