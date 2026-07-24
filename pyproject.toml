@@ -97,6 +97,9 @@ postgres = [
 mysql = [
     "aiomysql>=0.2",
 ]
+mongodb = [
+    "motor>=3.3.0",
+]
 mcp = [
     "mcp>=1.0",
 ]
@@ -148,6 +151,10 @@ module = [
     "websockets.*",
     "elasticsearch",
     "elasticsearch.*",
+    "motor",
+    "motor.*",
+    "pymongo",
+    "pymongo.*",
     "atlassian.*",
     "boto3.*",
     "botocore.*",
