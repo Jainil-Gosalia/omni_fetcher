@@ -33,6 +33,9 @@ connector-only roadmap (see `ROADMAP.md`).
     `AzureNamedKeyCredential`; the MCP server wires
     `OMNI_FETCHER_AZURE_USERNAME` + `_PASSWORD`. No connection string,
     environment variable, or managed identity is read.
+  - An optional `?endpoint=` overrides the account URL for a compatible or local
+    service (Azurite, Azure Stack, a sovereign cloud); absent it, the public
+    `https://<account>.blob.core.windows.net` endpoint is used.
 - Both surface the taxonomy from their SDK's HTTP status: a missing object is
   `NOT_FOUND`, denied access `PERMISSION_DENIED`, a bad token/key `AUTH_FAILED`,
   throttling `RATE_LIMITED`, and a transport blip `TRANSIENT` — never raised.
@@ -48,6 +51,13 @@ connector-only roadmap (see `ROADMAP.md`).
   unchanged), exactly as Postgres adopted the `_sql_query` spec MySQL prompted.
   This is the abstraction growing where a second and third store proved it, not
   a fork.
+
+### Notes
+- Both connectors are verified end-to-end against live emulators via Docker
+  (`tests/v1/integration/`, skipped unless the service is reachable): GCS against
+  `fsouza/fake-gcs-server` (via the standard `STORAGE_EMULATOR_HOST`, connector
+  unchanged) and Azure against Azurite (via the new `?endpoint=` option) — a
+  text object round-trips to a `Text` atom and a missing object is `NOT_FOUND`.
 
 ## [1.11.0] - 2026-07-24
 

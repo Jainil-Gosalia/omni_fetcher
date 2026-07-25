@@ -35,6 +35,7 @@ import asyncio
 import importlib.util
 from datetime import datetime
 from typing import Any, AsyncIterator, Optional
+from urllib.parse import parse_qs
 
 from omni_fetcher.v1.auth import AuthCredential, BasicAuth
 from omni_fetcher.v1.connectors._object_store import build_file_node
@@ -57,13 +58,15 @@ _SCHEMES = ("az://", "azure://")
 _ENDPOINT_SUFFIX = "blob.core.windows.net"
 
 
-def _parse_azure_uri(uri: str) -> tuple[str, str]:
-    """Parse an ``az://container/blob`` (or ``azure://``) URI into ``(container, blob)``.
+def _parse_azure_uri(uri: str) -> tuple[str, str, Optional[str]]:
+    """Parse ``az://container/blob[?endpoint=]`` into ``(container, blob, endpoint)``.
 
-    The storage account is not in the URI (it is carried by the credential).
-    Raises ``ValueError`` for a URI that is not an Azure Blob reference or that
-    omits the container or blob; the caller maps that to an ``INVALID_INPUT``
-    error.
+    The storage account is not in the URI (it is carried by the credential). An
+    optional ``?endpoint=`` overrides the account URL for a compatible/local
+    service (Azurite, Azure Stack, a sovereign cloud); when absent the public
+    ``https://<account>.blob.core.windows.net`` endpoint is used. Raises
+    ``ValueError`` for a URI that is not an Azure Blob reference or that omits the
+    container or blob; the caller maps that to an ``INVALID_INPUT`` error.
     """
     for scheme in _SCHEMES:
         if uri.startswith(scheme):
@@ -71,10 +74,12 @@ def _parse_azure_uri(uri: str) -> tuple[str, str]:
             break
     else:
         raise ValueError(f"not an Azure Blob URI: {uri}")
-    container, _, blob = remainder.partition("/")
+    location, _, query = remainder.partition("?")
+    container, _, blob = location.partition("/")
     if not container or not blob:
         raise ValueError(f"Azure Blob URI must name a container and blob: {uri}")
-    return container, blob
+    endpoint = parse_qs(query).get("endpoint", [None])[0]
+    return container, blob, endpoint
 
 
 def _classify_azure_error(exc: BaseException) -> ErrorKind:
@@ -233,13 +238,13 @@ class AzureBlobFetcher(BaseFetcher):
             )
 
         try:
-            container, blob = _parse_azure_uri(uri)
+            container, blob, endpoint = _parse_azure_uri(uri)
         except ValueError as exc:
             return from_exception(exc, kind=ErrorKind.INVALID_INPUT, locator=uri)
 
         try:
             data, properties = await asyncio.to_thread(
-                self._download, container, blob, auth.username, auth.password
+                self._download, container, blob, auth.username, auth.password, endpoint
             )
         except Exception as exc:  # mapped to a typed Result; never raised (contract)
             return from_exception(exc, kind=_classify_azure_error(exc), locator=uri)
@@ -263,6 +268,7 @@ class AzureBlobFetcher(BaseFetcher):
         blob: str,
         account: str,
         account_key: str,
+        endpoint: Optional[str] = None,
     ) -> tuple[bytes, Any]:
         """Download one blob's bytes and return them with the blob properties.
 
@@ -270,23 +276,30 @@ class AzureBlobFetcher(BaseFetcher):
         ``_client`` seam), downloads the blob, and returns ``(data, properties)``.
         A missing blob raises ``ResourceNotFoundError`` (mapped to ``NOT_FOUND``).
         """
-        client = self._client(container, blob, account, account_key)
+        client = self._client(container, blob, account, account_key, endpoint)
         downloader = client.download_blob()
         data: bytes = downloader.readall()
         return data, downloader.properties
 
     @staticmethod
-    def _client(container: str, blob: str, account: str, account_key: str) -> Any:
+    def _client(
+        container: str,
+        blob: str,
+        account: str,
+        account_key: str,
+        endpoint: Optional[str] = None,
+    ) -> Any:
         """Build an azure-storage-blob ``BlobClient`` from a per-call key.
 
         The heavy import is deferred to here so the module imports on a base
         install; the client is built from the injected account name + key only,
-        never a connection string or ambient credential.
+        never a connection string or ambient credential. ``endpoint`` overrides
+        the account URL for a compatible/local service (e.g. Azurite).
         """
         from azure.core.credentials import AzureNamedKeyCredential
         from azure.storage.blob import BlobClient
 
-        account_url = f"https://{account}.{_ENDPOINT_SUFFIX}"
+        account_url = endpoint or f"https://{account}.{_ENDPOINT_SUFFIX}"
         credential = AzureNamedKeyCredential(account, account_key)
         return BlobClient(
             account_url=account_url,

@@ -91,8 +91,16 @@ class _FakeClient:
 def _install(monkeypatch, client: _FakeClient, recorder: dict[str, Any]) -> None:
     """Patch the ``_client`` seam to return ``client``, recording the args."""
 
-    def fake_client(container: str, blob: str, account: str, account_key: str) -> _FakeClient:
-        recorder.update(container=container, blob=blob, account=account, account_key=account_key)
+    def fake_client(
+        container: str, blob: str, account: str, account_key: str, endpoint=None
+    ) -> _FakeClient:
+        recorder.update(
+            container=container,
+            blob=blob,
+            account=account,
+            account_key=account_key,
+            endpoint=endpoint,
+        )
         return client
 
     monkeypatch.setattr(AzureBlobFetcher, "_client", staticmethod(fake_client))
