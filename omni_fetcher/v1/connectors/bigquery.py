@@ -44,6 +44,7 @@ from urllib.parse import parse_qs
 
 from omni_fetcher.v1.auth import AuthCredential, OAuth2Auth
 from omni_fetcher.v1.connectors._sql_query import (
+    BIGQUERY_IDENTIFIER,
     MYSQL_QUOTE,
     build_query_result,
     parse_sql_uri,
@@ -249,6 +250,7 @@ class BigQueryConnector(BaseFetcher):
                 row_cap=row_cap,
                 quote=MYSQL_QUOTE,
                 max_parts=3,
+                identifier=BIGQUERY_IDENTIFIER,
             )
         except ValueError as exc:
             yield error(ErrorKind.INVALID_INPUT, message=str(exc), locator=uri)

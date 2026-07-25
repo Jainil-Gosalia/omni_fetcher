@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.1] - 2026-07-26
+
+### Fixed
+- **BigQuery `?table=` now works for real, hyphenated projects.** BigQuery
+  project ids almost always contain a hyphen (e.g. `my-project-123`), but the
+  shared SQL identifier rule (`STANDARD_IDENTIFIER`) forbids hyphens, so a table
+  browse against a real project failed with `INVALID_INPUT` — only `?query=`
+  worked. The shared `_sql_query` helpers (`quote_identifier` /
+  `build_select_star` / `resolve_statement`) gained an `identifier` pattern
+  parameter (default unchanged), and BigQuery passes a `BIGQUERY_IDENTIFIER`
+  that permits the hyphen — safe, since it is used inside backtick quoting and
+  no accepted pattern admits the quote character. PostgreSQL / MySQL / SQLite /
+  DuckDB are unchanged (they still reject hyphens via `?table=`). The mock unit
+  test hid this by using `proj`/`ds`; the live emulator (project `test-project`)
+  now regression-guards it.
+
 ## [1.16.0] - 2026-07-25
 
 NoSQL document stores: MongoDB and DynamoDB — the read side of the NoSQL world,
