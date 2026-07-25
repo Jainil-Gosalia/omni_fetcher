@@ -97,6 +97,21 @@ postgres = [
 mysql = [
     "aiomysql>=0.2",
 ]
+gcs = [
+    "google-cloud-storage>=2.10.0",
+]
+azure = [
+    "azure-storage-blob>=12.19.0",
+]
+duckdb = [
+    "duckdb>=0.10.0",
+]
+bigquery = [
+    "google-cloud-bigquery>=3.11.0",
+]
+redshift = [
+    "redshift-connector>=2.0.0",
+]
 pubsub = [
     "google-cloud-pubsub>=2.18.0",
 ]
@@ -152,6 +167,13 @@ module = [
     "aiohttp.*",
     "aio_pika",
     "aio_pika.*",
+    "azure.*",
+    "duckdb",
+    "duckdb.*",
+    "google.cloud.*",
+    "google.oauth2.*",
+    "redshift_connector",
+    "redshift_connector.*",
     "websockets",
     "websockets.*",
     "elasticsearch",
