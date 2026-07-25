@@ -53,6 +53,219 @@ the connector-only roadmap (see `ROADMAP.md`).
   storage, SQL warehouses, knowledge base & wiki, cloud messaging streams, and
   NoSQL document stores.
 
+## [1.15.0] - 2026-07-25
+
+Cloud messaging streams: AWS Kinesis, GCP Pub/Sub, and RabbitMQ/AMQP — three
+unbounded connectors on the `stream()` seam, following the Kafka/Redis pattern.
+Fourth release of the connector-only roadmap (see `ROADMAP.md`).
+
+### Added
+- **New shared spec `connectors/_messaging.py`** — `build_message_result`, the
+  fold of one consumed broker message into the canonical per-item `Result` (a
+  `kind="message"` node with one `Text` atom, resume/descriptive facts in
+  `source_extra[namespace]`, stamped with the per-stream sequence).
+- **Kinesis connector** — `kinesis://<stream>?shard=&region=&after=&at=`
+  (unbounded; **no extra** — core `boto3`). Per-call `AwsAuth`; each record's
+  `sequence_number` is the resume position (`?after=`). A closed shard ends the
+  stream cleanly; a transport failure is one terminal `TRANSIENT`.
+- **Pub/Sub connector** — `pubsub://<project>/<subscription>` (unbounded; behind
+  the new `pubsub` extra, `google-cloud-pubsub`). Per-call `OAuth2Auth` (MCP
+  wires `OMNI_FETCHER_PUBSUB_ACCESS_TOKEN`); each message is acked after it is
+  yielded. Unacked messages redeliver, so there is no URI resume position.
+- **AMQP / RabbitMQ connector** — `amqp://[user[:pass]@]host[:port]/<queue>`
+  (`amqps://` for TLS; `?vhost=`; unbounded; behind the new `amqp` extra,
+  `aio-pika`). Per-call `BasicAuth` overrides URI userinfo, else `guest`; each
+  message is acked after it is yielded. Unacked messages requeue.
+- All three refuse `fetch()` with a typed `UNSUPPORTED` (they are unbounded; the
+  MCP `sample` tool gives a bounded window), and route broker access through a
+  `_consume` seam so tests script fakes and never touch a live broker.
+
+### Changed
+- **`stream_with_restart` gained a `kinesis` resume branch** — a dropped Kinesis
+  stream reopens at `?after=<sequence_number>` from the last consumed record's
+  `source_extra["kinesis"]`, alongside the existing tail/kafka/redis/ws/sse/
+  postgres branches. Pub/Sub and AMQP need no branch: an unacked message is
+  redelivered/requeued by the broker, so a reopened stream simply continues.
+
+### Notes
+- Verified through each connector's `_consume` seam with scripted fakes (per-
+  message nodes, resume-position facts, `fetch()`→`UNSUPPORTED`, auth refusal,
+  terminal `TRANSIENT` on a mid-stream failure) and the Kinesis resume
+  derivation.
+- **All three are additionally verified end-to-end against live brokers** via
+  Docker (`tests/v1/integration/`, skipped unless the service is reachable):
+  AMQP against `rabbitmq:3`, Kinesis against LocalStack (boto3's
+  `AWS_ENDPOINT_URL` override — the connector is unchanged), and Pub/Sub against
+  the emulator (`PUBSUB_EMULATOR_HOST`).
+
+## [1.14.0] - 2026-07-25
+
+Knowledge base & wiki: Obsidian, Logseq, plain Markdown/Org, and MediaWiki — a
+new connector family for the "second brain" and documentation sources that feed
+agent context. Third release of the connector-only roadmap (see `ROADMAP.md`).
+
+### Added
+- **New shared spec `connectors/_wiki_notes.py`** — the family's genuinely
+  shared part: YAML frontmatter splitting, `[[wikilink]]` extraction (the
+  knowledge graph's edges), `#tag` + frontmatter-`tags:` merging, and the
+  fold of a note into a `kind="note"` node (body as one `Text` atom; title,
+  frontmatter, wikilinks, tags in `source_extra[namespace]`) or a set of notes
+  into a `kind="collection"`.
+- **Obsidian connector** — `obsidian://<path>`: a single `.md` note, or a vault
+  folder walked for notes into a capped `collection` (over the cap → `Partial`
+  with a typed gap). Namespace `source_extra["obsidian"]`. No extra needed.
+- **Logseq connector** — `logseq://<path>`: a single page, or a graph folder
+  whose walk is scoped to `pages/` and `journals/` when present (falling back to
+  the whole folder). Namespace `source_extra["logseq"]`. No extra needed.
+- **Markdown / Org connector** — `markdown://<path>`: the generic local member;
+  a `.md`/`.markdown`/`.mdx` body is `TextFormat.MARKDOWN`, an `.org` body is the
+  honest `PLAIN`. Namespace `source_extra["markdown"]`. No extra needed.
+- **MediaWiki connector** — `mediawiki://<host>/wiki/<Title>`: fetches a page via
+  the MediaWiki API (`action=parse`) and emits its rendered HTML as a `Text` atom
+  (`TextFormat.HTML` — labelled honestly rather than lossily converted), with the
+  page's outbound links as `wikilinks` and its categories as `tags`. Optional
+  per-call `BearerAuth` for a private wiki. Uses `httpx` (a core dependency), so
+  no optional extra; HTTP status and API `error` codes map onto the taxonomy.
+  An optional `?endpoint=` overrides the full API URL for a self-hosted wiki on
+  a non-standard path or over plain HTTP.
+- The three local connectors share one base (`_local_notes.LocalNotesConnector`)
+  differing only in scheme, namespace, and vault-walk subfolders; all are
+  read-only and stream exactly one `Result`.
+
+### Notes
+- The local connectors are verified against **real** temp files (frontmatter,
+  wikilinks, tags, the Markdown-vs-Org format label, vault collections, the note
+  cap, Logseq's `pages/journals` scoping). MediaWiki is verified two ways: the
+  scripted `httpx.MockTransport` unit tests, **and** a real HTTP round-trip over
+  a socket against a Dockerised nginx serving the `action=parse` JSON (via the
+  new `?endpoint=`; see `tests/v1/integration/`, skipped unless reachable).
+- Two further requested formats (an "OKF" format and an "OpenWiki" format) are
+  intentionally **not** shipped: no concrete specification for either could be
+  confirmed, and a connector must target a real wire format. They remain a
+  follow-up pending a specification.
+
+## [1.13.0] - 2026-07-25
+
+SQL warehouses: DuckDB, BigQuery, and Redshift — three more members of the
+v1.9 SQL query family, each keeping the family's engine-level read-only
+guarantee through a different mechanism. Second release of the connector-only
+roadmap (see `ROADMAP.md`).
+
+### Added
+- **DuckDB connector** — `duckdb://<file-path>` (bounded; behind the new
+  `duckdb` extra). The embedded member, mirroring `sqlite://`: same
+  `?table=`/`?query=`/`?query_env=`/`?limit=`, one `kind="query_result"` node
+  with a `Table` atom, facts in `source_extra["duckdb"]`.
+  - **Read-only enforced by the engine** — the database is opened with
+    `read_only=True`, so a write is refused (`PERMISSION_DENIED`) and the file
+    is left byte-for-byte unchanged. Verified against a real DuckDB file (table
+    browse, raw query, a refused `DELETE`, missing file).
+- **BigQuery connector** — `bigquery://<project>/<dataset>` (bounded; behind the
+  new `bigquery` extra). Per-call `OAuth2Auth` access token (MCP wires
+  `OMNI_FETCHER_BIGQUERY_ACCESS_TOKEN`); no URI credential fallback.
+  - **Read-only enforced by the engine** — before executing, the statement is
+    run as a **dry run** and BigQuery's own parser reports its
+    `statement_type`; anything but `SELECT` is refused with `PERMISSION_DENIED`
+    before any data is touched, and a malformed query is the dry run's own
+    `INVALID_INPUT`.
+  - BigQuery is the first **three-part identifier** customer
+    (`project.dataset.table`) and quotes with backticks — see the shared-spec
+    change below.
+- **Redshift connector** — `redshift://<host>[:<port>]/<database>` (default port
+  5439; bounded; behind the new `redshift` extra, `redshift-connector`). Per-call
+  `BasicAuth` (MCP wires `OMNI_FETCHER_REDSHIFT_USERNAME`/`_PASSWORD`), URI
+  `?user=`/`?password=` fallback — mirroring `postgres://`.
+  - **Read-only enforced by the engine** — Redshift speaks the PostgreSQL wire
+    protocol, so every query runs after `SET TRANSACTION READ ONLY` in an
+    un-committed transaction; a write is refused (SQLSTATE `25006` →
+    `PERMISSION_DENIED`) and rolled back.
+- Each connector maps its driver's failures onto the taxonomy (missing table
+  `NOT_FOUND`, denied/refused-write `PERMISSION_DENIED`, bad auth `AUTH_FAILED`,
+  throttling `RATE_LIMITED`, transport `TRANSIENT`), never raised. A missing
+  extra is a typed `UNSUPPORTED`; `builtin_registry()` skips the source when its
+  driver is absent.
+
+### Changed
+- **The shared `_sql_query` spec gained a `max_parts` seam** on
+  `build_select_star`/`resolve_statement` (default 2 = `schema.table`), prompted
+  by BigQuery as the first three-part (`project.dataset.table`) customer. No
+  behaviour change for the existing connectors (Postgres/MySQL/SQLite suites
+  unchanged); the abstraction grows where a customer proved it, alongside the
+  identifier-quote parameter MySQL added in v1.10.
+
+### Notes
+- Snowflake was considered for this release but dropped in favour of Redshift:
+  Redshift's PostgreSQL-wire `READ ONLY` transaction gives a true engine-level
+  read-only guarantee, whereas Snowflake has no equivalent session primitive.
+- **Verification.** DuckDB is verified against a real database file. **BigQuery's
+  query path is verified end-to-end** against `ghcr.io/goccy/bigquery-emulator`
+  via the new `?endpoint=` option (a `SELECT` is planned, executed, and folded
+  to a `Table` with the right rows; see `tests/v1/integration/`); its read-only
+  *refusal* stays seam-verified because that emulator reports every DML dry run
+  as `statement_type='SELECT'` (real BigQuery classifies DML correctly).
+  **Redshift stays seam-verified** — `redshift_connector` is Redshift-specific
+  (TLS-required, and its auth handshake does not complete against stock
+  PostgreSQL) and there is no local Redshift, so no faithful local test exists;
+  the `SET TRANSACTION READ ONLY` ordering and error mapping are covered by
+  scripted fakes.
+- **`?endpoint=` (BigQuery).** An optional `?endpoint=` overrides the API
+  endpoint for a compatible or local service (an emulator), alongside the
+  existing per-call `OAuth2Auth`.
+
+## [1.12.0] - 2026-07-25
+
+Cloud object storage: Google Cloud Storage and Azure Blob, completing the
+object-storage trio behind one shared spec. The first release of the
+connector-only roadmap (see `ROADMAP.md`).
+
+### Added
+- **Google Cloud Storage connector** — `gs://bucket/object` (bounded; behind
+  the new `gcs` extra, `google-cloud-storage`). Reads one object and maps it
+  onto the same `kind="file"` node S3 emits — `Text` for text-like objects,
+  `Table` for CSV/TSV, `Image`/`Audio`/`Video` for recognised media, an
+  `UNSUPPORTED` gap for an unrepresentable binary — with bucket/object/size/
+  etag/content-type/updated in `source_extra["gcs"]`.
+  - **Credentials** are a per-call `OAuth2Auth` access token. GCS authenticates
+    with an OAuth2 bearer token, and per PHILOSOPHY §7 a service-account key is
+    a host-side token-exchange concern: the host exchanges the key for a token
+    and injects it, so the MCP server wires
+    `OMNI_FETCHER_GCS_ACCESS_TOKEN`. The connector never reads ambient
+    credentials, a credentials file, or the metadata server.
+- **Azure Blob connector** — `az://container/blob` (alias `azure://`; bounded;
+  behind the new `azure` extra, `azure-storage-blob`). Same file-node mapping;
+  the storage *account* is carried by the credential, not the URI, mirroring how
+  `s3://` takes the AWS account from its `AwsAuth`.
+  - **Credentials** are a per-call `BasicAuth` whose username is the storage
+    account and password is an account key, mapped onto an
+    `AzureNamedKeyCredential`; the MCP server wires
+    `OMNI_FETCHER_AZURE_USERNAME` + `_PASSWORD`. No connection string,
+    environment variable, or managed identity is read.
+  - An optional `?endpoint=` overrides the account URL for a compatible or local
+    service (Azurite, Azure Stack, a sovereign cloud); absent it, the public
+    `https://<account>.blob.core.windows.net` endpoint is used.
+- Both surface the taxonomy from their SDK's HTTP status: a missing object is
+  `NOT_FOUND`, denied access `PERMISSION_DENIED`, a bad token/key `AUTH_FAILED`,
+  throttling `RATE_LIMITED`, and a transport blip `TRANSIENT` — never raised.
+  A missing extra is a typed `UNSUPPORTED` naming the extra, and
+  `builtin_registry()` skips the source when its client is absent.
+
+### Changed
+- **New shared spec `connectors/_object_store.py`** holds the object-storage
+  family's genuinely shared part — the content-type→atom decisions, the
+  delimited-text→`Table` parsing, and the bytes→`file`-node assembly with its
+  textual/binary/gap policy — extracted from the S3 connector. **S3 now uses it
+  too**, replacing its own copy (no behaviour change; the v1 S3 test suite is
+  unchanged), exactly as Postgres adopted the `_sql_query` spec MySQL prompted.
+  This is the abstraction growing where a second and third store proved it, not
+  a fork.
+
+### Notes
+- Both connectors are verified end-to-end against live emulators via Docker
+  (`tests/v1/integration/`, skipped unless the service is reachable): GCS against
+  `fsouza/fake-gcs-server` (via the standard `STORAGE_EMULATOR_HOST`, connector
+  unchanged) and Azure against Azurite (via the new `?endpoint=` option) — a
+  text object round-trips to a `Text` atom and a missing object is `NOT_FOUND`.
+
 ## [1.11.0] - 2026-07-24
 
 ### Added

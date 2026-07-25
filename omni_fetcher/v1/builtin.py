@@ -115,6 +115,32 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         10,
         ("asyncpg",),
     ),
+    # Cloud messaging streams (v1.15). kinesis uses core boto3; pubsub and amqp
+    # are behind their extras.
+    (
+        "kinesis",
+        f"{_CONNECTORS_PKG}.kinesis",
+        "KinesisConnector",
+        ("kinesis://*",),
+        10,
+        (),
+    ),
+    (
+        "pubsub",
+        f"{_CONNECTORS_PKG}.pubsub",
+        "PubSubConnector",
+        ("pubsub://*",),
+        10,
+        ("google.cloud.pubsub_v1",),
+    ),
+    (
+        "amqp",
+        f"{_CONNECTORS_PKG}.amqp",
+        "AMQPConnector",
+        ("amqp://*", "amqps://*"),
+        10,
+        ("aio_pika",),
+    ),
     (
         "elasticsearch",
         f"{_CONNECTORS_PKG}.elasticsearch",
@@ -158,6 +184,40 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         10,
         (),
     ),
+    # Knowledge-base & wiki family (v1.14). The local three need no extra
+    # (PyYAML + stdlib); mediawiki uses httpx (a core dependency).
+    (
+        "obsidian",
+        f"{_CONNECTORS_PKG}.obsidian",
+        "ObsidianConnector",
+        ("obsidian://*",),
+        10,
+        (),
+    ),
+    (
+        "logseq",
+        f"{_CONNECTORS_PKG}.logseq",
+        "LogseqConnector",
+        ("logseq://*",),
+        10,
+        (),
+    ),
+    (
+        "markdown",
+        f"{_CONNECTORS_PKG}.markdown",
+        "MarkdownConnector",
+        ("markdown://*",),
+        10,
+        (),
+    ),
+    (
+        "mediawiki",
+        f"{_CONNECTORS_PKG}.mediawiki",
+        "MediaWikiConnector",
+        ("mediawiki://*",),
+        10,
+        (),
+    ),
     (
         "linear",
         f"{_CONNECTORS_PKG}.linear",
@@ -182,6 +242,22 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         ("s3://*", ".s3.amazonaws.com"),
         10,
         (),
+    ),
+    (
+        "gcs",
+        f"{_CONNECTORS_PKG}.gcs",
+        "GCSFetcher",
+        ("gs://*",),
+        10,
+        ("google.cloud.storage",),
+    ),
+    (
+        "azure",
+        f"{_CONNECTORS_PKG}.azure_blob",
+        "AzureBlobFetcher",
+        ("az://*", "azure://*"),
+        10,
+        ("azure.storage.blob",),
     ),
     (
         "confluence",
@@ -266,6 +342,31 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         ("mysql://*", "mariadb://*"),
         10,
         ("aiomysql",),
+    ),
+    # SQL warehouse connectors (v1.13), same _sql_query spec, one more per engine.
+    (
+        "duckdb",
+        f"{_CONNECTORS_PKG}.duckdb_query",
+        "DuckDBQueryConnector",
+        ("duckdb://*",),
+        10,
+        ("duckdb",),
+    ),
+    (
+        "bigquery",
+        f"{_CONNECTORS_PKG}.bigquery",
+        "BigQueryConnector",
+        ("bigquery://*",),
+        10,
+        ("google.cloud.bigquery",),
+    ),
+    (
+        "redshift",
+        f"{_CONNECTORS_PKG}.redshift",
+        "RedshiftQueryConnector",
+        ("redshift://*",),
+        10,
+        ("redshift_connector",),
     ),
     (
         "rss",
