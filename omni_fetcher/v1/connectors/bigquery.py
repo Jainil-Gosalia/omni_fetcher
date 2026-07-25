@@ -40,6 +40,7 @@ from __future__ import annotations
 import importlib.util
 import os
 from typing import Any, AsyncIterator, Optional, Protocol
+from urllib.parse import parse_qs
 
 from omni_fetcher.v1.auth import AuthCredential, OAuth2Auth
 from omni_fetcher.v1.connectors._sql_query import (
@@ -100,25 +101,37 @@ def _classify_google_error(exc: BaseException) -> ErrorKind:
     return ErrorKind.TRANSIENT
 
 
-def _build_client(project: str, access_token: str) -> Any:
+def _endpoint_of(uri: str) -> Optional[str]:
+    """Extract an optional ``?endpoint=`` override from the URI query string."""
+    query = uri.partition("?")[2]
+    return parse_qs(query).get("endpoint", [None])[0]
+
+
+def _build_client(project: str, access_token: str, endpoint: Optional[str] = None) -> Any:
     """Build a google-cloud-bigquery client from a per-call access token.
 
     The heavy import is deferred to here so the module imports on a base
-    install; the client is built from the injected token only.
+    install; the client is built from the injected token only. ``endpoint``
+    overrides the API endpoint for a compatible or local service (an emulator).
     """
+    from google.api_core.client_options import ClientOptions
     from google.cloud import bigquery
     from google.oauth2.credentials import Credentials
 
     credentials = Credentials(token=access_token)
-    return bigquery.Client(project=project, credentials=credentials)
+    client_options = ClientOptions(api_endpoint=endpoint) if endpoint else None
+    return bigquery.Client(
+        project=project, credentials=credentials, client_options=client_options
+    )
 
 
 class _BigQueryExecutor:
     """Production executor: dry-run gate then run a query via google-cloud-bigquery."""
 
-    def __init__(self, project: str, access_token: str) -> None:
+    def __init__(self, project: str, access_token: str, endpoint: Optional[str] = None) -> None:
         self._project = project
         self._access_token = access_token
+        self._endpoint = endpoint
 
     async def run(self, sql: str, row_cap: int) -> tuple[list[str], list[list[Any]]]:
         # google-cloud-bigquery is synchronous; run it on a worker thread.
@@ -129,7 +142,7 @@ class _BigQueryExecutor:
     def _run_sync(self, sql: str, row_cap: int) -> tuple[list[str], list[list[Any]]]:
         from google.cloud import bigquery
 
-        client = _build_client(self._project, self._access_token)
+        client = _build_client(self._project, self._access_token, self._endpoint)
 
         # Read-only gate: BigQuery's own parser classifies the statement.
         dry_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
@@ -241,7 +254,7 @@ class BigQueryConnector(BaseFetcher):
             yield error(ErrorKind.INVALID_INPUT, message=str(exc), locator=uri)
             return
 
-        executor = self._make_executor(spec.host, auth.access_token)
+        executor = self._make_executor(spec.host, auth.access_token, _endpoint_of(uri))
 
         try:
             columns, rows = await executor.run(sql, row_cap)
@@ -265,9 +278,11 @@ class BigQueryConnector(BaseFetcher):
             extra_fields={"project": spec.host, "dataset": spec.database},
         )
 
-    def _make_executor(self, project: str, access_token: str) -> _QueryExecutor:
+    def _make_executor(
+        self, project: str, access_token: str, endpoint: Optional[str] = None
+    ) -> _QueryExecutor:
         """Build the DB executor (the test seam). Overridden by fakes in tests."""
-        return _BigQueryExecutor(project, access_token)
+        return _BigQueryExecutor(project, access_token, endpoint)
 
     @classmethod
     def can_handle(cls, uri: str) -> bool:

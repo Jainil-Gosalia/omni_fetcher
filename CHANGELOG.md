@@ -58,10 +58,20 @@ roadmap (see `ROADMAP.md`).
 - Snowflake was considered for this release but dropped in favour of Redshift:
   Redshift's PostgreSQL-wire `READ ONLY` transaction gives a true engine-level
   read-only guarantee, whereas Snowflake has no equivalent session primitive.
-- DuckDB is verified against a real database; BigQuery and Redshift are verified
-  through their client/connection seams with scripted fakes (including the
-  read-only gate and the `SET TRANSACTION READ ONLY` ordering), not a live
-  warehouse.
+- **Verification.** DuckDB is verified against a real database file. **BigQuery's
+  query path is verified end-to-end** against `ghcr.io/goccy/bigquery-emulator`
+  via the new `?endpoint=` option (a `SELECT` is planned, executed, and folded
+  to a `Table` with the right rows; see `tests/v1/integration/`); its read-only
+  *refusal* stays seam-verified because that emulator reports every DML dry run
+  as `statement_type='SELECT'` (real BigQuery classifies DML correctly).
+  **Redshift stays seam-verified** — `redshift_connector` is Redshift-specific
+  (TLS-required, and its auth handshake does not complete against stock
+  PostgreSQL) and there is no local Redshift, so no faithful local test exists;
+  the `SET TRANSACTION READ ONLY` ordering and error mapping are covered by
+  scripted fakes.
+- **`?endpoint=` (BigQuery).** An optional `?endpoint=` overrides the API
+  endpoint for a compatible or local service (an emulator), alongside the
+  existing per-call `OAuth2Auth`.
 
 ## [1.11.0] - 2026-07-24
 

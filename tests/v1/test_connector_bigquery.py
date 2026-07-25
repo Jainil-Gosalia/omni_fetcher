@@ -55,9 +55,9 @@ class _FakeExecutor:
 
 
 def _install_executor(monkeypatch, executor: _FakeExecutor, captured: Optional[dict] = None):
-    def _make(self, project, access_token):
+    def _make(self, project, access_token, endpoint=None):
         if captured is not None:
-            captured.update(project=project, access_token=access_token)
+            captured.update(project=project, access_token=access_token, endpoint=endpoint)
         return executor
 
     monkeypatch.setattr(BigQueryConnector, "_make_executor", _make)
@@ -235,7 +235,7 @@ async def test_executor_dry_run_allows_select(monkeypatch):
     client = _FakeClient(
         "SELECT", [_FakeSchemaField("id")], [_FakeRow([1]), _FakeRow([2])], recorder
     )
-    monkeypatch.setattr(bigquery_module, "_build_client", lambda project, token: client)
+    monkeypatch.setattr(bigquery_module, "_build_client", lambda project, token, endpoint=None: client)
 
     executor = _BigQueryExecutor("proj", "tok")
     columns, rows = await executor.run("SELECT id FROM `proj`.`ds`.`t`", 1000)
@@ -249,7 +249,7 @@ async def test_executor_dry_run_allows_select(monkeypatch):
 async def test_executor_dry_run_refuses_non_select(monkeypatch):
     recorder: dict = {"queries": []}
     client = _FakeClient("DELETE", [], [], recorder)
-    monkeypatch.setattr(bigquery_module, "_build_client", lambda project, token: client)
+    monkeypatch.setattr(bigquery_module, "_build_client", lambda project, token, endpoint=None: client)
 
     executor = _BigQueryExecutor("proj", "tok")
     with pytest.raises(_NonReadOnlyStatement):
