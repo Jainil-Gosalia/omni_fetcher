@@ -44,11 +44,20 @@ QUERY_RESULT_KIND = "query_result"
 DEFAULT_ROW_CAP = 1000
 MAX_ROW_CAP = 100_000
 
-# A SQL identifier we are willing to quote and interpolate into ``SELECT *``.
-# Deliberately strict: letters, digits, underscore, starting non-numeric. Any
-# real object name that does not match must be reached via an explicit
-# ``?query=`` instead, so the table-reference path can never carry injection.
-_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+# SQL identifiers we are willing to quote and interpolate into ``SELECT *``.
+# Deliberately strict so the table-reference path can never carry injection: an
+# object name that does not match must be reached via an explicit ``?query=``.
+#
+# ``STANDARD_IDENTIFIER`` -- letters, digits, underscore, starting non-numeric --
+# is the default for PostgreSQL / MySQL / SQLite / DuckDB.
+#
+# ``BIGQUERY_IDENTIFIER`` additionally allows the hyphen, because a BigQuery
+# project id (e.g. ``my-project-123``) legitimately contains one and is safe
+# inside backtick quoting; only the backtick itself is dangerous, and neither
+# pattern admits it. BigQuery passes this so ``?table=`` browses work for real,
+# hyphenated projects rather than failing as ``INVALID_INPUT``.
+STANDARD_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+BIGQUERY_IDENTIFIER = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_-]*$")
 
 
 @dataclass(frozen=True)
@@ -181,29 +190,38 @@ STANDARD_QUOTE = '"'
 MYSQL_QUOTE = "`"
 
 
-def quote_identifier(part: str, quote: str = STANDARD_QUOTE) -> str:
+def quote_identifier(
+    part: str,
+    quote: str = STANDARD_QUOTE,
+    identifier: "re.Pattern[str]" = STANDARD_IDENTIFIER,
+) -> str:
     """
     Quote one SQL identifier for safe interpolation
 
-    Accepts only a strict identifier (``[A-Za-z_][A-Za-z0-9_]*``) and wraps it in
+    Accepts only an identifier matching ``identifier`` (``STANDARD_IDENTIFIER``
+    by default; ``BIGQUERY_IDENTIFIER`` also allows the hyphen) and wraps it in
     ``quote`` -- the double quote for standard SQL (PostgreSQL, SQLite), the
-    backtick for MySQL/MariaDB. Raises ``ValueError`` for anything else, so a
-    table reference can never carry injection; exotic names go through an
+    backtick for MySQL/MariaDB/BigQuery. Raises ``ValueError`` for anything else,
+    so a table reference can never carry injection; exotic names go through an
     explicit ``?query=``.
 
     Parameters
     ----------
         part:
-            A single identifier (a schema or table name).
+            A single identifier (a project, schema, or table name).
         quote:
             The dialect's identifier quote character (default ``"``).
+        identifier:
+            The compiled pattern a valid identifier must match (default
+            ``STANDARD_IDENTIFIER``). No accepted pattern admits the quote
+            characters, so quoting is always safe.
 
     Return
     ------
         quoted:
             The quoted identifier.
     """
-    if not _IDENTIFIER.match(part):
+    if not identifier.match(part):
         raise ValueError(
             f"unsafe SQL identifier {part!r}; use ?query= for names with dots, spaces, or quoting"
         )
@@ -216,6 +234,7 @@ def build_select_star(
     limit: int,
     quote: str = STANDARD_QUOTE,
     max_parts: int = 2,
+    identifier: "re.Pattern[str]" = STANDARD_IDENTIFIER,
 ) -> str:
     """
     Build a ``SELECT * FROM <table> LIMIT <n>`` for a table reference
@@ -248,7 +267,7 @@ def build_select_star(
     parts = table_ref.split(".")
     if not 1 <= len(parts) <= max_parts or any(not p for p in parts):
         raise ValueError(f"table reference must be 1 to {max_parts} dotted parts: {table_ref!r}")
-    quoted = ".".join(quote_identifier(p, quote) for p in parts)
+    quoted = ".".join(quote_identifier(p, quote, identifier) for p in parts)
     return f"SELECT * FROM {quoted} LIMIT {int(limit)}"
 
 
@@ -289,6 +308,7 @@ def resolve_statement(
     row_cap: int,
     quote: str = STANDARD_QUOTE,
     max_parts: int = 2,
+    identifier: "re.Pattern[str]" = STANDARD_IDENTIFIER,
 ) -> str:
     """
     Resolve the caller's input into the SQL statement to run
@@ -348,7 +368,9 @@ def resolve_statement(
     assert table_ref is not None  # exactly-one guarantees this branch.
     # cap + 1 so an over-cap table is detectable as a truncation, exactly as a
     # raw query's bounded fetch(cap + 1) is.
-    return build_select_star(table_ref, limit=row_cap + 1, quote=quote, max_parts=max_parts)
+    return build_select_star(
+        table_ref, limit=row_cap + 1, quote=quote, max_parts=max_parts, identifier=identifier
+    )
 
 
 def build_query_result(

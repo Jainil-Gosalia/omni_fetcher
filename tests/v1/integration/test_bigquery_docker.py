@@ -12,14 +12,14 @@ not replicate BigQuery's statement classification), so the gate's refusal branch
 stays seam-verified in ``tests/v1/test_connector_bigquery.py`` (real BigQuery
 classifies DML correctly).
 
+The ``?table=`` browse path is exercised against the emulator's **hyphenated**
+project (``test-project``), which regression-guards the fix that let BigQuery
+identifiers contain hyphens (``BIGQUERY_IDENTIFIER``).
+
 Spin one up with Docker:
 
     docker run -d --name omni-bq -p 9050:9050 \
         ghcr.io/goccy/bigquery-emulator:latest --project=test-project --dataset=test-dataset
-
-Note: the connector's ``?table=`` browse path requires hyphen-free project and
-dataset names (the shared SQL identifier rule), so a hyphenated project like the
-emulator's ``test-project`` is queried through ``?query=`` here.
 """
 
 from __future__ import annotations
@@ -95,3 +95,21 @@ async def test_select_query(seeded):
     assert atoms[0].kind == AtomKind.TABLE
     assert atoms[0].headers == ["id", "name"]
     assert atoms[0].rows == [[1, "one"], [2, "two"]]
+
+
+async def test_table_browse_against_hyphenated_project(seeded):
+    # `?table=` browses `test-project.test-dataset.<table>` -- the project is
+    # hyphenated, which would have been rejected before the BIGQUERY_IDENTIFIER
+    # fix. The connector builds the backtick-quoted three-part SELECT itself.
+    uri = (
+        f"bigquery://{_PROJECT}/{_DATASET}"
+        f"?table={_TABLE}&endpoint={quote(_ENDPOINT, safe='')}"
+    )
+
+    result = await _first(BigQueryConnector().stream(uri, auth=_AUTH))
+
+    assert isinstance(result, Success), result
+    atoms = list(result.tree.iter_atoms())
+    assert atoms[0].kind == AtomKind.TABLE
+    assert atoms[0].headers == ["id", "name"]
+    assert sorted(atoms[0].rows) == [[1, "one"], [2, "two"]]

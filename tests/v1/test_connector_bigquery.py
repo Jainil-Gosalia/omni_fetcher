@@ -96,6 +96,21 @@ async def test_table_ref_is_three_part_backtick(monkeypatch):
     assert sql == "SELECT * FROM `proj`.`ds`.`events` LIMIT 1001"
 
 
+async def test_table_ref_allows_hyphenated_project(monkeypatch):
+    # Real BigQuery project ids contain hyphens; ?table= must browse them
+    # rather than failing as INVALID_INPUT.
+    executor = _FakeExecutor(columns=["x"], rows=[[1]])
+    _install_executor(monkeypatch, executor)
+
+    result = await BigQueryConnector().fetch(
+        "bigquery://my-project-123/my_dataset?table=events", auth=_AUTH
+    )
+
+    assert isinstance(result, Success), result
+    sql, _cap = executor.calls[0]
+    assert sql == "SELECT * FROM `my-project-123`.`my_dataset`.`events` LIMIT 1001"
+
+
 async def test_unsupported_when_extra_missing(monkeypatch):
     monkeypatch.setattr(bigquery_module, "BIGQUERY_AVAILABLE", False)
 

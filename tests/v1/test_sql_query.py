@@ -15,6 +15,7 @@ from uuid import UUID
 import pytest
 
 from omni_fetcher.v1.connectors._sql_query import (
+    BIGQUERY_IDENTIFIER,
     DEFAULT_ROW_CAP,
     MAX_ROW_CAP,
     build_query_result,
@@ -59,6 +60,30 @@ def test_quote_identifier_rejects_injection() -> None:
         quote_identifier("users; DROP TABLE x")
     with pytest.raises(ValueError):
         quote_identifier('a"b')
+    # The standard dialect still rejects hyphens (BigQuery-only relaxation).
+    with pytest.raises(ValueError):
+        quote_identifier("my-project")
+
+
+def test_quote_identifier_bigquery_allows_hyphens_but_not_injection() -> None:
+    # A hyphenated BigQuery project id is legal inside backtick quoting.
+    assert quote_identifier("my-project-123", "`", BIGQUERY_IDENTIFIER) == "`my-project-123`"
+    assert quote_identifier("dataset_1", "`", BIGQUERY_IDENTIFIER) == "`dataset_1`"
+    # But the backtick and other injection vectors are still rejected.
+    for bad in ("a`b", "proj; DROP", "has space", "has.dot"):
+        with pytest.raises(ValueError):
+            quote_identifier(bad, "`", BIGQUERY_IDENTIFIER)
+
+
+def test_build_select_star_bigquery_three_part_hyphenated() -> None:
+    sql = build_select_star(
+        "my-project.my_dataset.events",
+        limit=10,
+        quote="`",
+        max_parts=3,
+        identifier=BIGQUERY_IDENTIFIER,
+    )
+    assert sql == "SELECT * FROM `my-project`.`my_dataset`.`events` LIMIT 10"
 
 
 def test_build_select_star_quotes_each_part() -> None:
