@@ -25,8 +25,6 @@ raised.
 from __future__ import annotations
 
 import asyncio
-import csv
-import io
 from datetime import datetime
 from typing import Any, AsyncIterator, Optional
 
@@ -38,20 +36,12 @@ from botocore.exceptions import (
     NoCredentialsError,
 )
 
-from omni_fetcher.v1.atoms import (
-    Audio,
-    Image,
-    Table,
-    Text,
-    TextFormat,
-    Video,
-)
 from omni_fetcher.v1.auth import AuthCredential, AwsAuth, NormalizedAuthResolver
+from omni_fetcher.v1.connectors._object_store import build_file_node
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.mapping import (
     SequenceCounter,
-    build_node,
     now_utc,
     stamp_temporal,
 )
@@ -60,35 +50,17 @@ from omni_fetcher.v1.result import (
     Result,
     error,
     from_exception,
-    gap,
-    partial,
-    success,
 )
 from omni_fetcher.v1.zoom import ZoomSpec
 
 # Source namespace under which all descriptive ``s3`` fields are stored in
-# ``Metadata.source_extra``.
+# ``Metadata.source_extra``. The object-bytes -> canonical file-node mapping is
+# shared with the other object stores via ``_object_store.build_file_node``.
 SOURCE_NAMESPACE = "s3"
-
-# Advisory semantic ``kind`` for every node this connector emits.
-FILE_KIND = "file"
 
 # Region used when an ``AwsAuth`` carries no explicit region. boto3 requires
 # *some* region for the S3 client; ``us-east-1`` matches the v0.11 default.
 _DEFAULT_REGION = "us-east-1"
-
-# MIME types parsed into a ``Table`` atom rather than a ``Text`` atom.
-_CSV_MIME = "text/csv"
-_TSV_MIMES = frozenset({"text/tab-separated-values", "text/tsv"})
-
-# Map a text-ish MIME type onto the canonical ``TextFormat`` for its content.
-_TEXT_FORMATS: dict[str, TextFormat] = {
-    "text/markdown": TextFormat.MARKDOWN,
-    "text/html": TextFormat.HTML,
-    "text/x-rst": TextFormat.RST,
-    "application/json": TextFormat.PLAIN,
-    "application/xml": TextFormat.PLAIN,
-}
 
 # botocore ``ClientError`` codes that map onto a non-found taxonomy kind. AWS
 # returns these in ``error["Error"]["Code"]`` (and an HTTP status alongside).
@@ -169,80 +141,6 @@ def _classify_client_error(exc: ClientError) -> ErrorKind:
         if token in _RATE_LIMITED_CODES:
             return ErrorKind.RATE_LIMITED
     return ErrorKind.TRANSIENT
-
-
-def _text_format_for(content_type: Optional[str]) -> TextFormat:
-    """Pick the canonical ``TextFormat`` for a text-like object."""
-    base = (content_type or "").split(";", 1)[0].strip().lower()
-    if base in _TEXT_FORMATS:
-        return _TEXT_FORMATS[base]
-    if base.startswith("text/") and base != "text/plain":
-        # An unmapped ``text/*`` subtype is source code as far as the
-        # canonical vocabulary is concerned.
-        return TextFormat.CODE
-    return TextFormat.PLAIN
-
-
-def _is_text(content_type: Optional[str]) -> bool:
-    """Report whether an object should be decoded into a ``Text`` atom."""
-    base = (content_type or "").split(";", 1)[0].strip().lower()
-    if not base or base == "application/octet-stream":
-        # Unknown / generic binary: treat as text and let decode decide.
-        return True
-    if base.startswith("text/"):
-        return True
-    return base in {
-        "application/json",
-        "application/xml",
-        "application/javascript",
-        "application/x-yaml",
-    }
-
-
-def _is_tabular(content_type: Optional[str], key: str) -> bool:
-    """Report whether an object should be parsed into a ``Table`` atom."""
-    base = (content_type or "").split(";", 1)[0].strip().lower()
-    if base == _CSV_MIME or base in _TSV_MIMES:
-        return True
-    return key.lower().endswith((".csv", ".tsv"))
-
-
-def _binary_atom_for(content_type: Optional[str], data: bytes) -> Optional[Image | Audio | Video]:
-    """Build an image/audio/video atom for a recognised binary content type.
-
-    Returns ``None`` for any content type that is not a known image, audio, or
-    video media type, so the caller can fall back to an explicit gap.
-    """
-    base = (content_type or "").split(";", 1)[0].strip().lower()
-    subtype = base.split("/", 1)[1] if "/" in base else base
-    if base.startswith("image/"):
-        return Image(format=subtype, data=data)
-    if base.startswith("audio/"):
-        return Audio(format=subtype, data=data)
-    if base.startswith("video/"):
-        return Video(format=subtype, data=data)
-    return None
-
-
-def _parse_table(text: str, content_type: Optional[str], key: str) -> Table:
-    """Parse delimited text into a canonical ``Table`` atom.
-
-    The first row is treated as headers when every subsequent row matches its
-    width; otherwise the grid is emitted header-less so the ``Table``
-    width-invariant is never violated.
-    """
-    base = (content_type or "").split(";", 1)[0].strip().lower()
-    is_tsv = key.lower().endswith(".tsv") or base in _TSV_MIMES
-    delimiter = "\t" if is_tsv else ","
-    reader = csv.reader(io.StringIO(text), delimiter=delimiter)
-    grid = [list(row) for row in reader]
-    if not grid:
-        return Table(headers=None, rows=[])
-    headers = grid[0]
-    body = grid[1:]
-    if body and all(len(row) == len(headers) for row in body):
-        return Table(headers=headers, rows=body)
-    return Table(headers=None, rows=grid)
 
 
 def _source_fields(
@@ -423,7 +321,12 @@ class S3Fetcher(BaseFetcher):
         key: str,
         response: dict[str, Any],
     ) -> Result:
-        """Map a fetched object's bytes + headers to the ``"file"`` node."""
+        """Map a fetched object's bytes + headers to the ``"file"`` node.
+
+        Delegates the bytes -> atom mapping to the shared object-storage spec
+        (:func:`_object_store.build_file_node`); this connector supplies only
+        the parsed key, the namespaced descriptive fields, and the timestamp.
+        """
         data: bytes = response.get("Body") or b""
         content_type = response.get("ContentType")
         source_fields = _source_fields(bucket, key, response)
@@ -431,80 +334,12 @@ class S3Fetcher(BaseFetcher):
         if not isinstance(updated, datetime):
             updated = None
 
-        if _is_tabular(content_type, key) or _is_text(content_type):
-            return self._build_textual_node(uri, content_type, key, data, source_fields, updated)
-
-        atom = _binary_atom_for(content_type, data)
-        if atom is not None:
-            node = build_node(
-                kind=FILE_KIND,
-                atoms=[atom],
-                source_url=uri,
-                updated=updated,
-                source_namespace=SOURCE_NAMESPACE,
-                source_fields=source_fields,
-            )
-            return success(node)
-
-        # Recognised object, but no canonical media representation: be explicit
-        # about the gap rather than emit a silent empty success.
-        node = build_node(
-            kind=FILE_KIND,
-            atoms=[Text(content="", format=TextFormat.OPAQUE)],
-            source_url=uri,
-            updated=updated,
-            source_namespace=SOURCE_NAMESPACE,
+        return build_file_node(
+            uri=uri,
+            namespace=SOURCE_NAMESPACE,
+            key=key,
+            data=data,
+            content_type=content_type,
             source_fields=source_fields,
-        )
-        return partial(
-            node,
-            [
-                gap(
-                    kind=ErrorKind.UNSUPPORTED,
-                    locator=uri,
-                    detail=f"binary content not represented ({content_type})",
-                )
-            ],
-        )
-
-    def _build_textual_node(
-        self,
-        uri: str,
-        content_type: Optional[str],
-        key: str,
-        data: bytes,
-        source_fields: dict[str, Any],
-        updated: Optional[datetime],
-    ) -> Result:
-        """Decode object bytes and assemble a ``Text`` / ``Table`` file node."""
-        try:
-            text = data.decode("utf-8")
-            encoding = "utf-8"
-        except UnicodeDecodeError:
-            try:
-                text = data.decode("latin-1")
-                encoding = "latin-1"
-            except UnicodeError as exc:
-                return from_exception(exc, kind=ErrorKind.PARSE_ERROR, locator=uri)
-
-        if _is_tabular(content_type, key):
-            try:
-                atom: Text | Table = _parse_table(text, content_type, key)
-            except (csv.Error, ValueError) as exc:
-                return from_exception(exc, kind=ErrorKind.PARSE_ERROR, locator=uri)
-        else:
-            atom = Text(
-                content=text,
-                format=_text_format_for(content_type),
-                encoding=encoding,
-            )
-
-        node = build_node(
-            kind=FILE_KIND,
-            atoms=[atom],
-            source_url=uri,
             updated=updated,
-            source_namespace=SOURCE_NAMESPACE,
-            source_fields=source_fields,
         )
-        return success(node)

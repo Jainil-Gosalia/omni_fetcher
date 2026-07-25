@@ -97,6 +97,12 @@ postgres = [
 mysql = [
     "aiomysql>=0.2",
 ]
+gcs = [
+    "google-cloud-storage>=2.10.0",
+]
+azure = [
+    "azure-storage-blob>=12.19.0",
+]
 duckdb = [
     "duckdb>=0.10.0",
 ]
@@ -153,6 +159,7 @@ module = [
     "asyncpg.*",
     "aiohttp",
     "aiohttp.*",
+    "azure.*",
     "duckdb",
     "duckdb.*",
     "google.cloud.*",

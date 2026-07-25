@@ -157,6 +157,22 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         (),
     ),
     (
+        "gcs",
+        f"{_CONNECTORS_PKG}.gcs",
+        "GCSFetcher",
+        ("gs://*",),
+        10,
+        ("google.cloud.storage",),
+    ),
+    (
+        "azure",
+        f"{_CONNECTORS_PKG}.azure_blob",
+        "AzureBlobFetcher",
+        ("az://*", "azure://*"),
+        10,
+        ("azure.storage.blob",),
+    ),
+    (
         "confluence",
         f"{_CONNECTORS_PKG}.confluence",
         "ConfluenceConnector",
