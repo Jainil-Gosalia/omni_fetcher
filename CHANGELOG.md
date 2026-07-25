@@ -5,6 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-07-25
+
+Cloud object storage: Google Cloud Storage and Azure Blob, completing the
+object-storage trio behind one shared spec. The first release of the
+connector-only roadmap (see `ROADMAP.md`).
+
+### Added
+- **Google Cloud Storage connector** — `gs://bucket/object` (bounded; behind
+  the new `gcs` extra, `google-cloud-storage`). Reads one object and maps it
+  onto the same `kind="file"` node S3 emits — `Text` for text-like objects,
+  `Table` for CSV/TSV, `Image`/`Audio`/`Video` for recognised media, an
+  `UNSUPPORTED` gap for an unrepresentable binary — with bucket/object/size/
+  etag/content-type/updated in `source_extra["gcs"]`.
+  - **Credentials** are a per-call `OAuth2Auth` access token. GCS authenticates
+    with an OAuth2 bearer token, and per PHILOSOPHY §7 a service-account key is
+    a host-side token-exchange concern: the host exchanges the key for a token
+    and injects it, so the MCP server wires
+    `OMNI_FETCHER_GCS_ACCESS_TOKEN`. The connector never reads ambient
+    credentials, a credentials file, or the metadata server.
+- **Azure Blob connector** — `az://container/blob` (alias `azure://`; bounded;
+  behind the new `azure` extra, `azure-storage-blob`). Same file-node mapping;
+  the storage *account* is carried by the credential, not the URI, mirroring how
+  `s3://` takes the AWS account from its `AwsAuth`.
+  - **Credentials** are a per-call `BasicAuth` whose username is the storage
+    account and password is an account key, mapped onto an
+    `AzureNamedKeyCredential`; the MCP server wires
+    `OMNI_FETCHER_AZURE_USERNAME` + `_PASSWORD`. No connection string,
+    environment variable, or managed identity is read.
+  - An optional `?endpoint=` overrides the account URL for a compatible or local
+    service (Azurite, Azure Stack, a sovereign cloud); absent it, the public
+    `https://<account>.blob.core.windows.net` endpoint is used.
+- Both surface the taxonomy from their SDK's HTTP status: a missing object is
+  `NOT_FOUND`, denied access `PERMISSION_DENIED`, a bad token/key `AUTH_FAILED`,
+  throttling `RATE_LIMITED`, and a transport blip `TRANSIENT` — never raised.
+  A missing extra is a typed `UNSUPPORTED` naming the extra, and
+  `builtin_registry()` skips the source when its client is absent.
+
+### Changed
+- **New shared spec `connectors/_object_store.py`** holds the object-storage
+  family's genuinely shared part — the content-type→atom decisions, the
+  delimited-text→`Table` parsing, and the bytes→`file`-node assembly with its
+  textual/binary/gap policy — extracted from the S3 connector. **S3 now uses it
+  too**, replacing its own copy (no behaviour change; the v1 S3 test suite is
+  unchanged), exactly as Postgres adopted the `_sql_query` spec MySQL prompted.
+  This is the abstraction growing where a second and third store proved it, not
+  a fork.
+
+### Notes
+- Both connectors are verified end-to-end against live emulators via Docker
+  (`tests/v1/integration/`, skipped unless the service is reachable): GCS against
+  `fsouza/fake-gcs-server` (via the standard `STORAGE_EMULATOR_HOST`, connector
+  unchanged) and Azure against Azurite (via the new `?endpoint=` option) — a
+  text object round-trips to a `Text` atom and a missing object is `NOT_FOUND`.
+
 ## [1.11.0] - 2026-07-24
 
 ### Added
