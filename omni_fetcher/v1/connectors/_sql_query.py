@@ -210,12 +210,19 @@ def quote_identifier(part: str, quote: str = STANDARD_QUOTE) -> str:
     return f"{quote}{part}{quote}"
 
 
-def build_select_star(table_ref: str, *, limit: int, quote: str = STANDARD_QUOTE) -> str:
+def build_select_star(
+    table_ref: str,
+    *,
+    limit: int,
+    quote: str = STANDARD_QUOTE,
+    max_parts: int = 2,
+) -> str:
     """
     Build a ``SELECT * FROM <table> LIMIT <n>`` for a table reference
 
-    ``table_ref`` is a ``table`` or ``schema.table`` reference; each dotted part
-    is validated and quoted via :func:`quote_identifier` using ``quote`` (the
+    ``table_ref`` is a dotted reference of up to ``max_parts`` parts
+    (``table`` / ``schema.table`` / ``project.dataset.table``); each part is
+    validated and quoted via :func:`quote_identifier` using ``quote`` (the
     dialect's identifier quote character). The ``LIMIT`` is applied in SQL (cap+1
     detection happens in :func:`build_query_result`) so a table browse never
     scans an unbounded table.
@@ -223,11 +230,15 @@ def build_select_star(table_ref: str, *, limit: int, quote: str = STANDARD_QUOTE
     Parameters
     ----------
         table_ref:
-            A ``table`` or ``schema.table`` reference.
+            A dotted table reference of 1..``max_parts`` parts.
         limit:
             The row limit to apply in the generated SQL.
         quote:
             The dialect's identifier quote character (default ``"``).
+        max_parts:
+            The maximum number of dotted parts allowed (default 2:
+            ``schema.table``). BigQuery raises it to 3 for
+            ``project.dataset.table`` -- the first three-part customer.
 
     Return
     ------
@@ -235,8 +246,8 @@ def build_select_star(table_ref: str, *, limit: int, quote: str = STANDARD_QUOTE
             The generated ``SELECT`` statement.
     """
     parts = table_ref.split(".")
-    if not 1 <= len(parts) <= 2 or any(not p for p in parts):
-        raise ValueError(f"table reference must be 'table' or 'schema.table': {table_ref!r}")
+    if not 1 <= len(parts) <= max_parts or any(not p for p in parts):
+        raise ValueError(f"table reference must be 1 to {max_parts} dotted parts: {table_ref!r}")
     quoted = ".".join(quote_identifier(p, quote) for p in parts)
     return f"SELECT * FROM {quoted} LIMIT {int(limit)}"
 
@@ -277,6 +288,7 @@ def resolve_statement(
     environ: Mapping[str, str],
     row_cap: int,
     quote: str = STANDARD_QUOTE,
+    max_parts: int = 2,
 ) -> str:
     """
     Resolve the caller's input into the SQL statement to run
@@ -336,7 +348,7 @@ def resolve_statement(
     assert table_ref is not None  # exactly-one guarantees this branch.
     # cap + 1 so an over-cap table is detectable as a truncation, exactly as a
     # raw query's bounded fetch(cap + 1) is.
-    return build_select_star(table_ref, limit=row_cap + 1, quote=quote)
+    return build_select_star(table_ref, limit=row_cap + 1, quote=quote, max_parts=max_parts)
 
 
 def build_query_result(
