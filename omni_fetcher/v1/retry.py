@@ -259,7 +259,12 @@ async def stream_with_restart(
     - ``source_extra["websocket"|"sse"].sequence`` -> ``?sequence=<n+1>``
     - ``source_extra["postgres"].slot`` -> ``?slot=<name>`` (the slot's
       ``confirmed_flush_lsn`` is the resume position; no LSN in the URI)
+    - ``source_extra["kinesis"].sequence_number`` -> ``?after=<seq>`` (resume
+      AFTER the last consumed record)
     - no data item seen yet -> the original URI
+
+    Pub/Sub and AMQP carry no URI resume position: an unacked message is
+    redelivered/requeued by the broker, so a dropped stream simply reopens.
 
     NOTE:
         1. All resume URIs are derived from the *original* ``uri`` with the
@@ -376,4 +381,8 @@ def _resume_uri(
         slot = fields.get("slot")
         if isinstance(slot, str):
             return _with_query_params(uri, {"slot": slot})
+    elif namespace == "kinesis":
+        sequence_number = fields.get("sequence_number")
+        if isinstance(sequence_number, str):
+            return _with_query_params(uri, {"after": sequence_number})
     return uri

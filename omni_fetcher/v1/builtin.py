@@ -115,6 +115,32 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         10,
         ("asyncpg",),
     ),
+    # Cloud messaging streams (v1.15). kinesis uses core boto3; pubsub and amqp
+    # are behind their extras.
+    (
+        "kinesis",
+        f"{_CONNECTORS_PKG}.kinesis",
+        "KinesisConnector",
+        ("kinesis://*",),
+        10,
+        (),
+    ),
+    (
+        "pubsub",
+        f"{_CONNECTORS_PKG}.pubsub",
+        "PubSubConnector",
+        ("pubsub://*",),
+        10,
+        ("google.cloud.pubsub_v1",),
+    ),
+    (
+        "amqp",
+        f"{_CONNECTORS_PKG}.amqp",
+        "AMQPConnector",
+        ("amqp://*", "amqps://*"),
+        10,
+        ("aio_pika",),
+    ),
     (
         "elasticsearch",
         f"{_CONNECTORS_PKG}.elasticsearch",
