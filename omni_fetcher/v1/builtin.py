@@ -149,6 +149,33 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         10,
         ("elasticsearch",),
     ),
+    # NoSQL document stores (v1.16). mongodb needs the motor extra; dynamodb uses
+    # core boto3. The change-stream scheme is disjoint from the query scheme
+    # (``mongodb+changestream://`` never matches ``mongodb://*``).
+    (
+        "mongodb_changestream",
+        f"{_CONNECTORS_PKG}.mongodb",
+        "MongoChangeStreamConnector",
+        ("mongodb+changestream://*",),
+        10,
+        ("motor",),
+    ),
+    (
+        "mongodb",
+        f"{_CONNECTORS_PKG}.mongodb",
+        "MongoQueryConnector",
+        ("mongodb://*",),
+        10,
+        ("motor",),
+    ),
+    (
+        "dynamodb",
+        f"{_CONNECTORS_PKG}.dynamodb",
+        "DynamoDBConnector",
+        ("dynamodb://*",),
+        10,
+        (),
+    ),
     (
         "notion",
         f"{_CONNECTORS_PKG}.notion",

@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-07-25
+
+NoSQL document stores: MongoDB and DynamoDB — the read side of the NoSQL world,
+touching **both** seams (a bounded query and a change stream). Final release of
+the connector-only roadmap (see `ROADMAP.md`).
+
+### Added
+- **New shared spec `connectors/_document_store.py`** — the document-store
+  family's shared part: `build_documents_result`, the fold of fetched documents
+  into one `kind="documents"` container of `kind="json_document"` children (each
+  document a `Text` atom, `format=CODE`), plus `resolve_doc_cap` (default 1000,
+  `?limit=` up to 100k → over-cap degrades to a `Partial`). Mirrors the shape
+  `elasticsearch` established.
+- **MongoDB query connector** — `mongodb://<host>/<db>.<collection>?query=&limit=&projection=`
+  (bounded; behind the new `mongodb` extra, `motor`). Runs a `find` (URI-supplied
+  JSON filter/projection) and returns a `documents` container. Per-call
+  `BasicAuth` (MCP wires `OMNI_FETCHER_MONGODB_USERNAME`/`_PASSWORD`) overrides
+  URI userinfo; absent both, the connection is anonymous.
+- **MongoDB change-stream connector** — `mongodb+changestream://<host>/<db>.<collection>`
+  (unbounded; same `mongodb` extra). Watches the collection and emits one
+  `kind="change"` node per insert/update/delete/replace (operation type + resume
+  token in `source_extra["mongodb"]`), following the `postgres-cdc` pattern.
+  `fetch()` is `UNSUPPORTED`. The change-stream scheme is disjoint from the query
+  scheme, so routing never confuses them.
+- **DynamoDB connector** — `dynamodb://<table>?key=<json>` (a `GetItem`; a miss is
+  `NOT_FOUND`) or `dynamodb://<table>` (a bounded `Scan` up to `?limit=`). Bounded;
+  **no extra** — core `boto3` on a worker thread. Per-call `AwsAuth` (as `s3`);
+  a call with no `AwsAuth` is `AUTH_FAILED`. AWS error codes map onto the
+  taxonomy (`ResourceNotFoundException`→`NOT_FOUND`, `ValidationException`→
+  `INVALID_INPUT`, throttling→`RATE_LIMITED`, …).
+- Every connector routes database access through a `_query` / `_watch` / `_read`
+  seam, so tests script fakes and never touch a live store; a missing extra is a
+  typed `UNSUPPORTED` and `builtin_registry()` skips the source.
+
+### Notes
+- Verified through each connector's seam with scripted fakes (the documents
+  container, per-document facts, change nodes, GetItem-miss→`NOT_FOUND` vs
+  empty-Scan container, credential resolution, error mapping, truncation).
+- **Both are additionally verified end-to-end against live services** via Docker
+  (`tests/v1/integration/`, skipped unless the service is reachable): MongoDB
+  against a single-node replica set (`mongo:7 --replSet`), driving both the
+  bounded `find` and the change stream through the real `motor` path; DynamoDB
+  against `amazon/dynamodb-local` (scan, get-by-key, get-miss→`NOT_FOUND`) via
+  boto3's `AWS_ENDPOINT_URL` override — the connector is unchanged.
+- This completes the five-release connector roadmap (v1.12–v1.16): cloud object
+  storage, SQL warehouses, knowledge base & wiki, cloud messaging streams, and
+  NoSQL document stores.
+
 ## [1.15.0] - 2026-07-25
 
 Cloud messaging streams: AWS Kinesis, GCP Pub/Sub, and RabbitMQ/AMQP — three
