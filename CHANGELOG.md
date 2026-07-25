@@ -33,6 +33,8 @@ agent context. Third release of the connector-only roadmap (see `ROADMAP.md`).
   page's outbound links as `wikilinks` and its categories as `tags`. Optional
   per-call `BearerAuth` for a private wiki. Uses `httpx` (a core dependency), so
   no optional extra; HTTP status and API `error` codes map onto the taxonomy.
+  An optional `?endpoint=` overrides the full API URL for a self-hosted wiki on
+  a non-standard path or over plain HTTP.
 - The three local connectors share one base (`_local_notes.LocalNotesConnector`)
   differing only in scheme, namespace, and vault-walk subfolders; all are
   read-only and stream exactly one `Result`.
@@ -40,8 +42,10 @@ agent context. Third release of the connector-only roadmap (see `ROADMAP.md`).
 ### Notes
 - The local connectors are verified against **real** temp files (frontmatter,
   wikilinks, tags, the Markdown-vs-Org format label, vault collections, the note
-  cap, Logseq's `pages/journals` scoping); MediaWiki is verified with a scripted
-  `httpx.MockTransport`, no live wiki.
+  cap, Logseq's `pages/journals` scoping). MediaWiki is verified two ways: the
+  scripted `httpx.MockTransport` unit tests, **and** a real HTTP round-trip over
+  a socket against a Dockerised nginx serving the `action=parse` JSON (via the
+  new `?endpoint=`; see `tests/v1/integration/`, skipped unless reachable).
 - Two further requested formats (an "OKF" format and an "OpenWiki" format) are
   intentionally **not** shipped: no concrete specification for either could be
   confirmed, and a connector must target a real wire format. They remain a

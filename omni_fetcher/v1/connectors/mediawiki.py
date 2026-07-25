@@ -23,6 +23,7 @@ code, and a non-JSON body is a ``PARSE_ERROR``.
 from __future__ import annotations
 
 from typing import Any, AsyncIterator, Optional
+from urllib.parse import parse_qs
 
 import httpx
 
@@ -66,21 +67,25 @@ def _status_to_error_kind(status_code: int) -> ErrorKind:
     return ErrorKind.INVALID_INPUT
 
 
-def _parse_uri(uri: str) -> tuple[str, str]:
-    """Parse ``mediawiki://host/wiki/Title`` into ``(host, title)``.
+def _parse_uri(uri: str) -> tuple[str, str, Optional[str]]:
+    """Parse ``mediawiki://host/wiki/Title[?endpoint=]`` into ``(host, title, endpoint)``.
 
-    Accepts ``host/wiki/Title`` and the terser ``host/Title``. Raises
-    ``ValueError`` for a URI that names no host or title.
+    Accepts ``host/wiki/Title`` and the terser ``host/Title``. An optional
+    ``?endpoint=`` overrides the full API URL for a self-hosted wiki on a
+    non-standard path or over plain HTTP; absent it, ``https://<host>/w/api.php``
+    is used. Raises ``ValueError`` for a URI that names no host or title.
     """
     if not uri.startswith(_SCHEME):
         raise ValueError(f"not a mediawiki:// URI: {uri}")
     remainder = uri[len(_SCHEME) :]
-    host, _, rest = remainder.partition("/")
+    location, _, query = remainder.partition("?")
+    host, _, rest = location.partition("/")
     if rest.startswith("wiki/"):
         rest = rest[len("wiki/") :]
     if not host or not rest:
         raise ValueError(f"mediawiki:// URI must be mediawiki://host/wiki/Title: {uri}")
-    return host, rest
+    endpoint = parse_qs(query).get("endpoint", [None])[0]
+    return host, rest, endpoint
 
 
 def _page_html(parse: dict[str, Any]) -> str:
@@ -180,12 +185,12 @@ class MediaWikiConnector(BaseFetcher):
         del zoom
 
         try:
-            host, title = _parse_uri(uri)
+            host, title, endpoint = _parse_uri(uri)
         except ValueError as exc:
             yield error(ErrorKind.INVALID_INPUT, message=str(exc), locator=uri)
             return
 
-        api_url = f"https://{host}/w/api.php"
+        api_url = endpoint or f"https://{host}/w/api.php"
         params = {
             "action": "parse",
             "page": title,
