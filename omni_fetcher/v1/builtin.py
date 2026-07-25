@@ -256,6 +256,31 @@ _BUILTIN_SOURCES: tuple[tuple[str, str, str, tuple[str, ...], int, tuple[str, ..
         10,
         ("aiomysql",),
     ),
+    # SQL warehouse connectors (v1.13), same _sql_query spec, one more per engine.
+    (
+        "duckdb",
+        f"{_CONNECTORS_PKG}.duckdb_query",
+        "DuckDBQueryConnector",
+        ("duckdb://*",),
+        10,
+        ("duckdb",),
+    ),
+    (
+        "bigquery",
+        f"{_CONNECTORS_PKG}.bigquery",
+        "BigQueryConnector",
+        ("bigquery://*",),
+        10,
+        ("google.cloud.bigquery",),
+    ),
+    (
+        "redshift",
+        f"{_CONNECTORS_PKG}.redshift",
+        "RedshiftQueryConnector",
+        ("redshift://*",),
+        10,
+        ("redshift_connector",),
+    ),
     (
         "rss",
         f"{_CONNECTORS_PKG}.rss",

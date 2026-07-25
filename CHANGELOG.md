@@ -5,6 +5,74 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-07-25
+
+SQL warehouses: DuckDB, BigQuery, and Redshift — three more members of the
+v1.9 SQL query family, each keeping the family's engine-level read-only
+guarantee through a different mechanism. Second release of the connector-only
+roadmap (see `ROADMAP.md`).
+
+### Added
+- **DuckDB connector** — `duckdb://<file-path>` (bounded; behind the new
+  `duckdb` extra). The embedded member, mirroring `sqlite://`: same
+  `?table=`/`?query=`/`?query_env=`/`?limit=`, one `kind="query_result"` node
+  with a `Table` atom, facts in `source_extra["duckdb"]`.
+  - **Read-only enforced by the engine** — the database is opened with
+    `read_only=True`, so a write is refused (`PERMISSION_DENIED`) and the file
+    is left byte-for-byte unchanged. Verified against a real DuckDB file (table
+    browse, raw query, a refused `DELETE`, missing file).
+- **BigQuery connector** — `bigquery://<project>/<dataset>` (bounded; behind the
+  new `bigquery` extra). Per-call `OAuth2Auth` access token (MCP wires
+  `OMNI_FETCHER_BIGQUERY_ACCESS_TOKEN`); no URI credential fallback.
+  - **Read-only enforced by the engine** — before executing, the statement is
+    run as a **dry run** and BigQuery's own parser reports its
+    `statement_type`; anything but `SELECT` is refused with `PERMISSION_DENIED`
+    before any data is touched, and a malformed query is the dry run's own
+    `INVALID_INPUT`.
+  - BigQuery is the first **three-part identifier** customer
+    (`project.dataset.table`) and quotes with backticks — see the shared-spec
+    change below.
+- **Redshift connector** — `redshift://<host>[:<port>]/<database>` (default port
+  5439; bounded; behind the new `redshift` extra, `redshift-connector`). Per-call
+  `BasicAuth` (MCP wires `OMNI_FETCHER_REDSHIFT_USERNAME`/`_PASSWORD`), URI
+  `?user=`/`?password=` fallback — mirroring `postgres://`.
+  - **Read-only enforced by the engine** — Redshift speaks the PostgreSQL wire
+    protocol, so every query runs after `SET TRANSACTION READ ONLY` in an
+    un-committed transaction; a write is refused (SQLSTATE `25006` →
+    `PERMISSION_DENIED`) and rolled back.
+- Each connector maps its driver's failures onto the taxonomy (missing table
+  `NOT_FOUND`, denied/refused-write `PERMISSION_DENIED`, bad auth `AUTH_FAILED`,
+  throttling `RATE_LIMITED`, transport `TRANSIENT`), never raised. A missing
+  extra is a typed `UNSUPPORTED`; `builtin_registry()` skips the source when its
+  driver is absent.
+
+### Changed
+- **The shared `_sql_query` spec gained a `max_parts` seam** on
+  `build_select_star`/`resolve_statement` (default 2 = `schema.table`), prompted
+  by BigQuery as the first three-part (`project.dataset.table`) customer. No
+  behaviour change for the existing connectors (Postgres/MySQL/SQLite suites
+  unchanged); the abstraction grows where a customer proved it, alongside the
+  identifier-quote parameter MySQL added in v1.10.
+
+### Notes
+- Snowflake was considered for this release but dropped in favour of Redshift:
+  Redshift's PostgreSQL-wire `READ ONLY` transaction gives a true engine-level
+  read-only guarantee, whereas Snowflake has no equivalent session primitive.
+- **Verification.** DuckDB is verified against a real database file. **BigQuery's
+  query path is verified end-to-end** against `ghcr.io/goccy/bigquery-emulator`
+  via the new `?endpoint=` option (a `SELECT` is planned, executed, and folded
+  to a `Table` with the right rows; see `tests/v1/integration/`); its read-only
+  *refusal* stays seam-verified because that emulator reports every DML dry run
+  as `statement_type='SELECT'` (real BigQuery classifies DML correctly).
+  **Redshift stays seam-verified** — `redshift_connector` is Redshift-specific
+  (TLS-required, and its auth handshake does not complete against stock
+  PostgreSQL) and there is no local Redshift, so no faithful local test exists;
+  the `SET TRANSACTION READ ONLY` ordering and error mapping are covered by
+  scripted fakes.
+- **`?endpoint=` (BigQuery).** An optional `?endpoint=` overrides the API
+  endpoint for a compatible or local service (an emulator), alongside the
+  existing per-call `OAuth2Auth`.
+
 ## [1.12.0] - 2026-07-25
 
 Cloud object storage: Google Cloud Storage and Azure Blob, completing the

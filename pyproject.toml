@@ -103,6 +103,15 @@ gcs = [
 azure = [
     "azure-storage-blob>=12.19.0",
 ]
+duckdb = [
+    "duckdb>=0.10.0",
+]
+bigquery = [
+    "google-cloud-bigquery>=3.11.0",
+]
+redshift = [
+    "redshift-connector>=2.0.0",
+]
 mcp = [
     "mcp>=1.0",
 ]
@@ -151,8 +160,12 @@ module = [
     "aiohttp",
     "aiohttp.*",
     "azure.*",
+    "duckdb",
+    "duckdb.*",
     "google.cloud.*",
     "google.oauth2.*",
+    "redshift_connector",
+    "redshift_connector.*",
     "websockets",
     "websockets.*",
     "elasticsearch",
