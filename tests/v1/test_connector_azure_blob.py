@@ -25,12 +25,26 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+import pytest
+
 from omni_fetcher.v1.atoms import AtomKind
 from omni_fetcher.v1.auth import BasicAuth, BearerAuth
 from omni_fetcher.v1.connectors import azure_blob as azure_module
 from omni_fetcher.v1.connectors.azure_blob import AzureBlobFetcher
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.result import Error, Partial, Success
+
+
+@pytest.fixture(autouse=True)
+def _azure_available(monkeypatch):
+    """Force the extra on so the seam-driven tests run without azure-storage-blob.
+
+    These tests stub the client seam (``_client``), so no azure code is ever
+    reached; only the availability gate would short-circuit them into an
+    ``UNSUPPORTED`` before the logic under test runs. Tests that assert the
+    *unavailable* path patch the flag back off.
+    """
+    monkeypatch.setattr(azure_module, "AZURE_AVAILABLE", True)
 
 
 class _AzureError(Exception):

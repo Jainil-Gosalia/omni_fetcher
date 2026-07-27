@@ -25,12 +25,12 @@ broker access flows through the ``_consume`` seam so tests script a fake.
 from __future__ import annotations
 
 import asyncio
-import importlib.util
 from datetime import datetime
 from typing import Any, AsyncGenerator, AsyncIterator, Optional
 
 from omni_fetcher.v1.auth import AuthCredential, OAuth2Auth
 from omni_fetcher.v1.connectors._messaging import build_message_result
+from omni_fetcher.v1.connectors._optional import module_available
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.mapping import SequenceCounter
@@ -40,7 +40,7 @@ from omni_fetcher.v1.zoom import ZoomSpec
 SOURCE_NAMESPACE = "pubsub"
 
 # Whether the optional google-cloud-pubsub client is importable (``pubsub`` extra).
-PUBSUB_AVAILABLE = importlib.util.find_spec("google.cloud.pubsub_v1") is not None
+PUBSUB_AVAILABLE = module_available("google.cloud.pubsub_v1")
 
 _SCHEME = "pubsub://"
 _MAX_MESSAGES = 10
@@ -219,7 +219,7 @@ class PubSubConnector(BaseFetcher):
     @staticmethod
     def _client(access_token: str) -> Any:
         """Build a synchronous Pub/Sub ``SubscriberClient`` from an access token."""
-        from google.cloud import pubsub_v1
+        from google.cloud import pubsub_v1  # type: ignore[attr-defined]
         from google.oauth2.credentials import Credentials
 
         credentials = Credentials(token=access_token)

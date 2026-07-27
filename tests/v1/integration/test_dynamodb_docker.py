@@ -2,7 +2,7 @@
 
 Drives ``DynamoDBConnector`` through its real ``boto3`` resource path against the
 official ``amazon/dynamodb-local`` container. The endpoint is supplied to boto3
-via the standard ``AWS_ENDPOINT_URL`` environment variable, so the connector is
+via the standard ``AWS_ENDPOINT_URL_DYNAMODB`` environment variable, so the connector is
 unchanged. Skipped unless DynamoDB Local is reachable at
 ``$OMNI_TEST_DYNAMO_ENDPOINT`` (default ``http://localhost:8000``).
 
@@ -26,7 +26,9 @@ from omni_fetcher.v1.result import Error, Success
 
 _ENDPOINT = os.environ.get("OMNI_TEST_DYNAMO_ENDPOINT", "http://localhost:8000")
 # Set the global endpoint override before boto3's default session is created.
-os.environ["AWS_ENDPOINT_URL"] = _ENDPOINT
+# Service-specific override so this can run in the same process as the Kinesis
+# integration test (which points at a different endpoint) without colliding.
+os.environ["AWS_ENDPOINT_URL_DYNAMODB"] = _ENDPOINT
 
 pytest.importorskip("boto3")
 import boto3  # noqa: E402

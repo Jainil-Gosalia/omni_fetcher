@@ -2,7 +2,7 @@
 
 Drives ``KinesisConnector`` through its real ``boto3`` code path against a
 LocalStack Kinesis. The endpoint is supplied to boto3 via the standard
-``AWS_ENDPOINT_URL`` environment variable (botocore's global override), so the
+``AWS_ENDPOINT_URL_KINESIS`` environment variable (botocore's per-service override), so the
 connector itself is unchanged. Skipped unless LocalStack is reachable at
 ``$OMNI_TEST_AWS_ENDPOINT`` (default ``http://localhost:4566``).
 
@@ -27,7 +27,9 @@ _ENDPOINT = os.environ.get("OMNI_TEST_AWS_ENDPOINT", "http://localhost:4566")
 # Set the global endpoint override BEFORE boto3's default session is created, so
 # every client in this process (setup + the connector's own) resolves to
 # LocalStack. The connector is unchanged; this is the standard AWS env override.
-os.environ["AWS_ENDPOINT_URL"] = _ENDPOINT
+# Service-specific override so this can run in the same process as the DynamoDB
+# integration test (which points at a different endpoint) without colliding.
+os.environ["AWS_ENDPOINT_URL_KINESIS"] = _ENDPOINT
 
 pytest.importorskip("boto3")
 import boto3  # noqa: E402
@@ -64,7 +66,7 @@ def _client():
 def kinesis_stream():
     """Create a stream, put two records, and point the connector at LocalStack."""
     # Force a fresh default session so the connector's boto3.client() re-reads
-    # AWS_ENDPOINT_URL (a session cached by an earlier test would ignore it).
+    # AWS_ENDPOINT_URL_KINESIS (a session cached by an earlier test would ignore it).
     boto3.DEFAULT_SESSION = None
     try:
         client = _client()
