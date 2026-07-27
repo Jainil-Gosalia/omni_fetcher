@@ -26,6 +26,18 @@ from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.result import Error, Success
 
 
+@pytest.fixture(autouse=True)
+def _bigquery_available(monkeypatch):
+    """Force the extra on so the seam-driven tests run without google-cloud-bigquery.
+
+    These tests stub the client seam (``_make_executor`` / ``_build_client``),
+    so no google-cloud code is ever reached; only the availability gate would
+    short-circuit them into an ``UNSUPPORTED`` before the logic under test
+    runs. Tests that assert the *unavailable* path patch the flag back off.
+    """
+    monkeypatch.setattr(bigquery_module, "BIGQUERY_AVAILABLE", True)
+
+
 class _GoogleError(Exception):
     """A google-cloud exception stand-in carrying an HTTP status ``code``."""
 
@@ -246,11 +258,18 @@ class _FakeClient:
 
 
 async def test_executor_dry_run_allows_select(monkeypatch):
+    # Unlike the connector-level tests above, these drive the real executor,
+    # whose _run_sync imports google.cloud.bigquery for QueryJobConfig before
+    # it ever reaches the _build_client seam. Forcing the availability flag
+    # cannot help; the SDK has to be present.
+    pytest.importorskip("google.cloud.bigquery", reason="the 'bigquery' extra is not installed")
     recorder: dict = {"queries": []}
     client = _FakeClient(
         "SELECT", [_FakeSchemaField("id")], [_FakeRow([1]), _FakeRow([2])], recorder
     )
-    monkeypatch.setattr(bigquery_module, "_build_client", lambda project, token, endpoint=None: client)
+    monkeypatch.setattr(
+        bigquery_module, "_build_client", lambda project, token, endpoint=None: client
+    )
 
     executor = _BigQueryExecutor("proj", "tok")
     columns, rows = await executor.run("SELECT id FROM `proj`.`ds`.`t`", 1000)
@@ -262,9 +281,12 @@ async def test_executor_dry_run_allows_select(monkeypatch):
 
 
 async def test_executor_dry_run_refuses_non_select(monkeypatch):
+    pytest.importorskip("google.cloud.bigquery", reason="the 'bigquery' extra is not installed")
     recorder: dict = {"queries": []}
     client = _FakeClient("DELETE", [], [], recorder)
-    monkeypatch.setattr(bigquery_module, "_build_client", lambda project, token, endpoint=None: client)
+    monkeypatch.setattr(
+        bigquery_module, "_build_client", lambda project, token, endpoint=None: client
+    )
 
     executor = _BigQueryExecutor("proj", "tok")
     with pytest.raises(_NonReadOnlyStatement):

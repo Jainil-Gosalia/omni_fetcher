@@ -25,12 +25,26 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+import pytest
+
 from omni_fetcher.v1.atoms import AtomKind
 from omni_fetcher.v1.auth import BearerAuth, OAuth2Auth
 from omni_fetcher.v1.connectors import gcs as gcs_module
 from omni_fetcher.v1.connectors.gcs import GCSFetcher
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.result import Error, Partial, Success
+
+
+@pytest.fixture(autouse=True)
+def _gcs_available(monkeypatch):
+    """Force the extra on so the seam-driven tests run without google-cloud-storage.
+
+    These tests stub the client seam (``_client`` / ``_bucket``), so no
+    google-cloud code is ever reached; only the availability gate would
+    short-circuit them into an ``UNSUPPORTED`` before the logic under test
+    runs. Tests that assert the *unavailable* path patch the flag back off.
+    """
+    monkeypatch.setattr(gcs_module, "GCS_AVAILABLE", True)
 
 
 class _GoogleError(Exception):

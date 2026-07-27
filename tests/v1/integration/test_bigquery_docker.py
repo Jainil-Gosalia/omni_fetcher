@@ -75,9 +75,9 @@ def seeded():
             client_options=ClientOptions(api_endpoint=_ENDPOINT),
         )
         client.query(f"CREATE TABLE {_FQTN} (id INT64, name STRING)").result(timeout=20)
-        client.query(
-            f"INSERT INTO {_FQTN} (id, name) VALUES (1, 'one'), (2, 'two')"
-        ).result(timeout=20)
+        client.query(f"INSERT INTO {_FQTN} (id, name) VALUES (1, 'one'), (2, 'two')").result(
+            timeout=20
+        )
     except Exception as exc:  # noqa: BLE001 - any failure = emulator not usable
         pytest.skip(f"BigQuery emulator not usable at {_ENDPOINT}: {exc}")
     yield
@@ -101,10 +101,7 @@ async def test_table_browse_against_hyphenated_project(seeded):
     # `?table=` browses `test-project.test-dataset.<table>` -- the project is
     # hyphenated, which would have been rejected before the BIGQUERY_IDENTIFIER
     # fix. The connector builds the backtick-quoted three-part SELECT itself.
-    uri = (
-        f"bigquery://{_PROJECT}/{_DATASET}"
-        f"?table={_TABLE}&endpoint={quote(_ENDPOINT, safe='')}"
-    )
+    uri = f"bigquery://{_PROJECT}/{_DATASET}?table={_TABLE}&endpoint={quote(_ENDPOINT, safe='')}"
 
     result = await _first(BigQueryConnector().stream(uri, auth=_AUTH))
 

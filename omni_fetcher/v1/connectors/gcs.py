@@ -30,12 +30,12 @@ touch GCS.
 from __future__ import annotations
 
 import asyncio
-import importlib.util
 from datetime import datetime
 from typing import Any, AsyncIterator, Optional
 
 from omni_fetcher.v1.auth import AuthCredential, OAuth2Auth
 from omni_fetcher.v1.connectors._object_store import build_file_node
+from omni_fetcher.v1.connectors._optional import module_available
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.mapping import SequenceCounter, now_utc, stamp_temporal
@@ -46,7 +46,7 @@ from omni_fetcher.v1.zoom import ZoomSpec
 SOURCE_NAMESPACE = "gcs"
 
 # Whether the optional google-cloud-storage client is importable (the ``gcs`` extra).
-GCS_AVAILABLE = importlib.util.find_spec("google.cloud.storage") is not None
+GCS_AVAILABLE = module_available("google.cloud.storage")
 
 _SCHEME = "gs://"
 
@@ -264,7 +264,7 @@ class GCSFetcher(BaseFetcher):
         explicit placeholder project (object reads do not use it) so the client
         never falls back to reading the ambient environment for a default.
         """
-        from google.cloud import storage
+        from google.cloud import storage  # type: ignore[attr-defined]
         from google.oauth2.credentials import Credentials
 
         credentials = Credentials(token=access_token)

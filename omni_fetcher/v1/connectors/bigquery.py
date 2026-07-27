@@ -37,12 +37,12 @@ flows through the ``_build_client`` seam so tests script a fake.
 
 from __future__ import annotations
 
-import importlib.util
 import os
 from typing import Any, AsyncIterator, Optional, Protocol
 from urllib.parse import parse_qs
 
 from omni_fetcher.v1.auth import AuthCredential, OAuth2Auth
+from omni_fetcher.v1.connectors._optional import module_available
 from omni_fetcher.v1.connectors._sql_query import (
     BIGQUERY_IDENTIFIER,
     MYSQL_QUOTE,
@@ -60,7 +60,7 @@ from omni_fetcher.v1.zoom import ZoomSpec
 SOURCE_NAMESPACE = "bigquery"
 
 # Whether the optional google-cloud-bigquery client is importable (``bigquery`` extra).
-BIGQUERY_AVAILABLE = importlib.util.find_spec("google.cloud.bigquery") is not None
+BIGQUERY_AVAILABLE = module_available("google.cloud.bigquery")
 
 _SCHEME = "bigquery://"
 
@@ -121,9 +121,7 @@ def _build_client(project: str, access_token: str, endpoint: Optional[str] = Non
 
     credentials = Credentials(token=access_token)
     client_options = ClientOptions(api_endpoint=endpoint) if endpoint else None
-    return bigquery.Client(
-        project=project, credentials=credentials, client_options=client_options
-    )
+    return bigquery.Client(project=project, credentials=credentials, client_options=client_options)
 
 
 class _BigQueryExecutor:

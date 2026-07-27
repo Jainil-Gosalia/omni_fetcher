@@ -11,13 +11,17 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-import duckdb
+import pytest
 
 from omni_fetcher.v1.atoms import AtomKind
 from omni_fetcher.v1.connectors import duckdb_query as duckdb_module
 from omni_fetcher.v1.connectors.duckdb_query import DuckDBQueryConnector
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.result import Error, Success
+
+# These tests run against a real DuckDB file, so the extra must be installed;
+# skip cleanly (rather than error at collection) on a base install.
+duckdb = pytest.importorskip("duckdb")
 
 
 def _make_db(tmp_path) -> str:

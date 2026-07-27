@@ -32,13 +32,13 @@ touch Azure.
 from __future__ import annotations
 
 import asyncio
-import importlib.util
 from datetime import datetime
 from typing import Any, AsyncIterator, Optional
 from urllib.parse import parse_qs
 
 from omni_fetcher.v1.auth import AuthCredential, BasicAuth
 from omni_fetcher.v1.connectors._object_store import build_file_node
+from omni_fetcher.v1.connectors._optional import module_available
 from omni_fetcher.v1.errors import ErrorKind
 from omni_fetcher.v1.fetcher import BaseFetcher
 from omni_fetcher.v1.mapping import SequenceCounter, now_utc, stamp_temporal
@@ -49,7 +49,7 @@ from omni_fetcher.v1.zoom import ZoomSpec
 SOURCE_NAMESPACE = "azure"
 
 # Whether the optional azure-storage-blob client is importable (the ``azure`` extra).
-AZURE_AVAILABLE = importlib.util.find_spec("azure.storage.blob") is not None
+AZURE_AVAILABLE = module_available("azure.storage.blob")
 
 _SCHEMES = ("az://", "azure://")
 
