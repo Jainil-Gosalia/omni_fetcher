@@ -131,7 +131,7 @@ class ConfluenceFetcher(BaseFetcher):
             )
 
         auth_headers = self.get_auth_headers()
-        token = auth_headers.get("Authorization", "").replace("Bearer ", "")
+        token: str = auth_headers.get("Authorization", "").replace("Bearer ", "")
 
         if not token:
             token = os.environ.get("CONFLUENCE_TOKEN", "")
@@ -142,7 +142,7 @@ class ConfluenceFetcher(BaseFetcher):
                 "Confluence requires authentication. Set CONFLUENCE_TOKEN environment variable.",
             )
 
-        username = os.environ.get("CONFLUENCE_USER", "")
+        username: str = os.environ.get("CONFLUENCE_USER", "")
 
         url = base_url or os.environ.get("CONFLUENCE_URL", CONFLUENCE_CLOUD_URL)
 
@@ -447,7 +447,7 @@ class ConfluenceFetcher(BaseFetcher):
             try:
                 return await self._fetch_space(client, personal_space_key, uri, get_pages=get_pages)
             except Exception:
-                pass
+                pass  # Personal space may not exist, fallback to first space
 
         try:
             spaces_data = await asyncio.to_thread(

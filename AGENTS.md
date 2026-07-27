@@ -47,6 +47,21 @@ pytest -v
 pytest --pdb
 ```
 
+### Environment Variables for Testing
+
+Some tests require real credentials. The test suite loads `.env` files automatically via `python-dotenv`. Create a `.env` file in the project root with required variables:
+
+```bash
+# Example .env file
+CONFLUENCE_TOKEN=your_token_here
+CONFLUENCE_USER=your_email@company.com
+CONFLUENCE_URL=https://your-company.atlassian.net
+GITHUB_TOKEN=ghp_xxx
+NOTION_KEY=secret_xxx
+# ... other service tokens
+```
+
+
 ### Code Quality Tools
 
 ```bash
