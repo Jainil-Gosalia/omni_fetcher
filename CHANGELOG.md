@@ -5,6 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.0] - 2026-07-28
+
+Web pages become groundable. The `http_url` connector flattened every HTML page
+into one undifferentiated `PLAIN` atom; three defects followed from that single
+decision, the worst of which broke paragraph-addressed grounding *silently*.
+
+### Changed
+- **`http_url` now renders HTML to `MARKDOWN` by default** (was: flattened
+  `PLAIN`). Markdown is the only `TextFormat` that `decompose` splits at
+  `SECTION`, `PARAGRAPH` *and* `SENTENCE`, and the extraction discards
+  navigation, sidebar and comment chrome. **This changes the format of existing
+  results**: callers who require flat prose (embedding models, keyword indexes,
+  TTS) opt out per call with `?__omni_text_format=plain` on the URI, or per
+  instance with `HTTPURLConnector(text_format=TextFormat.PLAIN)`. The reserved
+  query key is stripped before the request, so it never reaches the origin
+  server and never appears in the recorded URLs. `source_extra["http_url"]`
+  gained a `text_format` field naming the format actually produced. This
+  restores behaviour the legacy fetcher already had and the v1 rewrite dropped.
+
+### Fixed
+- **`PARAGRAPH` decomposition no longer collapses a whole page into one
+  "paragraph".** Text was joined with single newlines, so it contained no
+  `\n\n`; the `PLAIN`/`PARAGRAPH` rule matched nothing and returned the entire
+  article as a single piece — while recording **no `Gap`**, because the rule
+  technically ran, making it indistinguishable from a genuine single-paragraph
+  document. Both renderings now emit real paragraph breaks.
+- **Page chrome no longer fuses into prose.** Only `script`/`style` were
+  dropped, and because the sentence rule needs terminal punctuation, chrome
+  without a period welded onto the following sentence — nav links, the title
+  and the article's opening line arriving as one "sentence" atom that no
+  downstream consumer could separate. Chrome containers are now block elements,
+  so page furniture lands in blocks of its own; `<head>` is dropped, since the
+  title is already carried as its own atom.
+- **Pages declaring their encoding only in `<meta charset>` no longer arrive as
+  mojibake.** `response.text` honours only the `Content-Type` header charset and
+  otherwise assumes UTF-8 with `errors="replace"`, and handing BeautifulSoup a
+  `str` meant its own detection never ran, so a cp1252 apostrophe became U+FFFD
+  before the parser saw it. HTML is now parsed from bytes with the header
+  charset as a hint.
+- **CI is green again after five red merges.** `importlib.util.find_spec` on a
+  *dotted* name imports the parent packages, so it raises rather than returning
+  `None` when the parent is absent — importing `azure_blob` crashed on any
+  install without the extra and aborted pytest collection entirely, so **no
+  tests ran at all**. New `connectors/_optional.module_available` wraps the
+  probe; the four dotted probes (azure, bigquery, gcs, pubsub) use it. The test
+  job now installs all 21 declared extras (a connector gated behind a missing
+  extra *fails* its seam-driven suite rather than skipping it), and the
+  Docker-backed `tests/v1/integration` tree is excluded alongside
+  `tests/integration`.
+- **The DynamoDB and Kinesis integration tests no longer collide.** Both set the
+  global `AWS_ENDPOINT_URL` to different endpoints, so whichever imported second
+  silently pointed the other at the wrong service; they now use botocore's
+  per-service `AWS_ENDPOINT_URL_DYNAMODB` / `_KINESIS` overrides.
+
+### Added
+- `AGENTS.md` documents the `.env` file the test suite loads via
+  `python-dotenv` for tests that need real credentials.
+- Coverage for parsing a Confluence *personal* space URL
+  (`/spaces/~<accountid>`).
+- A base-install CI assertion that `http_url` imports and reports
+  `TRAFILATURA_AVAILABLE is False` without the `web` extra.
+
+### Notes
+- Markdown rendering uses `trafilatura`, which ships in the existing `web`
+  extra. Without it the connector falls back to the plain rendering. An
+  *explicit* markdown request that cannot be met records an honest
+  `UNSUPPORTED` gap; merely defaulting to markdown does not, or every page
+  fetched on a base install would come back `Partial`. Either way an atom's
+  declared format describes what its bytes actually are — markdown that was not
+  produced is never labelled `MARKDOWN`.
+
 ## [1.16.1] - 2026-07-26
 
 ### Fixed
