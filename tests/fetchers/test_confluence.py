@@ -116,6 +116,12 @@ class TestParseConfluenceUri:
         route = parse_confluence_uri("https://omnifetcher.atlassian.net/wiki/")
         assert route["type"] == "root"
 
+    def test_parse_personal_space_url(self):
+        """Parse personal space URL with user ID."""
+        route = parse_confluence_uri("https://omnifetcher.atlassian.net/spaces/~1234567890abcdef")
+        assert route["type"] == "space"
+        assert route["space_key"] == "~1234567890abcdef"
+
 
 class TestConfluenceSchemas:
     def test_confluence_page_tags(self):
