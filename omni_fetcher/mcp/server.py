@@ -300,7 +300,14 @@ def build_server(
 
         Args:
             uri: The source URI (a file path, https URL, or a scheme like
-                github://, jira://, s3://, ...).
+                github://, jira://, s3://, ...). For an http(s) page, append
+                "?__omni_text_format=plain" to get flattened prose instead of
+                the default markdown -- use it when markdown syntax is noise
+                (embedding, keyword indexing, speech). The key is stripped
+                before the request and never reaches the site. Markdown is a
+                better default for anything that quotes or cites a passage:
+                it drops nav/footer chrome and is the only format that can be
+                addressed by section as well as paragraph and sentence.
             zoom: Optional decomposition depth, e.g. "text=paragraph" or
                 "text=sentence,image=whole".
             tags: Optional advisory labels merged into the result's metadata.
@@ -341,7 +348,8 @@ def build_server(
         from the server's environment -- never pass a token here.
 
         Args:
-            uri: The source URI to sample.
+            uri: The source URI to sample. An http(s) URI accepts the same
+                "?__omni_text_format=plain" key documented on `fetch`.
             max_items: Maximum items to collect (default 10).
             timeout_seconds: Wall-clock budget; stop even if fewer arrive
                 (default 30). An idle stream yields a retryable `transient`.

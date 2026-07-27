@@ -163,6 +163,11 @@ jobs:
           assert DOCX_AVAILABLE is False, "expected a base install without [office]"
           assert PPTX_AVAILABLE is False, "expected a base install without [office]"
 
+          # http_url has no hard dependency on [web]: it must import, and fall
+          # back to the plain rendering, when trafilatura is absent.
+          from omni_fetcher.v1.connectors.http_url import TRAFILATURA_AVAILABLE
+          assert TRAFILATURA_AVAILABLE is False, "expected a base install without [web]"
+
           from omni_fetcher.v1 import Success
           from omni_fetcher.v1.connectors.local_file import LocalFileFetcher
 
