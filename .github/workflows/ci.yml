@@ -68,10 +68,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # Every extra, deliberately. A connector gated behind a missing extra
+      # short-circuits to UNSUPPORTED before the logic under test runs, so a
+      # partial install does not "skip" those suites -- it fails them, and it
+      # did so for twelve extras. Base-install behaviour is not this job's
+      # concern: the dedicated smoke job below installs the bare wheel and
+      # asserts the extras stay deferred.
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,office,web,gdrive,confluence,slack,jira,kafka,mcp]"
+          pip install -e ".[dev,office,web,gdrive,confluence,slack,jira,kafka,websockets,elasticsearch,postgres,mysql,gcs,azure,duckdb,bigquery,redshift,pubsub,amqp,mongodb,mcp]"
 
       # tests/integration hits live services (httpbin, wikipedia,
       # YouTube, ...) and needs real credentials; it is for local,
