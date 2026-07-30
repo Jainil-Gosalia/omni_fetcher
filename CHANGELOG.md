@@ -58,6 +58,17 @@ decision, the worst of which broke paragraph-addressed grounding *silently*.
   global `AWS_ENDPOINT_URL` to different endpoints, so whichever imported second
   silently pointed the other at the wrong service; they now use botocore's
   per-service `AWS_ENDPOINT_URL_DYNAMODB` / `_KINESIS` overrides.
+- **The `mcp` extra is capped below 2.0.** The MCP SDK's 2.0 release removed
+  `mcp.server.fastmcp`, which `omni_fetcher.mcp.server` is built on, and
+  dropped `create_connected_server_and_client_session` from
+  `mcp.shared.memory`. The unpinned `mcp>=1.0` resolved to it on the next
+  fresh install and turned every MCP test module into a collection error.
+  Installing `omni-fetcher[mcp]` now yields a 1.x SDK; adopting the 2.x API is
+  a deliberate migration rather than something a dependency resolve decides.
+- **The publish workflow's test gate is in step with CI's.** It installed 9 of
+  the 21 extras and excluded only one of the two integration trees, so a
+  release would have failed its own gate — the same two defects fixed in the
+  CI job above.
 
 ### Added
 - `AGENTS.md` documents the `.env` file the test suite loads via
