@@ -122,7 +122,15 @@ mongodb = [
     "motor>=3.3.0",
 ]
 mcp = [
-    "mcp>=1.0",
+    # Capped below 2.0: the MCP SDK's 2.0 release removed ``mcp.server.fastmcp``
+    # (which ``omni_fetcher.mcp.server`` builds on) and dropped
+    # ``create_connected_server_and_client_session`` from ``mcp.shared.memory``
+    # (which the MCP integration test drives the server through). An unpinned
+    # ``>=1.0`` silently picked 2.0 up and turned every MCP test module into a
+    # collection error plus a mypy import-not-found -- red on a commit that
+    # touched nothing related. Adopting the 2.x API is a deliberate migration,
+    # not something a fresh resolve should do on our behalf.
+    "mcp>=1.0,<2.0",
 ]
 
 [tool.setuptools.packages.find]
